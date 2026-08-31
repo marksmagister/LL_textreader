@@ -1,0 +1,40 @@
+# --- the database: reading history, grows to tens of MB, never commit ---
+*.db
+*.db-wal
+*.db-shm
+data/
+
+# --- third-party data & models: downloaded by scripts/, never vendored ---
+# (licence hygiene — see NOTICE)
+models/
+*.epub
+*.pdf
+
+# --- python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# --- node ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# --- secrets & local config ---
+.env
+.env.local
+*.local
+
+# --- os / editor ---
+.DS_Store
+.idea/
+.vscode/
+*.swp

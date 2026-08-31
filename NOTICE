@@ -1,0 +1,23 @@
+LL_textreader
+Copyright (C) 2026 marksmagister
+Licensed under the GNU Affero General Public License v3.0 — see LICENSE.
+
+This repository contains no third-party data. The setup scripts in scripts/
+download the following into data/, where each keeps its own licence:
+
+- Wiktionary-derived dictionary data (via kaikki.org)
+  Wiktionary content is CC BY-SA 3.0 / GFDL. Attribution required; the
+  share-alike terms follow the data, not this codebase.
+  https://kaikki.org  ·  https://www.wiktionary.org
+
+- spaCy (MIT) and its language models, whose licences vary per model
+  (commonly MIT or CC BY-SA).  https://spacy.io
+
+- Stanza (Apache 2.0) and Universal Dependencies models.
+  https://stanfordnlp.github.io/stanza  ·  https://universaldependencies.org
+
+- CAMeL Tools / Farasa for Arabic morphological analysis — check the licence of
+  the specific analyser before shipping anything that depends on it.
+
+Texts you import are yours. LL_textreader is single-instance by design and does not
+host or redistribute anyone's reading material.

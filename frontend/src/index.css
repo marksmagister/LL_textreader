@@ -1,0 +1,35 @@
+:root {
+  /* The three token states. This palette is the product. */
+  --tok-new: #cfe4ff;        /* never seen */
+  --tok-learning: #ffe9a8;   /* status 1-4 */
+  --tok-novel-form: #eef3d9; /* known lemma, inflection not met before */
+  --tok-known: transparent;
+
+  --fg: #1a1a1a;
+  --bg: #fdfdfb;
+
+  font-family: Georgia, 'Iowan Old Style', serif;
+  color: var(--fg);
+  background: var(--bg);
+  line-height: 1.9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tok-new: #24405f;
+    --tok-learning: #5a4a1c;
+    --tok-novel-form: #34401f;
+    --fg: #e8e6e1;
+    --bg: #16181a;
+  }
+}
+
+body { margin: 0; }
+
+main { max-width: 40rem; margin: 0 auto; padding: 3rem 1.5rem; }
+
+.tok { border-radius: 3px; padding: 0 1px; cursor: pointer; }
+.tok--new { background: var(--tok-new); }
+.tok--learning { background: var(--tok-learning); }
+.tok--novel-form { background: var(--tok-novel-form); }
+.tok--known { background: var(--tok-known); cursor: default; }
