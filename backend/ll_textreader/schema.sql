@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS lesson (
     audio_path    TEXT,
     -- which pipeline produced this lesson's tokens. A model upgrade makes
     -- stored streams stale; this is how you find what to reprocess.
-    pipeline_id   TEXT    NOT NULL,          -- e.g. "spacy/nl_core_news_lg@3.7.0"
+    pipeline_id   TEXT    NOT NULL,          -- e.g. "spacy/fr_core_news_md@3.8.0"
     imported_at   TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 

@@ -5,6 +5,10 @@ from .config import settings
 
 SCHEMA = Path(__file__).with_name("schema.sql")
 
+# Single-instance, single-user (CLAUDE.md). user_id exists in the schema so that
+# assumption is cheap to drop; until then everything is this row.
+USER_ID = 1
+
 
 def connect() -> sqlite3.Connection:
     settings.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -18,3 +22,4 @@ def init_db() -> None:
     """Apply schema.sql. It is written to be idempotent (CREATE ... IF NOT EXISTS)."""
     with connect() as conn:
         conn.executescript(SCHEMA.read_text())
+        conn.execute("INSERT OR IGNORE INTO user (id, name) VALUES (?, 'me')", (USER_ID,))

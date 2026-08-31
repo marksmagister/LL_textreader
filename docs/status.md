@@ -18,7 +18,7 @@ Not built: importer, lemmatiser, dictionary, reader view, lookup panel.
 
 ## Next
 
-1. **French pipeline** — spaCy `fr_core_news_lg` → token stream, computed at import and
+1. **French pipeline** — spaCy `fr_core_news_md` → token stream, computed at import and
    stored. First real test of the data model against actual text.
 2. **Plain-text importer**, then EPUB.
 3. **Reader view** against real lessons, and the lookup panel.
