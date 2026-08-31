@@ -19,7 +19,7 @@ class StubAdapter:
     pipeline_id = "stub@0"
 
     def analyse(self, text: str) -> list[AnalysedToken]:
-        out = []
+        out, sent = [], 0
         for m in re.finditer(r"\w+|[^\w\s]", text):
             word = m.group()
             lexical = word.isalpha()
@@ -32,9 +32,11 @@ class StubAdapter:
                     pos="VERB" if lexical else None,
                     char_start=m.start(),
                     char_end=m.end(),
-                    sent_id=0,
+                    sent_id=sent,
                 )
             )
+            if word in ".!?":
+                sent += 1
         return out
 
 

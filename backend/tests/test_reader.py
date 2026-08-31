@@ -79,6 +79,18 @@ def test_mark_rest_known_clears_the_page(client):
     assert set(states(client, lesson["id"]).values()) == {"known"}
 
 
+def test_mark_rest_known_leaves_learning_words_alone(client):
+    """ "Rest" means the blue ones. A word you are part-way through learning is not
+    "the rest" — you made a decision about it and the button must not undo it."""
+    lesson = make_lesson(client)
+    client.put("/api/terms", json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": 2})
+    client.post(f"/api/lessons/{lesson['id']}/finish", json={"mark_rest_known": True})
+
+    s = states(client, lesson["id"])
+    assert s["quai"] == "learning"  # still yellow
+    assert s["long"] == "known"  # was blue, now cleared
+
+
 def test_mark_rest_known_leaves_ignored_words_ignored(client):
     lesson = make_lesson(client)
     client.put("/api/terms", json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": -1})

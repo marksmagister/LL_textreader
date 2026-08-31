@@ -63,7 +63,11 @@ function Library({ onOpen }: { onOpen: (id: number) => void }) {
             <button className="link" onClick={() => onOpen(l.id)}>
               {l.title}
             </button>
-            <span className="meta">{l.n_words} words</span>
+            <span className="meta">
+              {l.n_words} words
+              {l.last_token > 0 &&
+                ` · ${Math.round((l.last_token / l.n_tokens) * 100)}% read`}
+            </span>
             <button onClick={() => deleteLesson(l.id).then(load)}>delete</button>
           </li>
         ))}

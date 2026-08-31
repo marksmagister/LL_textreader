@@ -49,6 +49,13 @@ bad model decision is unfixable and the colouring stops being trusted.
 it and spans are overlaid at render. Never rebuild display text from tokens: Arabic
 segmentation is one-to-many, and any lossy tokenisation would silently corrupt the text.
 
+## Pages are derived, position is a token index
+
+A lesson is stored whole; pages are computed from the token stream on each read and
+never stored. `reading_progress.last_token` is a token index, not a page number, so
+the page size is free to change — an imported book reflows and every reader keeps
+their place. Storing page numbers would have frozen the layout the day it was imported.
+
 ## Difficulty is not a property of a lesson
 
 Blue density in a text is a per-user score. Content filtering and recommendation derive

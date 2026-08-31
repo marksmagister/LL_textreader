@@ -16,6 +16,29 @@ not spend pilot time making it work. Dutch comes last.
 conventions* (changes on a decision); `docs/status.md` holds *state* (changes on an event).
 Don't duplicate one into the other. Everything about this project lives in this repo.
 
+## Boring on purpose
+
+This is the cornerstone, above every specific rule below.
+
+The characteristic failure of AI-written software is bloat: layers nobody asked for,
+abstractions with a single implementation, options no one will ever set, five files
+doing one file's work. It reads as thoroughness. It is a tax you pay on every return
+visit, and it buries the ideas that actually matter under ceremony.
+
+So build the smallest thing that genuinely works, out of boring parts:
+
+- No abstraction until there is a second caller. One implementation is not a pattern.
+- No flag, option or config key until something real needs to differ. Hardcode it and
+  move it when that stops being true.
+- No dependency that replaces twenty lines you could read.
+- Prefer a function to a class, a class to a framework, and raw SQL to any of them.
+- Ship vertical slices, not layers. If you can't demonstrate it in the running app,
+  it isn't built.
+- Delete rather than deprecate. One user, no API contract, no audience to keep happy.
+
+A change that makes the codebase bigger without making it clearer is the wrong change.
+Every file here should be one you'd be willing to read on a bad day.
+
 ## The core model
 
 The atomic unit is a status per user per word — but keyed on the **lemma**, not the
@@ -68,6 +91,7 @@ which is the only useful distinction in Russian or Arabic.
 backend/ll_textreader/
   main.py        FastAPI app
   db.py          sqlite connection, migrations
+  config.py      env-backed settings
   schema.sql     the source of truth for the schema
   models.py      pydantic types shared with the API
   nlp/           tokenise + lemmatise -> token stream
@@ -84,8 +108,9 @@ data/            gitignored: the sqlite db, downloaded models, imported texts
 ## Conventions
 
 - **Python 3.12** (not 3.13/3.14 — spaCy and Stanza lag). `uv` for envs and deps.
-- Default language is `fr`. A language is added by dropping an adapter into
-  `nlp/languages/` — no other file should need to know it exists.
+- Default language is `fr`. A language is added by dropping `<code>.py` into
+  `nlp/languages/` exposing `adapter()` — an object with `lang`, `pipeline_id` and
+  `analyse(text) -> list[AnalysedToken]`. No other file should learn it exists.
 - **SQLite, single file, no ORM** unless it starts hurting. Raw SQL in `schema.sql`;
   it stays readable and it is the thing you'll reason about most.
 - Backend formatting/lint: `ruff`. Types: `pyright` where it's cheap.

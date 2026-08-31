@@ -11,7 +11,9 @@ async function call<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const listLessons = () => call<LessonSummary[]>('/api/lessons')
 
-export const readLesson = (id: number) => call<LessonDetail>(`/api/lessons/${id}`)
+/** Omit `page` to resume where you stopped. */
+export const readLesson = (id: number, page?: number) =>
+  call<LessonDetail>(`/api/lessons/${id}` + (page === undefined ? '' : `?page=${page}`))
 
 export const deleteLesson = (id: number) =>
   call<void>(`/api/lessons/${id}`, { method: 'DELETE' })
@@ -32,8 +34,8 @@ export const setTerm = (t: {
   context?: string | null
 }) => call<{ state: string }>('/api/terms', { method: 'PUT', body: JSON.stringify(t) })
 
-export const finishLesson = (id: number, markRestKnown: boolean) =>
+export const finishPage = (id: number, page: number, markRestKnown: boolean) =>
   call<LessonSummary>(`/api/lessons/${id}/finish`, {
     method: 'POST',
-    body: JSON.stringify({ mark_rest_known: markRestKnown }),
+    body: JSON.stringify({ page, mark_rest_known: markRestKnown }),
   })

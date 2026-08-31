@@ -48,10 +48,20 @@ class LessonSummary(BaseModel):
     imported_at: str
     n_tokens: int
     n_words: int
+    last_token: int = 0  # where you stopped; 0 = not started
 
 
 class LessonDetail(LessonSummary):
-    body: str  # the original text. Spans are overlaid onto this; never rebuilt.
+    """One page of a lesson.
+
+    Pages are derived from the token stream at read time, not stored, so position
+    is a token index and stays valid if PAGE_TOKENS ever changes.
+    """
+
+    page: int
+    n_pages: int
+    body: str  # this page's slice of the original text. Spans overlay it; never rebuilt.
+    body_offset: int  # where the slice starts, so token offsets stay absolute
     tokens: list[ReaderToken]
 
 
@@ -74,7 +84,9 @@ class TermUpdate(BaseModel):
 
 
 class FinishRequest(BaseModel):
-    # The pressure valve (CLAUDE.md rule 8): everything still blue becomes known.
+    page: int = 0
+    # The pressure valve (CLAUDE.md rule 8): everything still blue on this page
+    # becomes known.
     mark_rest_known: bool = False
 
 

@@ -19,8 +19,9 @@ difference between a useful word count and a fictional one.
 
 ## Status
 
-Early — skeleton only, nothing to read yet. First target is **French**, then possibly
-Russian. Arabic is designed for but deliberately not built yet; Dutch comes last.
+**French works.** Paste text or open a `.txt`, read it coloured, click words as you go.
+Russian is one adapter file away; Arabic is designed for but deliberately not built yet;
+Dutch comes last. No dictionary glosses yet — the lookup panel takes your own note.
 Current state and roadmap: `docs/status.md`.
 
 ## Setup
@@ -30,14 +31,24 @@ Requires Python 3.12 and Node 20+.
 ```bash
 git clone git@github.com:marksmagister/LL_textreader.git
 cd LL_textreader
-uv sync                      # backend deps
-./scripts/setup-models.sh fr # downloads NLP models — not vendored, see NOTICE
-./scripts/setup-dictionary.sh fr
+uv sync --extra nlp          # backend deps, incl. spaCy
+./scripts/setup-models.sh fr # ~45MB, not vendored — see NOTICE
 cp .env.example .env
-uv run uvicorn ll_textreader.main:app --reload --app-dir backend
+```
 
+Then two terminals:
+
+```bash
+uv run uvicorn ll_textreader.main:app --reload --app-dir backend
+```
+
+```bash
 cd frontend && npm install && npm run dev
 ```
+
+Open `http://localhost:5173`. Paste a few paragraphs of French, hit Import, and read.
+Everything is blue at first — click a word, give it a status, and use **Mark rest
+known** freely; it's the pressure valve, not cheating.
 
 ## Licence
 
