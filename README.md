@@ -21,6 +21,7 @@ difference between a useful word count and a fictional one.
 
 Early — skeleton only, nothing to read yet. First target is **French**, then possibly
 Russian. Arabic is designed for but deliberately not built yet; Dutch comes last.
+Current state and roadmap: `docs/status.md`.
 
 ## Setup
 

@@ -12,10 +12,9 @@ it is the hardest case, and the data model below exists because of it — but th
 not have to handle its edge cases. Build so Arabic *can* land later without a rewrite; do
 not spend pilot time making it work. Dutch comes last.
 
-**Project status, decisions log and next steps live in the vault, not here:**
-`~/Library/Mobile Documents/iCloud~md~obsidian/Documents/project_database/Projects/LL_textreader/Overview.md`
-This file describes *design and conventions* (changes on a decision). The Overview holds
-*state* (changes on an event). Don't duplicate one into the other.
+**Current state and next steps: `docs/status.md`.** This file describes *design and
+conventions* (changes on a decision); `docs/status.md` holds *state* (changes on an event).
+Don't duplicate one into the other. Everything about this project lives in this repo.
 
 ## The core model
 
