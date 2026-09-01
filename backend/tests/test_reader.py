@@ -146,9 +146,11 @@ def test_tokens_say_whether_you_overrode_them(client):
 
 
 def test_a_blank_import_is_refused(client):
-    """Whitespace passes a min-length check; cleaning is what decides."""
+    """Whitespace passes a min-length check; cleaning is what decides. Text is
+    optional now that a url can be given instead, so both empty cases are 400."""
     assert client.post("/api/lessons", json={"text": "   \n  ", "lang": "fr"}).status_code == 400
-    assert client.post("/api/lessons", json={"text": "", "lang": "fr"}).status_code == 422
+    assert client.post("/api/lessons", json={"text": "", "lang": "fr"}).status_code == 400
+    assert client.post("/api/lessons", json={"lang": "fr"}).status_code == 400
     assert client.get("/api/lessons").json() == []
 
 

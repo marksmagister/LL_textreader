@@ -6,6 +6,8 @@ import sqlite3
 from fastapi import APIRouter, HTTPException
 
 from ..db import USER_ID, connect
+from ..importers import from_url
+from ..importers.from_url import BadUrl
 from ..importers.plain_text import clean, import_text
 from ..models import (
     FinishRequest,
@@ -116,7 +118,15 @@ def _lesson_row(conn: sqlite3.Connection, lesson_id: int) -> sqlite3.Row:
 @router.post("", response_model=LessonSummary, status_code=201)
 def create_lesson(req: ImportRequest) -> LessonSummary:
     """Import plain text. Tokenising and lemmatising happen here, once."""
-    if not clean(req.text):
+    text, title, source = req.text, req.title, req.source
+    if req.url:
+        try:
+            text, page_title = from_url.fetch(req.url)
+        except BadUrl as exc:
+            raise HTTPException(400, str(exc)) from None
+        title = title or page_title
+        source = source or req.url
+    if not clean(text):
         # min_length on the field passes whitespace; cleaning is what decides
         raise HTTPException(400, "no text to import")
     with connect() as conn:
@@ -125,9 +135,9 @@ def create_lesson(req: ImportRequest) -> LessonSummary:
                 conn,
                 user_id=USER_ID,
                 lang=req.lang,
-                text=req.text,
-                title=req.title,
-                source=req.source,
+                text=text,
+                title=title,
+                source=source,
             )
         except UnknownLanguage:
             raise HTTPException(400, f"no adapter for language {req.lang!r}") from None

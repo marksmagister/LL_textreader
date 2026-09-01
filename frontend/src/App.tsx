@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import Reader from './Reader'
+import Report from './Report'
 import Vocab from './Vocab'
-import { deleteLesson, importText, listLessons, undoBulk } from './api'
+import { deleteLesson, importText, importUrl, listLessons, undoBulk } from './api'
 import type { LessonSummary } from './types'
 
 const LANG = 'fr'
@@ -33,6 +34,7 @@ function Shape({ lesson }: { lesson: LessonSummary }) {
 function Library({ onOpen, onVocab }: { onOpen: (id: number) => void; onVocab: () => void }) {
   const [lessons, setLessons] = useState<LessonSummary[]>([])
   const [text, setText] = useState('')
+  const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState('')
 
@@ -42,11 +44,14 @@ function Library({ onOpen, onVocab }: { onOpen: (id: number) => void; onVocab: (
   }, [])
 
   const submit = async () => {
-    if (!text.trim()) return
-    setBusy('importing — lemmatising, this takes a moment…')
+    if (!text.trim() && !url.trim()) return
+    setBusy(url.trim() ? 'fetching the page…' : 'importing — lemmatising, this takes a moment…')
     try {
-      const lesson = await importText(text, title, LANG)
+      const lesson = url.trim()
+        ? await importUrl(url.trim(), title, LANG)
+        : await importText(text, title, LANG)
       setText('')
+      setUrl('')
       setTitle('')
       setBusy('')
       onOpen(lesson.id)
@@ -68,6 +73,11 @@ function Library({ onOpen, onVocab }: { onOpen: (id: number) => void; onVocab: (
           value={title}
           placeholder="title (optional)"
           onChange={(e) => setTitle(e.target.value)}
+        />
+        <input
+          value={url}
+          placeholder="…or paste the address of an article"
+          onChange={(e) => setUrl(e.target.value)}
         />
         <textarea
           value={text}
@@ -223,6 +233,7 @@ export default function App() {
         <Vocab key={refresh} lang={LANG} onBack={() => setView({ at: 'library' })} />
       )}
       {palette && <Palette commands={commands} onClose={() => setPalette(false)} />}
+      <Report lessonId={view.at === 'reader' ? view.id : undefined} />
     </>
   )
 }

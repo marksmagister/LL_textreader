@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
-from .api import dictionary, lessons, terms, vocab
+from .api import dictionary, lessons, reports, terms, vocab
 from .config import REPO_ROOT, settings
 from .db import init_db
 
@@ -54,6 +54,7 @@ async def require_password(request: Request, call_next):
 
 app.include_router(dictionary.router)
 app.include_router(lessons.router)
+app.include_router(reports.router)
 app.include_router(terms.router)
 app.include_router(vocab.router)
 

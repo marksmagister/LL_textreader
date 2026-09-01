@@ -24,6 +24,13 @@ export const importText = (text: string, title: string | null, lang: string) =>
     body: JSON.stringify({ text, title: title || null, lang }),
   })
 
+/** Fetch an article and import it. The server does the fetching. */
+export const importUrl = (url: string, title: string | null, lang: string) =>
+  call<LessonSummary>('/api/lessons', {
+    method: 'POST',
+    body: JSON.stringify({ url, title: title || null, lang }),
+  })
+
 export const setTerm = (t: {
   lang: string
   lemma: string
@@ -89,3 +96,10 @@ export const exportUrl = (
   if (opts.keys?.length) p.set('keys', opts.keys.join(','))
   return `/api/vocab/export?${p}`
 }
+
+/** Tell the maintainer something is wrong. */
+export const sendReport = (text: string, lesson_id?: number, page?: number) =>
+  call<{ id: number }>('/api/reports', {
+    method: 'POST',
+    body: JSON.stringify({ text, lesson_id: lesson_id ?? null, page: page ?? null }),
+  })

@@ -77,8 +77,10 @@ class LessonDetail(LessonSummary):
 
 
 class ImportRequest(BaseModel):
-    text: str = Field(min_length=1)
-    title: str | None = None  # defaults to the first line of the text
+    # One of the two. A url is fetched and its article text used.
+    text: str = Field(default="", min_length=0)
+    url: str | None = None
+    title: str | None = None  # defaults to the page title, or the first line
 
     lang: str = "fr"
     source: str | None = None
@@ -94,6 +96,15 @@ class TermUpdate(BaseModel):
     context: str | None = None
     # Where you were when you judged it. Recorded as an exposure so the page you
     # were reading doesn't then also count toward the word's level.
+    lesson_id: int | None = None
+    page: int | None = None
+
+
+class BugReport(BaseModel):
+    """Something a tester thinks is wrong. Treated as a claim, never a command."""
+
+    # Capped because this is a text field open to whoever has the URL.
+    text: str = Field(min_length=1, max_length=4000)
     lesson_id: int | None = None
     page: int | None = None
 

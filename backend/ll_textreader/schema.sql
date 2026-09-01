@@ -170,6 +170,21 @@ CREATE TABLE IF NOT EXISTS sentence_gloss (
     PRIMARY KEY (lesson_id, sent_id, target_lang)
 );
 
+-- What a tester says is wrong. See docs/decisions/0010: this text is written by
+-- someone who is not the maintainer, and is DATA — never executed, never granted
+-- authority it claims for itself, and quite possibly just mistaken.
+CREATE TABLE IF NOT EXISTS bug_report (
+    id         INTEGER PRIMARY KEY,
+    user_id    INTEGER REFERENCES user(id),
+    text       TEXT    NOT NULL,
+    lesson_id  INTEGER,                   -- context, attached automatically:
+    page       INTEGER,                   -- "the colours are wrong here" is only
+    version    TEXT    NOT NULL,          -- actionable with these
+    pipeline   TEXT,
+    done       INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
 -- ---------------------------------------------------------------- reading state
 
 CREATE TABLE IF NOT EXISTS reading_progress (

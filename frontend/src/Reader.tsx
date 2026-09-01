@@ -9,6 +9,7 @@ import {
   translation,
 } from './api'
 import { describe } from './morph'
+import { speak, stop } from './speak'
 import type { Gloss, LessonDetail, Token } from './types'
 
 /** Overlay token spans onto the original text, between `from` and `to`.
@@ -91,6 +92,7 @@ export default function Reader({
 
   useEffect(() => {
     load()
+    return stop // don't carry on reading after you have left
   }, [id])
 
   const token: Token | null = lesson && cursor >= 0 ? lesson.tokens[cursor] : null
@@ -241,6 +243,13 @@ export default function Reader({
     const k = e.key
     if (k === 'Tab') return (e.preventDefault(), seek(e.shiftKey ? -1 : 1))
     if (k === 'Enter') return (e.preventDefault(), noteBox.current?.focus())
+    if (k === ' ') {
+      // Space reads the sentence you are on. Shift-Space re-reads it, which is
+      // the same call — cancel-then-speak means pressing again starts over.
+      e.preventDefault()
+      const text = sentence()
+      return void (text ? speak(text, lang) : stop())
+    }
     if (k === 'ArrowDown' || k === 'j') return (e.preventDefault(), seekSentence(1))
     if (k === 'ArrowUp') return (e.preventDefault(), seekSentence(-1))
     // Test the modifier rather than trusting the key to arrive uppercased —
@@ -315,6 +324,16 @@ export default function Reader({
             <span className="pos"> {token.pos}</span>
             {/* why this form differs from the lemma, not just that it belongs to it */}
             {describe(token.morph) && <span className="morph">{describe(token.morph)}</span>}
+            <button
+              className="ghost"
+              onClick={() => {
+                const text = sentence()
+                if (text) speak(text, lang)
+              }}
+              title="space"
+            >
+              hear it
+            </button>
             <button className="ghost" onClick={() => setFixing(true)} title="o">
               wrong word?
             </button>
