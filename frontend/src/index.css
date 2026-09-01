@@ -74,6 +74,12 @@ h1 { font-size: 1.3rem; font-weight: normal; }
 .tok--cursor { box-shadow: 0 0 0 2px var(--cursor); border-radius: 2px; }
 
 .text { white-space: pre-wrap; }
+
+/* With English showing, each sentence becomes its own block so the translation
+   lines up under the sentence it belongs to. */
+.sentence { margin: 0 0 0.9rem; }
+.gloss-line { display: block; white-space: normal; font-size: 0.85rem;
+              opacity: 0.55; font-style: italic; line-height: 1.5; }
 .text:focus { outline: none; }  /* the cursor token is the focus indicator */
 
 /* ---------------------------------------------------------------- chrome */

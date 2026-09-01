@@ -8,6 +8,9 @@ set -euo pipefail
 
 langs="${*:-fr}"
 
+# Re-run this after any `uv sync`: the model is installed as a wheel that is not
+# in the lockfile, so syncing prunes it.
+
 for lang in $langs; do
   case "$lang" in
     fr) uv run python -m spacy download fr_core_news_md ;;

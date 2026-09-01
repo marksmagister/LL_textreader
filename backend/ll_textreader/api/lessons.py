@@ -16,6 +16,7 @@ from ..models import (
     state_for,
 )
 from ..nlp.languages import UnknownLanguage
+from ..translate import Unavailable, glosses_for
 
 router = APIRouter(prefix="/api/lessons", tags=["lessons"])
 
@@ -192,6 +193,24 @@ def read_lesson(lesson_id: int, page: int | None = None) -> LessonDetail:
             for t in tokens
         ],
     )
+
+
+@router.get("/{lesson_id}/translation")
+def translation(lesson_id: int, page: int | None = None) -> dict[int, str]:
+    """English for each sentence on a page, keyed by sent_id.
+
+    Translated on first request and kept, so the toggle is instant afterwards and
+    an import never pays for a feature that is off by default.
+    """
+    with connect() as conn:
+        row = _lesson_row(conn, lesson_id)
+        pages = _pages(conn, lesson_id)
+        page = _resume(pages, row["last_token"]) if page is None else page
+        lo, hi = pages[max(0, min(page, len(pages) - 1))]
+        try:
+            return glosses_for(conn, lesson_id, row["lang"], lo, hi)
+        except Unavailable as exc:
+            raise HTTPException(503, f"translation unavailable: {exc}") from None
 
 
 @router.delete("/{lesson_id}", status_code=204)

@@ -70,3 +70,8 @@ export const listVocab = (lang: string, status?: string, q?: string) =>
       (status ? `&status=${status}` : '') +
       (q ? `&q=${encodeURIComponent(q)}` : ''),
   )
+
+/** English per sentence for one page, keyed by sent_id. 503 when the optional
+ *  translation extra isn't installed. */
+export const translation = (id: number, page: number) =>
+  call<Record<string, string>>(`/api/lessons/${id}/translation?page=${page}`)

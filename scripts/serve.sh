@@ -30,6 +30,15 @@ MSG
   exit 1
 fi
 
+# `uv sync` prunes anything not in the lockfile, and the spaCy model is installed
+# by `spacy download` rather than declared as a dependency — so syncing silently
+# removes it and every import fails at runtime. Catch it here instead.
+if ! uv run python -c "import fr_core_news_md" 2>/dev/null; then
+  echo "The French model is missing (uv sync removes it). Run:" >&2
+  echo "    ./scripts/setup-models.sh fr" >&2
+  exit 1
+fi
+
 echo "Building the frontend…"
 npm --prefix frontend run build >/dev/null
 

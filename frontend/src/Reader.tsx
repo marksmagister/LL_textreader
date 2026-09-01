@@ -1,16 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import { clearOverride, define, finishPage, readLesson, setOverride, setTerm } from './api'
+import {
+  clearOverride,
+  define,
+  finishPage,
+  readLesson,
+  setOverride,
+  setTerm,
+  translation,
+} from './api'
 import { describe } from './morph'
 import type { Gloss, LessonDetail, Token } from './types'
 
-/** Overlay token spans onto the original text. Never rebuild the text from tokens. */
-function render(lesson: LessonDetail, cursor: number) {
+/** Overlay token spans onto the original text, between `from` and `to`.
+ *  Never rebuild the text from tokens — always slice the body. */
+function render(lesson: LessonDetail, cursor: number, from = 0, to = Infinity) {
   const out = []
-  let cur = 0
+  let cur = from
   lesson.tokens.forEach((t, i) => {
     const start = t.char_start - lesson.body_offset
     const end = t.char_end - lesson.body_offset
-    if (start < cur) return // overlapping segments (Arabic); not a pilot case
+    if (start < cur || start >= to) return // outside this slice, or overlapping
     if (start > cur) out.push(lesson.body.slice(cur, start))
     out.push(
       <span
@@ -23,8 +32,30 @@ function render(lesson: LessonDetail, cursor: number) {
     )
     cur = end
   })
-  out.push(lesson.body.slice(cur))
+  out.push(lesson.body.slice(cur, to === Infinity ? undefined : to))
   return out
+}
+
+/** With translations on, the page is laid out sentence by sentence so each
+ *  English line starts where its French does. */
+function renderWithGlosses(
+  lesson: LessonDetail,
+  cursor: number,
+  english: Record<string, string>,
+) {
+  const bounds = new Map<number, [number, number]>()
+  for (const t of lesson.tokens) {
+    const a = t.char_start - lesson.body_offset
+    const b = t.char_end - lesson.body_offset
+    const seen = bounds.get(t.sent_id)
+    bounds.set(t.sent_id, seen ? [Math.min(seen[0], a), Math.max(seen[1], b)] : [a, b])
+  }
+  return [...bounds.entries()].map(([sentId, [a, b]]) => (
+    <p key={sentId} className="sentence">
+      {render(lesson, cursor, a, b)}
+      {english[sentId] && <span className="gloss-line">{english[sentId]}</span>}
+    </p>
+  ))
 }
 
 export default function Reader({
@@ -42,6 +73,8 @@ export default function Reader({
   const [cursor, setCursor] = useState(-1)
   const [glosses, setGlosses] = useState<Gloss[]>([])
   const [note, setNote] = useState('')
+  const [english, setEnglish] = useState<Record<string, string> | null>(null)
+  const [englishError, setEnglishError] = useState('')
   const [fixing, setFixing] = useState(false)
   const [fix, setFix] = useState('')
   const text = useRef<HTMLDivElement>(null)
@@ -52,6 +85,7 @@ export default function Reader({
     readLesson(id, page).then((l) => {
       setLesson(l)
       setCursor(-1)
+      setEnglish(null) // a new page has its own sentences
       window.scrollTo(0, 0)
     })
 
@@ -234,6 +268,24 @@ export default function Reader({
         <button disabled={lesson.page === 0} onClick={() => load(lesson.page - 1)}>
           ‹ back
         </button>
+        {/* Off unless asked for: a translation always on hand means you stop
+            reading the French. */}
+        <button
+          className={english ? 'on' : ''}
+          onClick={async () => {
+            if (english) return setEnglish(null)
+            setEnglishError('translating this page…')
+            try {
+              setEnglish(await translation(id, lesson.page))
+              setEnglishError('')
+            } catch {
+              setEnglishError('translation not installed — uv sync --extra translate')
+              setEnglish(null)
+            }
+          }}
+        >
+          English
+        </button>
         <button onClick={() => turn(true)}>Mark page known</button>
         <button onClick={() => turn(false)}>{last ? 'Finish' : 'Next page ›'}</button>
       </p>
@@ -251,8 +303,9 @@ export default function Reader({
           if (el) setCursor(Number(el.getAttribute('data-i')))
         }}
       >
-        {render(lesson, cursor)}
+        {english ? renderWithGlosses(lesson, cursor, english) : render(lesson, cursor)}
       </div>
+      {englishError && <p className="busy">{englishError}</p>}
 
       {token?.lemma && (
         <aside className="panel">

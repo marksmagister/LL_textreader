@@ -158,6 +158,18 @@ CREATE TABLE IF NOT EXISTS bulk_undo (
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Sentence translations, computed once and kept. Tokens already carry sent_id,
+-- so alignment is free and reading stays a join. Not user data: safe to rebuild.
+CREATE TABLE IF NOT EXISTS sentence_gloss (
+    lesson_id   INTEGER NOT NULL REFERENCES lesson(id) ON DELETE CASCADE,
+    sent_id     INTEGER NOT NULL,
+    target_lang TEXT    NOT NULL,
+    text        TEXT    NOT NULL,
+    model       TEXT    NOT NULL,      -- which translator produced it
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (lesson_id, sent_id, target_lang)
+);
+
 -- ---------------------------------------------------------------- reading state
 
 CREATE TABLE IF NOT EXISTS reading_progress (
