@@ -171,3 +171,30 @@ def test_counts_are_zero_not_null_for_a_lesson_with_no_words(client):
     lesson = client.post("/api/lessons", json={"text": "... !!! ...", "lang": "fr"}).json()
     assert lesson["n_words"] == 0
     assert (lesson["n_new"], lesson["n_learning"], lesson["n_known"]) == (0, 0, 0)
+
+
+def test_the_title_is_part_of_the_text(client):
+    """A title is text you are reading: it should colour, click and count. It used
+    to be a heading outside the token stream, so its words were invisible."""
+    r = client.post("/api/lessons", json={"text": "Il marchait.", "title": "Le quai", "lang": "fr"})
+    lesson = client.get(f"/api/lessons/{r.json()['id']}").json()
+    assert lesson["body"].startswith("Le quai")
+    assert "quai" in [t["surface"] for t in lesson["tokens"]]
+
+
+def test_a_title_already_in_the_text_is_not_repeated(client):
+    """Paste an article and its headline is already the first line."""
+    r = client.post(
+        "/api/lessons",
+        json={"text": "Le quai\n\nIl marchait.", "title": "Le quai", "lang": "fr"},
+    )
+    body = client.get(f"/api/lessons/{r.json()['id']}").json()["body"]
+    assert body.count("Le quai") == 1
+
+
+def test_a_derived_title_is_not_duplicated_either(client):
+    """With no title given, derive_title takes the first line — which is already there."""
+    r = client.post("/api/lessons", json={"text": "Le quai\n\nIl marchait.", "lang": "fr"})
+    lesson = client.get(f"/api/lessons/{r.json()['id']}").json()
+    assert lesson["title"] == "Le quai"
+    assert lesson["body"].count("Le quai") == 1

@@ -271,6 +271,7 @@ export default function Reader({
     <main className={token?.lemma ? 'with-panel' : ''}>
       <p className="bar">
         <button onClick={onBack}>← library</button>
+        <strong>{lesson.title}</strong>
         <span>
           page {lesson.page + 1} of {lesson.n_pages} · {unknown} new of {words.length} words
         </span>
@@ -299,7 +300,6 @@ export default function Reader({
         <button onClick={() => turn(false)}>{last ? 'Finish' : 'Next page ›'}</button>
       </p>
 
-      <h1>{lesson.title}</h1>
 
       {/* One handler on the container, not one per token. */}
       <div

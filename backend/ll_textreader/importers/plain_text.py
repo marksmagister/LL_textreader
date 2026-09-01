@@ -26,6 +26,20 @@ def derive_title(body: str) -> str:
     return first if len(first) <= TITLE_MAX else first[: TITLE_MAX - 1].rstrip() + "…"
 
 
+def with_title(body: str, title: str | None) -> str:
+    """Put the title into the text, unless it is already the first line.
+
+    A title is text you are reading: it should be coloured, clickable, and count
+    toward what you know. When you paste an article the headline is part of what
+    you paste and this does nothing; it only matters when the title arrived
+    separately, from the title box or a filename or a web page's <title>.
+    """
+    if not title:
+        return body
+    first = body.lstrip().split("\n", 1)[0].strip()
+    return body if first.casefold() == title.strip().casefold() else f"{title}\n\n{body}"
+
+
 def import_text(
     conn: sqlite3.Connection,
     *,
@@ -35,7 +49,7 @@ def import_text(
     title: str | None = None,
     source: str | None = None,
 ) -> int:
-    body = clean(text)
+    body = with_title(clean(text), title)
     adapter = get_adapter(lang)
     tokens: list[AnalysedToken] = adapter.analyse(body)
 
@@ -72,7 +86,7 @@ def _insert_tokens(conn: sqlite3.Connection, lesson_id: int, tokens: list[Analys
     )
 
 
-def reprocess(conn: sqlite3.Connection, lesson_id: int) -> bool:
+def reprocess(conn: sqlite3.Connection, lesson_id: int, force: bool = False) -> bool:
     """Re-run the pipeline over a stored lesson. False if it was already current.
 
     The body is untouched, so the lexicon — which is keyed on lemma, not lesson —
@@ -84,7 +98,9 @@ def reprocess(conn: sqlite3.Connection, lesson_id: int) -> bool:
         "SELECT lang, body, pipeline_id FROM lesson WHERE id = ?", (lesson_id,)
     ).fetchone()
     adapter = get_adapter(row["lang"])
-    if row["pipeline_id"] == adapter.pipeline_id:
+    # `force` is for when the body changed rather than the pipeline — an edit, or
+    # a title being folded into the text. The stamp is the same; the stream is not.
+    if not force and row["pipeline_id"] == adapter.pipeline_id:
         return False
 
     where_they_were = {
