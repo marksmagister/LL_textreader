@@ -79,7 +79,9 @@ not answerable from a chair.
 - **Multi-user** — `decisions/0013`, with a recommendation to run an instance per reader
   instead until that becomes the annoying part.
 - **Local-first** — `decisions/0014`. A direction rather than a plan, plus the four small
-  things worth preserving now so it stays possible.
+  things worth preserving now so it stays possible. `decisions/0015` answers a
+  zero-cost-hosting proposal and names the fork it implies: going fully static means
+  giving up the POS tagger, which is the thing this project exists to have.
 
 ## Waiting, deliberately
 

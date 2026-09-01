@@ -56,9 +56,14 @@ on its own terms.
 
 ## The merge, when it comes
 
-0005 called this right: the data is almost monotonic, so no CRDT is needed. Status takes
-the maximum, tie-broken on `updated_at`. `form_seen` counts add. `exposure` is a set
-union — its whole purpose is idempotence, so merging is trivial. Notes are
+**Corrected by 0015: send the lexicon as one blob, not row by row.** The whole private
+half is 467 rows today and would be kilobytes at ten thousand words, against 126,214
+rows of dictionary that never leave the server. A whole-blob sync is O(1) per sync
+rather than O(n) per word, and it is less code than a per-row merge, not more.
+
+Within a blob, or if per-row merging is ever needed anyway: the data is almost
+monotonic, so no CRDT. Status takes the maximum, tie-broken on `updated_at`. `form_seen`
+counts add. `exposure` is a set union — idempotence is its entire purpose. Notes are
 last-write-wins. Lessons stay server-authoritative, since import only happens online.
 
 The one genuinely awkward case is a *downgrade*: marking a known word back to learning
