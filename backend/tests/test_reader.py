@@ -143,3 +143,17 @@ def test_tokens_say_whether_you_overrode_them(client):
     client.put("/api/terms/override", json={"lang": "fr", "surface": "quais"})
     tokens = client.get(f"/api/lessons/{lesson['id']}").json()["tokens"]
     assert [t["surface"] for t in tokens if t["overridden"]] == ["quais"]
+
+
+def test_a_blank_import_is_refused(client):
+    """Whitespace passes a min-length check; cleaning is what decides."""
+    assert client.post("/api/lessons", json={"text": "   \n  ", "lang": "fr"}).status_code == 400
+    assert client.post("/api/lessons", json={"text": "", "lang": "fr"}).status_code == 422
+    assert client.get("/api/lessons").json() == []
+
+
+def test_counts_are_zero_not_null_for_a_lesson_with_no_words(client):
+    """A lesson of pure punctuation still has to produce a summary."""
+    lesson = client.post("/api/lessons", json={"text": "... !!! ...", "lang": "fr"}).json()
+    assert lesson["n_words"] == 0
+    assert (lesson["n_new"], lesson["n_learning"], lesson["n_known"]) == (0, 0, 0)
