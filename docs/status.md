@@ -20,6 +20,9 @@ Working and verified against real text, in the browser:
 - sentence translation, off by default, per page on demand
 - a legend page explaining the colours and keys
 - lexicon export: Anki TSV, CSV, JSON — all, one bucket, or a ticked selection
+- collections, a legend, light/dark, sorting and search in the library
+- the library listing is O(lessons), not O(every word you ever imported): 1.8ms,
+  and 0.7ms at five hundred lessons (`counts.py`, `decisions/0016`)
 - lemma override, in the UI and honoured by the read path
 - vocabulary page: every lemma, with the inflections you have actually met
 - library shows each text's shape — what share of it you can already read
@@ -91,13 +94,17 @@ a second reader is a second container (`docs/deploying.md`), not an auth system.
 
 ## Testing
 
-169 tests: 148 backend (pytest), 21 frontend (vitest). `npm test` in `frontend/`.
+195 tests: 174 backend (pytest), 21 frontend (vitest). `npm test` in `frontend/`.
 
 The frontend tests cover `reading.ts` and `morph.ts` — pure functions, no DOM and no
 component framework, deliberately. What they pin is the logic that is easy to get
 subtly wrong: that laying spans over the text loses no character of it, that Tab
 wraps and then stops, and that `Imp` is imperfect under Tense and imperative under
 Mood. React rendering is still only checked by driving a browser.
+
+`test_counts.py` earns its place separately: the library's per-lesson counts are cached,
+and it compares the stored numbers against counting from scratch after every operation
+that could move a word between buckets. A drifted count is worse than a slow one.
 
 ## Open questions
 
