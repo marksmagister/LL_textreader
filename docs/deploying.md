@@ -30,8 +30,36 @@ what you have read. That is what makes it a demo rather than a product.
 ## The real host
 
 A netcup VPS 500 G12 (2 vCPU, 4 GB, 128 GB NVMe, hourly-billed). Ubuntu 24.04.
+
+### Where this stands, and what it is waiting for
+
+Rented September 2026, hourly-billed, no minimum term. **Not yet provisioned.** Three
+things have to happen, in order, and the first two need a human:
+
+1. Install Ubuntu 24.04 from netcup's server control panel, giving it this key:
+
+   ```
+   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK12YUpwWHoOAp8sEczaZfG6qRyzRJcy2UauY5eNF60 ll-textreader deploy
+   ```
+
+   The matching private key is at `~/.ssh/ll_textreader_deploy` on the maintainer's
+   laptop and has never left it. Regenerate with `ssh-keygen -t ed25519` if lost — the
+   server-side half is replaceable.
+
+2. **A hostname.** DuckDNS was chosen for now: free, and Caddy can get a certificate
+   for a `*.duckdns.org` subdomain. Put it in the `Caddyfile` in place of
+   `read.example.com`.
+
+   Note the limit: SPF and DKIM are DNS records on a domain *you own*, so a DuckDNS
+   subdomain can never send email. If password reset by email is ever wanted
+   (`decisions/0013`), that needs a real domain — five to ten euros a year, and a
+   better URL to post anyway.
+
+3. Then the build steps below, and `scripts/deploy.sh` from then on.
+
+Until it is up, `./scripts/serve.sh --share` on the laptop is what exists.
 Deployment is `git pull` and a restart — no image build, no registry, no daemon in
-between. See `decisions/0010-choosing-a-host.md` for why this box.
+between. See `decisions/0017-choosing-a-host.md` for why this box.
 
 ### Once, to build the machine
 
