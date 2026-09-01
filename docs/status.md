@@ -49,14 +49,20 @@ Words cleared on one page are known on the next — that is the point of the but
    partner of the novel-form highlight: "you know marcher, this is the future."
    Needs a `morph` column, the adapter to fill it, and a human-readable rendering
    ("imperfect · 3rd person singular") rather than raw UD feature strings.
-1. **Dictionary loader** — a kaikki.org French extract into `hint`. The lookup panel
+1. **Edit and re-import a lesson.** If you notice a bad import on page 3 you should
+   be able to fix the text without losing anything. Cheaper than it looks: the
+   lexicon (`lemma_status`, `form_seen`, `lemma_override`) is keyed on lemma, not
+   lesson, so it survives untouched. The only casualty is `reading_progress.last_token`,
+   because re-tokenising renumbers the stream — so convert the saved position to a
+   character offset first, re-import, then snap to the first token at or after it.
+2. **Dictionary loader** — a kaikki.org French extract into `hint`. The lookup panel
    is a note field until this exists, which is the biggest hole in the pilot.
-2. **`lemma_override` UI** — a "this is wrong" action. The read path already honours
+3. **`lemma_override` UI** — a "this is wrong" action. The read path already honours
    the table (`api/lessons.py`); nothing writes to it yet. Rule 5 says the colouring
    loses trust without it, so this is not optional for long.
-3. **EPUB import**, then URL.
-4. **Reading position** — `reading_progress.last_token` is written but never read.
-5. **Russian**, if the pilot survives contact with actual reading. One adapter file.
+4. **EPUB import**, then URL.
+5. **Reading position** — `reading_progress.last_token` is written but never read.
+6. **Russian**, if the pilot survives contact with actual reading. One adapter file.
 
 ## Open questions
 

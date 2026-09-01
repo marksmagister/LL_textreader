@@ -42,7 +42,12 @@ export function describe(morph: string): string {
   }
   // "3rd person singular" reads better than "3rd person · singular"
   const person = [got.Person, got.Number].filter(Boolean).join(' ')
-  const verb = [got.VerbForm, got.Mood, got.Tense, got.Polarity].filter(Boolean).join(' ')
+  // "conditional present" is redundant — the conditional présent is just the
+  // conditional. Same for the subjunctive, which reads better tense-first.
+  const cnd = got.Mood === 'conditional'
+  const sub = got.Mood === 'subjunctive'
+  const mood = sub ? [got.Tense, got.Mood] : cnd ? [got.Mood] : [got.Mood, got.Tense]
+  const verb = [got.VerbForm, ...mood, got.Polarity].filter(Boolean).join(' ')
   const rest = ORDER.filter((k) => !['VerbForm', 'Mood', 'Tense', 'Polarity', 'Person', 'Number'].includes(k))
     .map((k) => got[k])
     .filter(Boolean)
