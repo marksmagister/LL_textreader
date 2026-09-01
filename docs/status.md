@@ -71,6 +71,16 @@ questions that matter next — is 150 tokens the right page, is "turn the page" 
 right moment for forms to count as met, does the review state prompt or nag — are
 not answerable from a chair.
 
+## Planned in detail, not started
+
+- **Multi-language and Russian** — `decisions/0012`. Mostly front-end: `lang` is already
+  a key everywhere and adapters load by module name. The step not to skip is measuring
+  Russian morphology before trusting it, the way French was measured.
+- **Multi-user** — `decisions/0013`, with a recommendation to run an instance per reader
+  instead until that becomes the annoying part.
+- **Local-first** — `decisions/0014`. A direction rather than a plan, plus the four small
+  things worth preserving now so it stays possible.
+
 ## Waiting, deliberately
 
 Russian · a phone client · audio · multi-user. None of these is blocked; they are
