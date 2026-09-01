@@ -55,7 +55,8 @@ def _resume(pages: list[tuple[int, int]], last_token: int) -> int:
 _SUMMARY = """
 SELECT l.id, l.lang, l.title, l.source, l.pipeline_id, l.imported_at, l.body,
        COUNT(t.idx) AS n_tokens, COUNT(t.lemma) AS n_words,
-       COALESCE(p.last_token, 0) AS last_token
+       COALESCE(p.last_token, 0) AS last_token,
+       COALESCE(p.completed, 0) AS completed
 FROM lesson l
 LEFT JOIN token t ON t.lesson_id = l.id
 LEFT JOIN reading_progress p ON p.lesson_id = l.id AND p.user_id = l.user_id

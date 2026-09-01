@@ -22,6 +22,7 @@ export interface LessonSummary {
   n_words: number
   /** Where you stopped, as a token index. 0 = not started. */
   last_token: number
+  completed: boolean
 }
 
 /** One page. Pages are derived from the token stream, not stored. */

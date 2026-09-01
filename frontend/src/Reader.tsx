@@ -66,10 +66,13 @@ export default function Reader({ id, onBack }: { id: number; onBack: () => void 
     await load(lesson.page)
   }
 
-  /** Turn the page: record what you've met, save your place, move on. */
+  /** Turn the page: record what you've met, save your place, move on.
+   *  On the last page there is nowhere to move on to, so finishing the lesson
+   *  returns you to the library — otherwise the button silently does nothing. */
   const turn = async (markRestKnown: boolean) => {
     await finishPage(id, lesson.page, markRestKnown)
-    await load(Math.min(lesson.page + 1, lesson.n_pages - 1))
+    if (lesson.page + 1 >= lesson.n_pages) return onBack()
+    await load(lesson.page + 1)
   }
 
   const words = lesson.tokens.filter((t) => t.lemma)

@@ -49,6 +49,7 @@ class LessonSummary(BaseModel):
     n_tokens: int
     n_words: int
     last_token: int = 0  # where you stopped; 0 = not started
+    completed: bool = False
 
 
 class LessonDetail(LessonSummary):

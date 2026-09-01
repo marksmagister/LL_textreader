@@ -110,3 +110,20 @@ def test_page_out_of_range_is_clamped(client):
 def test_a_short_text_is_one_page(client):
     p = page(client, long_lesson(client, 2), None)
     assert p["n_pages"] == 1 and p["body_offset"] == 0
+
+
+def test_finishing_the_last_page_completes_the_lesson(client, monkeypatch):
+    """The Finish button's whole job. It used to fire and change nothing."""
+    monkeypatch.setattr(lessons, "PAGE_TOKENS", 30)
+    lesson = long_lesson(client)
+    n_pages = page(client, lesson, 0)["n_pages"]
+
+    for i in range(n_pages - 1):
+        assert (
+            client.post(f"/api/lessons/{lesson}/finish", json={"page": i}).json()["completed"]
+            is False
+        )
+
+    done = client.post(f"/api/lessons/{lesson}/finish", json={"page": n_pages - 1}).json()
+    assert done["completed"] is True
+    assert client.get("/api/lessons").json()[0]["completed"] is True

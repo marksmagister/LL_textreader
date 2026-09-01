@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import __version__
-from .api import lessons, terms
+from .api import dictionary, lessons, terms
 from .config import settings
 from .db import init_db
 
@@ -27,6 +27,7 @@ app.add_middleware(
 )
 
 
+app.include_router(dictionary.router)
 app.include_router(lessons.router)
 app.include_router(terms.router)
 
