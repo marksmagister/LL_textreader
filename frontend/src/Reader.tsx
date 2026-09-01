@@ -144,6 +144,8 @@ export default function Reader({
       surface: token.surface,
       note: note || null,
       context: sentence(),
+      lesson_id: id,
+      page: lesson.page,
     })
     const keep = cursor
     const l = await readLesson(id, lesson.page)

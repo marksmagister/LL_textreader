@@ -92,6 +92,10 @@ class TermUpdate(BaseModel):
     note: str | None = None
     surface: str | None = None  # the form you met it in; recorded in form_seen
     context: str | None = None
+    # Where you were when you judged it. Recorded as an exposure so the page you
+    # were reading doesn't then also count toward the word's level.
+    lesson_id: int | None = None
+    page: int | None = None
 
 
 class OverrideRequest(BaseModel):

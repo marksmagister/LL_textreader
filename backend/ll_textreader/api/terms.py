@@ -39,6 +39,17 @@ def set_term(req: TermUpdate) -> dict[str, str | int | None]:
                 """,
                 (USER_ID, req.lang, req.lemma, req.pos, req.surface.casefold()),
             )
+        if req.lesson_id is not None and req.page is not None:
+            # You met it here — that is why you are judging it. Crediting this
+            # page again when you turn it would count one encounter as two.
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO exposure
+                    (user_id, lang, lemma, pos, lesson_id, page)
+                VALUES (?,?,?,?,?,?)
+                """,
+                (USER_ID, req.lang, req.lemma, req.pos, req.lesson_id, req.page),
+            )
         seen = req.status < KNOWN or bool(req.surface)
 
     state: TokenState = state_for(req.lemma, req.status, seen)

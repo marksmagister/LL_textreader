@@ -268,21 +268,37 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
             )
         # A word you are learning rises one level for each page you finish that
         # contains it — an observation, not a self-assessment (decision 0008).
-        # It stops at REVIEW and never promotes itself to known: only you get to
-        # say you know a word. At REVIEW the reader marks it and asks.
+        # A page it has already been credited for does not count again: turning
+        # the same page twice is not a second encounter, and neither is the page
+        # you were on when you flagged the word.
+        page_words = """
+            SELECT DISTINCT COALESCE(o.to_lemma, t.lemma) AS lemma,
+                            COALESCE(o.to_pos, t.pos)     AS pos
+            FROM token t
+            LEFT JOIN lemma_override o
+                   ON o.user_id = ? AND o.lang = ? AND o.surface = t.norm
+            WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
+        """
+        args = (USER_ID, lang, lesson_id, lo, hi)
         conn.execute(
-            """
+            f"""
             UPDATE lemma_status SET status = status + 1, updated_at = datetime('now')
             WHERE user_id = ? AND lang = ? AND status BETWEEN 1 AND 3
               AND (lemma, pos) IN (
-                  SELECT DISTINCT COALESCE(o.to_lemma, t.lemma), COALESCE(o.to_pos, t.pos)
-                  FROM token t
-                  LEFT JOIN lemma_override o
-                         ON o.user_id = ? AND o.lang = ? AND o.surface = t.norm
-                  WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
+                  {page_words}
+                  EXCEPT
+                  SELECT lemma, pos FROM exposure
+                  WHERE user_id = ? AND lang = ? AND lesson_id = ? AND page = ?
               )
             """,
-            (USER_ID, lang, USER_ID, lang, lesson_id, lo, hi),
+            (USER_ID, lang, *args, USER_ID, lang, lesson_id, page),
+        )
+        conn.execute(
+            f"""
+            INSERT OR IGNORE INTO exposure (user_id, lang, lemma, pos, lesson_id, page)
+            SELECT ?, ?, lemma, pos, ?, ? FROM ({page_words})
+            """,
+            (USER_ID, lang, lesson_id, page, *args),
         )
         # Every form of a word you know that appeared on this page has now been met,
         # so it stops being highlighted as novel next time.

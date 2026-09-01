@@ -34,9 +34,12 @@ finished. That is an observation, not a guess.
 - The reader offers three actions: **learning**, **known**, **ignore**. That is the full
   set of judgements a person can actually make about a word in front of them.
 - A word marked learning starts at 1 and **rises automatically as you meet it again**,
-  **one level per finished page**, however many times it appears on that page. A word
-  three times in one paragraph is one encounter: what makes a repeat worth anything is
-  the delay before it, and within a page there is none.
+  **one level per finished page**, however many times it appears on that page, and
+  **each page counts only once, ever**. A word three times in one paragraph is one
+  encounter: what makes a repeat worth anything is the delay before it, and within a
+  page there is none. Turning the same page twice is not two encounters either, and
+  neither is the page you were reading when you flagged the word — that meeting is
+  what made you flag it. An `exposure` row per (word, page) enforces all three.
 - At 4 it stops, and is rendered with a dotted rule: met often enough that you should
   decide. Promotion to known is always yours.
 

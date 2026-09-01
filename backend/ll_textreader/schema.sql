@@ -125,6 +125,21 @@ CREATE TABLE IF NOT EXISTS root_index (
 
 CREATE INDEX IF NOT EXISTS idx_root ON root_index(lang, root);
 
+-- Which pages have already counted toward a word's level. Without this, turning
+-- the same page twice counts twice, and a word flagged while reading a page is
+-- credited for that page as well — both of which make levels rise far too fast.
+-- One row per (word, page): a page can only ever be met once.
+CREATE TABLE IF NOT EXISTS exposure (
+    user_id    INTEGER NOT NULL REFERENCES user(id),
+    lang       TEXT    NOT NULL,
+    lemma      TEXT    NOT NULL,
+    pos        TEXT    NOT NULL,
+    lesson_id  INTEGER NOT NULL REFERENCES lesson(id) ON DELETE CASCADE,
+    page       INTEGER NOT NULL,
+    seen_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, lang, lemma, pos, lesson_id, page)
+);
+
 -- ---------------------------------------------------------------- undo
 -- "Mark page known" can change a hundred words at once, and a misclick used to
 -- be unrecoverable. This records what those words were before, so it can be put

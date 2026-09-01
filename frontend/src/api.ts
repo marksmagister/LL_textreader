@@ -32,6 +32,8 @@ export const setTerm = (t: {
   surface?: string
   note?: string | null
   context?: string | null
+  lesson_id?: number
+  page?: number
 }) => call<{ state: string }>('/api/terms', { method: 'PUT', body: JSON.stringify(t) })
 
 export const undoBulk = (undoId: number) =>
