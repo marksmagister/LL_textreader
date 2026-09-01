@@ -204,11 +204,14 @@ export default function Reader({
   /** Turn the page: record what you've met, save your place, move on.
    *  On the last page there is nowhere to move on to, so finishing the lesson
    *  returns you to the library — otherwise the button silently does nothing. */
-  const turn = async (markRestKnown: boolean) => {
+  const turn = async (markRestKnown: boolean, stay = false) => {
     const done = await finishPage(id, lesson.page, markRestKnown)
     // Handed upwards: finishing the last page leaves the reader, and the offer
     // to take it back has to outlive the screen that made it.
     onBulk(done.undo_id ? { id: done.undo_id, n: done.undo_n } : null)
+    // Clearing a page is not the same as leaving it: you usually want to read it
+    // through once more now that it is legible.
+    if (stay) return load(lesson.page)
     if (lesson.page + 1 >= lesson.n_pages) return onBack()
     await load(lesson.page + 1)
   }
@@ -238,7 +241,7 @@ export default function Reader({
     // that varies by layout, and Shift-K clearing the page by accident when it
     // was meant to mark one word known would be a nasty surprise.
     if (k.toLowerCase() === 'k')
-      return (e.preventDefault(), e.shiftKey ? turn(true) : rate(5))
+      return (e.preventDefault(), e.shiftKey ? turn(true, true) : rate(5))
     if (k === 'i') return (e.preventDefault(), rate(-1))
     if (k === 'o') return (e.preventDefault(), setFixing(true), void 0)
     // 2/3/4 retired: the level is counted from exposure now, not self-rated.
@@ -285,7 +288,7 @@ export default function Reader({
         >
           click = learning
         </button>
-        <button onClick={() => turn(true)}>Mark page known</button>
+        <button onClick={() => turn(true, true)}>Mark page known</button>
         <button onClick={() => turn(false)}>{last ? 'Finish' : 'Next page ›'}</button>
       </p>
 
