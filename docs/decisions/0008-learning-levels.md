@@ -67,6 +67,17 @@ different, and neither is a rating.
 - Vocabulary page shows "met 3 times" instead of "learning 3".
 - Nothing in the schema moves.
 
+## What happens at the top
+
+A word at 4 stops rising and stays marked until you decide. Pressing "learning" again
+**resets it to 1**, so it asks again after three more pages it has not already been
+counted on — accepted as the right behaviour after seeing it work.
+
+Two consequences to watch. Re-reading pages it has already been counted on does
+nothing, so in a short text a reset word may have no unseen pages left and will only
+move again in new material. And a word left at 4 stays marked forever; nothing
+escalates or decays.
+
 ## Risks
 
 - **Encounters aren't understanding.** Meeting *quai* four times doesn't mean you know
