@@ -9,7 +9,7 @@ import { defineConfig } from 'vite'
  *  header is added by the proxy, server-side; it never reaches client code. */
 function authHeader(): Record<string, string> {
   try {
-    const env = readFileSync(resolve(__dirname, '..', '.env'), 'utf8')
+    const env = readFileSync(resolve(import.meta.dirname, '..', '.env'), 'utf8')
     const get = (k: string) => env.match(new RegExp(`^${k}=(.*)$`, 'm'))?.[1]?.trim()
     const password = get('LL_TEXTREADER_PASSWORD')
     if (!password) return {}

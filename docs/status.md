@@ -75,12 +75,15 @@ Russian · a phone client · audio · multi-user. None of these is blocked; they
 held back so the desktop reader gets good first. Multi-user in particular stays out:
 a second reader is a second container (`docs/deploying.md`), not an auth system.
 
-## Known gap
+## Testing
 
-Every one of the 93 tests is backend. The reader's keyboard logic — Tab-seek,
-sentence reconstruction, focus discipline — has only ever been checked by driving a
-browser by hand. That was fine while it was small. Worth a little Vitest over the
-pure functions before the next round of reader work.
+169 tests: 148 backend (pytest), 21 frontend (vitest). `npm test` in `frontend/`.
+
+The frontend tests cover `reading.ts` and `morph.ts` — pure functions, no DOM and no
+component framework, deliberately. What they pin is the logic that is easy to get
+subtly wrong: that laying spans over the text loses no character of it, that Tab
+wraps and then stops, and that `Imp` is imperfect under Tense and imperative under
+Mood. React rendering is still only checked by driving a browser.
 
 ## Open questions
 

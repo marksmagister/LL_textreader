@@ -9,32 +9,26 @@ import {
   translation,
 } from './api'
 import { describe } from './morph'
+import { nextSentence, nextUnknown, segments, sentenceBounds } from './reading'
 import { speak, stop } from './speak'
 import type { Gloss, LessonDetail, Token } from './types'
 
-/** Overlay token spans onto the original text, between `from` and `to`.
- *  Never rebuild the text from tokens — always slice the body. */
+/** Spans over the original text. The slicing lives in reading.ts, where it can
+ *  be tested; this only turns segments into elements. */
 function render(lesson: LessonDetail, cursor: number, from = 0, to = Infinity) {
-  const out = []
-  let cur = from
-  lesson.tokens.forEach((t, i) => {
-    const start = t.char_start - lesson.body_offset
-    const end = t.char_end - lesson.body_offset
-    if (start < cur || start >= to) return // outside this slice, or overlapping
-    if (start > cur) out.push(lesson.body.slice(cur, start))
-    out.push(
+  return segments(lesson, from, to).map((s, i) =>
+    s.token ? (
       <span
-        key={t.idx}
-        data-i={i}
-        className={`tok tok--${t.state}${i === cursor ? ' tok--cursor' : ''}`}
+        key={s.token.idx}
+        data-i={s.at}
+        className={`tok tok--${s.token.state}${s.at === cursor ? ' tok--cursor' : ''}`}
       >
-        {lesson.body.slice(start, end)}
-      </span>,
-    )
-    cur = end
-  })
-  out.push(lesson.body.slice(cur, to === Infinity ? undefined : to))
-  return out
+        {s.text}
+      </span>
+    ) : (
+      <span key={`gap-${i}`}>{s.text}</span>
+    ),
+  )
 }
 
 /** With translations on, the page is laid out sentence by sentence so each
@@ -44,14 +38,7 @@ function renderWithGlosses(
   cursor: number,
   english: Record<string, string>,
 ) {
-  const bounds = new Map<number, [number, number]>()
-  for (const t of lesson.tokens) {
-    const a = t.char_start - lesson.body_offset
-    const b = t.char_end - lesson.body_offset
-    const seen = bounds.get(t.sent_id)
-    bounds.set(t.sent_id, seen ? [Math.min(seen[0], a), Math.max(seen[1], b)] : [a, b])
-  }
-  return [...bounds.entries()].map(([sentId, [a, b]]) => (
+  return [...sentenceBounds(lesson).entries()].map(([sentId, [a, b]]) => (
     <p key={sentId} className="sentence">
       {render(lesson, cursor, a, b)}
       {english[sentId] && <span className="gloss-line">{english[sentId]}</span>}
@@ -140,23 +127,11 @@ export default function Reader({
   const toText = () => text.current?.focus()
 
   /** Tab's whole job: never hunt for blue words. Wraps around the page. */
-  const seek = (dir: 1 | -1) => {
-    const n = lesson.tokens.length
-    const from = cursor < 0 ? (dir === 1 ? -1 : n) : cursor
-    for (let step = 1; step <= n; step++) {
-      const i = (((from + dir * step) % n) + n) % n
-      if (lesson.tokens[i].state === 'new') return setCursor(i)
-    }
-    setCursor(-1) // nothing blue left on the page
-  }
+  const seek = (dir: 1 | -1) => setCursor(nextUnknown(lesson.tokens, cursor, dir))
 
   const seekSentence = (dir: 1 | -1) => {
-    const here = token?.sent_id ?? (dir === 1 ? -1 : Infinity)
-    const target = lesson.tokens.filter((t) =>
-      dir === 1 ? t.sent_id > here : t.sent_id < here,
-    )
-    const pick = dir === 1 ? target[0] : target[target.length - 1]
-    if (pick) setCursor(lesson.tokens.findIndex((t) => t.sent_id === pick.sent_id && t.lemma))
+    const found = nextSentence(lesson.tokens, cursor, dir)
+    if (found >= 0) setCursor(found)
   }
 
   /** The sentence the word sits in, so the lexicon remembers where you met it.
