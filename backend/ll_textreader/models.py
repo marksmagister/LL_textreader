@@ -36,6 +36,7 @@ class ReaderToken(BaseModel):
     pos: str | None
     char_start: int
     char_end: int
+    sent_id: int  # for sentence-at-a-time keyboard navigation
     state: TokenState
 
 
@@ -82,6 +83,36 @@ class TermUpdate(BaseModel):
     note: str | None = None
     surface: str | None = None  # the form you met it in; recorded in form_seen
     context: str | None = None
+
+
+class OverrideRequest(BaseModel):
+    """ "The lemmatiser is wrong about this word." CLAUDE.md rule 5.
+
+    With no to_lemma, the surface form is detached and becomes its own entry —
+    which is the common case: you don't want to retype the word, you want the
+    reader to stop pretending it is something else.
+    """
+
+    lang: str
+    surface: str
+    from_lemma: str | None = None  # what the pipeline said, kept for audit
+    to_lemma: str | None = None
+    to_pos: str = "X"
+
+
+class VocabEntry(BaseModel):
+    lemma: str
+    pos: str
+    status: int
+    note: str | None
+    updated_at: str
+    forms: list[str]  # the inflections you have actually met
+
+
+class Vocab(BaseModel):
+    total: int
+    by_status: dict[str, int]
+    entries: list[VocabEntry]
 
 
 class FinishRequest(BaseModel):

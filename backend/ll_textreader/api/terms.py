@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 from ..db import USER_ID, connect
-from ..models import KNOWN, TermUpdate, TokenState, state_for
+from ..models import KNOWN, OverrideRequest, TermUpdate, TokenState, state_for
 
 router = APIRouter(prefix="/api/terms", tags=["terms"])
 
@@ -43,3 +43,38 @@ def set_term(req: TermUpdate) -> dict[str, str | int | None]:
 
     state: TokenState = state_for(req.lemma, req.status, seen)
     return {"lemma": req.lemma, "pos": req.pos, "status": req.status, "state": state}
+
+
+@router.put("/override", response_model=dict[str, str])
+def set_override(req: OverrideRequest) -> dict[str, str]:
+    """Detach a surface form from the lemma the pipeline gave it.
+
+    Without this, one bad model decision is unfixable and the colouring stops
+    being trusted — which is the whole reason the table exists.
+    """
+    surface = req.surface.casefold()
+    to_lemma = (req.to_lemma or surface).casefold()
+    with connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO lemma_override (user_id, lang, surface, from_lemma, to_lemma, to_pos)
+            VALUES (?,?,?,?,?,?)
+            ON CONFLICT(user_id, lang, surface) DO UPDATE SET
+                from_lemma = excluded.from_lemma,
+                to_lemma = excluded.to_lemma,
+                to_pos = excluded.to_pos,
+                created_at = datetime('now')
+            """,
+            (USER_ID, req.lang, surface, req.from_lemma, to_lemma, req.to_pos),
+        )
+    return {"surface": surface, "lemma": to_lemma, "pos": req.to_pos}
+
+
+@router.delete("/override", status_code=204)
+def clear_override(lang: str, surface: str) -> None:
+    """Undo an override — the pipeline's answer applies again."""
+    with connect() as conn:
+        conn.execute(
+            "DELETE FROM lemma_override WHERE user_id = ? AND lang = ? AND surface = ?",
+            (USER_ID, lang, surface.casefold()),
+        )

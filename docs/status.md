@@ -42,6 +42,13 @@ Words cleared on one page are known on the next — that is the point of the but
 
 ## Next
 
+0. **Show the morphology.** The lemmatiser already knows that `marchait` is
+   `Tense=Imp|Number=Sing|Person=3` — spaCy hands it over for free in `token.morph`
+   and we currently throw it away. Storing it and showing it in the panel answers
+   *why* a word looks different, not just what it belongs to. It is the natural
+   partner of the novel-form highlight: "you know marcher, this is the future."
+   Needs a `morph` column, the adapter to fill it, and a human-readable rendering
+   ("imperfect · 3rd person singular") rather than raw UD feature strings.
 1. **Dictionary loader** — a kaikki.org French extract into `hint`. The lookup panel
    is a note field until this exists, which is the biggest hole in the pilot.
 2. **`lemma_override` UI** — a "this is wrong" action. The read path already honours

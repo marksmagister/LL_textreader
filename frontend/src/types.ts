@@ -8,6 +8,7 @@ export interface Token {
   pos: string | null
   char_start: number
   char_end: number
+  sent_id: number
   state: TokenState
 }
 
@@ -34,4 +35,21 @@ export interface LessonDetail extends LessonSummary {
   /** Where the slice starts, since token offsets stay absolute. */
   body_offset: number
   tokens: Token[]
+}
+
+/** A dictionary sense. Mirrors ll_textreader/dictionary.py:lookup. */
+export interface Gloss {
+  pos: string
+  gloss: string
+  source: string
+}
+
+export interface VocabEntry {
+  lemma: string
+  pos: string
+  status: number
+  note: string | null
+  updated_at: string
+  /** The inflections you have actually met. */
+  forms: string[]
 }

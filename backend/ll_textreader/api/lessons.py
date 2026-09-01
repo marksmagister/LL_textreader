@@ -66,7 +66,7 @@ WHERE l.user_id = ?
 # The whole product: the stored token stream joined against your lexicon.
 # Overrides win over the pipeline (CLAUDE.md rule 5).
 _TOKENS = """
-SELECT t.idx, t.surface, t.char_start, t.char_end,
+SELECT t.idx, t.surface, t.char_start, t.char_end, t.sent_id,
        COALESCE(o.to_lemma, t.lemma) AS lemma,
        COALESCE(o.to_pos, t.pos)     AS pos,
        s.status,
@@ -164,6 +164,7 @@ def read_lesson(lesson_id: int, page: int | None = None) -> LessonDetail:
                 pos=t["pos"],
                 char_start=t["char_start"],
                 char_end=t["char_end"],
+                sent_id=t["sent_id"],
                 state=state_for(t["lemma"], t["status"], bool(t["form_seen"])),
             )
             for t in tokens

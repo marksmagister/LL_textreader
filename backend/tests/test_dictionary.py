@@ -11,19 +11,34 @@ from ll_textreader.dictionary import load, lookup
 SCHEMA = Path(__file__).resolve().parents[1] / "ll_textreader" / "schema.sql"
 
 ENTRIES = [
-    {"word": "porte", "pos": "noun", "lang_code": "fr",
-     "senses": [{"glosses": ["door"]}, {"glosses": ["gate"]}]},
-    {"word": "porte", "pos": "verb", "lang_code": "fr",
-     "senses": [{"glosses": ["inflection of porter"], "tags": ["form-of"]}]},
-    {"word": "porter", "pos": "verb", "lang_code": "fr",
-     "senses": [{"glosses": ["to carry"]}]},
+    {
+        "word": "porte",
+        "pos": "noun",
+        "lang_code": "fr",
+        "senses": [{"glosses": ["door"]}, {"glosses": ["gate"]}],
+    },
+    {
+        "word": "porte",
+        "pos": "verb",
+        "lang_code": "fr",
+        "senses": [{"glosses": ["inflection of porter"], "tags": ["form-of"]}],
+    },
+    {"word": "porter", "pos": "verb", "lang_code": "fr", "senses": [{"glosses": ["to carry"]}]},
     # an inflected entry: the lemmatiser already handles these
-    {"word": "marchait", "pos": "verb", "lang_code": "fr",
-     "senses": [{"form_of": [{"word": "marcher"}], "glosses": ["third-person of marcher"]}]},
+    {
+        "word": "marchait",
+        "pos": "verb",
+        "lang_code": "fr",
+        "senses": [{"form_of": [{"word": "marcher"}], "glosses": ["third-person of marcher"]}],
+    },
     # another language in the same file
     {"word": "haus", "pos": "noun", "lang_code": "de", "senses": [{"glosses": ["house"]}]},
-    {"word": "faire", "pos": "verb", "lang_code": "fr",
-     "senses": [{"glosses": [f"sense {i}"]} for i in range(20)]},
+    {
+        "word": "faire",
+        "pos": "verb",
+        "lang_code": "fr",
+        "senses": [{"glosses": [f"sense {i}"]} for i in range(20)],
+    },
     {"word": "nogloss", "pos": "noun", "lang_code": "fr", "senses": [{"tags": ["rare"]}]},
 ]
 

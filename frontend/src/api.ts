@@ -1,4 +1,4 @@
-import type { LessonDetail, LessonSummary } from './types'
+import type { Gloss, LessonDetail, LessonSummary, VocabEntry } from './types'
 
 async function call<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, {
@@ -39,3 +39,29 @@ export const finishPage = (id: number, page: number, markRestKnown: boolean) =>
     method: 'POST',
     body: JSON.stringify({ page, mark_rest_known: markRestKnown }),
   })
+
+export const define = (lang: string, lemma: string, pos: string | null) =>
+  call<Gloss[]>(
+    `/api/dictionary?lang=${lang}&lemma=${encodeURIComponent(lemma)}` +
+      (pos ? `&pos=${pos}` : ''),
+  )
+
+export const setOverride = (o: {
+  lang: string
+  surface: string
+  from_lemma?: string | null
+  to_lemma?: string | null
+  to_pos?: string
+}) => call<{ lemma: string }>('/api/terms/override', { method: 'PUT', body: JSON.stringify(o) })
+
+export const clearOverride = (lang: string, surface: string) =>
+  call<void>(`/api/terms/override?lang=${lang}&surface=${encodeURIComponent(surface)}`, {
+    method: 'DELETE',
+  })
+
+export const listVocab = (lang: string, status?: string, q?: string) =>
+  call<{ total: number; by_status: Record<string, number>; entries: VocabEntry[] }>(
+    `/api/vocab?lang=${lang}` +
+      (status ? `&status=${status}` : '') +
+      (q ? `&q=${encodeURIComponent(q)}` : ''),
+  )
