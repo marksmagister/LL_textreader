@@ -58,3 +58,11 @@ def test_writes_are_guarded_too_not_just_reads(guarded):
     assert (
         guarded.put("/api/terms", json={"lang": "fr", "lemma": "x", "status": 5}).status_code == 401
     )
+
+
+def test_the_suite_is_immune_to_whatever_is_in_dotenv(client):
+    """Setting a password for sharing must not change what the tests exercise.
+    It did once: Settings reads .env, and 58 tests started returning 401. The
+    fixture pins it empty, whatever the file on disk says."""
+    assert settings.password == ""
+    assert client.get("/api/health").status_code == 200

@@ -43,6 +43,9 @@ class StubAdapter:
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "db_path", tmp_path / "test.db")
+    # Settings read .env, so a password set for sharing would otherwise lock the
+    # tests out. Anything a developer puts in .env must not change what is tested.
+    monkeypatch.setattr(settings, "password", "")
     monkeypatch.setitem(languages._cache, "fr", StubAdapter())
     db.init_db()
     with TestClient(app_factory()) as c:
