@@ -52,13 +52,16 @@ form_seen:    (user, lang, lemma, pos, surface) -> count, first_seen
 The lemma carries the status; the form table records which inflections have actually
 been met. Rendering follows from the join of those two against a lesson's token stream:
 
-- lemma unknown -> **blue**
-- lemma known, this surface form seen before -> **plain**
-- lemma known, novel surface form -> **third, lighter highlight**
+- lemma new -> **blue**
+- lemma learning (1-3) -> **yellow**
+- lemma met often enough to ask about (4) -> **hollow blue, dashed**
+- lemma known, novel surface form -> **a lighter tint**
+- lemma known, form already met -> **plain**
 
-That third state is the point of the whole design. It is the difference between "you
-don't know this word" and "you know this word, this is a shape of it you haven't met",
-which is the only useful distinction in Russian or Arabic.
+The novel-form state is the point of the whole design. It is the difference between
+"you don't know this word" and "you know this word, this is a shape of it you haven't
+met", which is the only useful distinction in Russian or Arabic. Levels are counted
+from exposure, never self-rated — see `docs/decisions/0008-learning-levels.md`.
 
 ## Rules that are easy to get wrong
 
@@ -93,11 +96,14 @@ backend/ll_textreader/
   db.py          sqlite connection, migrations
   config.py      env-backed settings
   schema.sql     the source of truth for the schema
-  models.py      pydantic types shared with the API
+  models.py      pydantic types shared with the API, and state_for()
+  dictionary.py  load a kaikki extract; look a lemma up
+  translate.py   sentence translation (optional extra)
+  export.py      the lexicon as Anki TSV / CSV / JSON
   nlp/           tokenise + lemmatise -> token stream
-    languages/   one adapter per language (nl, fr, ru, ar)
-  api/           route modules: lessons, terms, dictionary
-  importers/     epub / url / plain text -> lesson
+    languages/   one adapter per language; fr.py also carries tense rules
+  api/           routes: lessons, terms, vocab, dictionary, reports (docs/api.md)
+  importers/     plain_text.py, from_url.py -> lesson
 backend/tests/
 frontend/        vite + react + typescript
 scripts/         setup: download models & dictionaries (never vendored)

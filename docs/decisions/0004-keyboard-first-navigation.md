@@ -9,7 +9,7 @@ clicking.
 
 ```
 Tab / Shift-Tab   next / previous unknown word
-1 2 3 4           set learning level
+1                 mark as learning
 k                 mark known
 i                 ignore (names, numbers)
 Space             play/pause sentence audio
@@ -22,6 +22,12 @@ Cmd-Enter         save note and advance to next unknown
 /                 command palette (import, jump to lesson, switch lang)
 o                 override this word's lemma
 ```
+
+## Superseded: the learning levels
+
+`2`, `3` and `4` are gone. Levels are no longer set by hand — they are counted from
+how many pages you have met the word on, so the only judgements the reader offers are
+learning, known and ignore. See `0008-learning-levels.md`.
 
 ## One collision, resolved
 

@@ -24,9 +24,11 @@ beginner parses *courussent*. Hence the second table.
 
 Render:
 
-- lemma unknown → **blue**
+- lemma new → **blue**
+- lemma learning → **yellow**
+- lemma met on four pages → **hollow blue** — the app stops guessing and asks
+- lemma known, form novel → **a lighter tint**
 - lemma known, form seen → **plain**
-- lemma known, form novel → **lighter highlight**
 
 The third state is what the two-table split buys. It also gives coverage data for free —
 "you've met 40 verbs but never a past subjunctive" — without asking the user anything.
