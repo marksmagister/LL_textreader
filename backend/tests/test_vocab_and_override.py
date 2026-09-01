@@ -112,3 +112,35 @@ def test_override_is_idempotent(client):
     for _ in range(3):
         client.put("/api/terms/override", json={"lang": "fr", "surface": "Quais"})
     assert lemmas(client, lesson)["quais"] == "quais"
+
+
+def test_the_sentence_you_met_a_word_in_is_kept(client):
+    make(client)
+    client.put(
+        "/api/terms",
+        json={
+            "lang": "fr",
+            "lemma": "quai",
+            "pos": "VERB",
+            "status": 1,
+            "context": "Il marchait le long du quai.",
+        },
+    )
+    entry = next(
+        e for e in client.get("/api/vocab?lang=fr").json()["entries"] if e["lemma"] == "quai"
+    )
+    assert entry["context"] == "Il marchait le long du quai."
+
+
+def test_the_first_context_is_the_one_that_sticks(client):
+    """Where you first met a word is the memorable one; later sightings aren't."""
+    make(client)
+    for ctx in ("first sighting", "second sighting"):
+        client.put(
+            "/api/terms",
+            json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": 1, "context": ctx},
+        )
+    entry = next(
+        e for e in client.get("/api/vocab?lang=fr").json()["entries"] if e["lemma"] == "quai"
+    )
+    assert entry["context"] == "first sighting"

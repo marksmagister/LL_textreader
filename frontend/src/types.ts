@@ -60,6 +60,8 @@ export interface VocabEntry {
   pos: string
   status: number
   note: string | null
+  /** The sentence you first met it in. */
+  context: string | null
   updated_at: string
   /** The inflections you have actually met. */
   forms: string[]

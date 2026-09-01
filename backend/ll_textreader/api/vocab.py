@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/vocab", tags=["vocab"])
 SEP = "\x1f"  # unit separator: can't occur in a French surface form
 
 _ROWS = f"""
-SELECT s.lemma, s.pos, s.status, s.note, s.updated_at,
+SELECT s.lemma, s.pos, s.status, s.note, s.context, s.updated_at,
        group_concat(f.surface, '{SEP}') AS forms,
        COALESCE(SUM(f."count"), 0) AS met
 FROM lemma_status s
@@ -56,6 +56,7 @@ def list_vocab(lang: str = "fr", status: str | None = None, q: str | None = None
                 pos=r["pos"],
                 status=r["status"],
                 note=r["note"],
+                context=r["context"],
                 updated_at=r["updated_at"],
                 forms=sorted(set((r["forms"] or "").split(SEP)) - {""}),
                 met=r["met"],

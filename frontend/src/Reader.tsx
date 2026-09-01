@@ -123,6 +123,17 @@ export default function Reader({
     if (pick) setCursor(lesson.tokens.findIndex((t) => t.sent_id === pick.sent_id && t.lemma))
   }
 
+  /** The sentence the word sits in, so the lexicon remembers where you met it.
+   *  Reconstructed from the body by offset, never from the tokens themselves. */
+  const sentence = () => {
+    if (!token || !lesson) return null
+    const same = lesson.tokens.filter((t) => t.sent_id === token.sent_id)
+    if (!same.length) return null
+    const from = same[0].char_start - lesson.body_offset
+    const to = same[same.length - 1].char_end - lesson.body_offset
+    return lesson.body.slice(from, to).trim().slice(0, 300) || null
+  }
+
   const save = async (status: number) => {
     if (!token?.lemma) return
     await setTerm({
@@ -132,6 +143,7 @@ export default function Reader({
       status,
       surface: token.surface,
       note: note || null,
+      context: sentence(),
     })
     const keep = cursor
     const l = await readLesson(id, lesson.page)

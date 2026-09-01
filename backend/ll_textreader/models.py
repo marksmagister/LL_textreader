@@ -114,6 +114,7 @@ class VocabEntry(BaseModel):
     pos: str
     status: int
     note: str | None
+    context: str | None  # the sentence you first met it in
     updated_at: str
     forms: list[str]  # the inflections you have actually met
     met: int  # times seen on a page you finished — what the level is counted from

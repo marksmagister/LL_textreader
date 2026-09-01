@@ -67,6 +67,8 @@ export default function Vocab({ lang, onBack }: { lang: string; onBack: () => vo
             {/* occurrences, not pages — the level counts pages, so these differ */}
             {e.met > 0 && <span className="meta">seen {e.met}×</span>}
             {e.note && <span className="note">{e.note}</span>}
+            {/* where you met it — often more use than a definition */}
+            {e.context && <span className="context">“{e.context}”</span>}
             {/* which shapes of this word you have actually met */}
             <span className="forms">
               {e.forms.length === 0 ? (
