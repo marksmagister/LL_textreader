@@ -10,6 +10,9 @@ import type { LessonSummary } from './types'
 
 const LANG = 'fr'
 
+/** How long the offer to take back a bulk change stays on screen. */
+export const UNDO_LINGERS = 60_000
+
 type View =
   | { at: 'library' }
   | { at: 'reader'; id: number }
@@ -195,6 +198,16 @@ export default function App() {
   useEffect(() => {
     apply(theme)
   }, [theme])
+
+  // The offer expires. It exists so a misclick is not final, and after a minute
+  // you have either noticed or you have not — leaving it there turns a safety
+  // net into furniture. Turning the page clears it sooner, because the reader
+  // hands up a fresh value every time.
+  useEffect(() => {
+    if (!undo) return
+    const t = setTimeout(() => setUndo(null), UNDO_LINGERS)
+    return () => clearTimeout(t)
+  }, [undo])
 
   // `/` opens the palette from anywhere — unless you are typing.
   useEffect(() => {
