@@ -66,6 +66,7 @@ SELECT l.id, l.lang, l.title, l.source, l.pipeline_id, l.imported_at, l.body,
        COUNT(t.idx) AS n_tokens, COUNT(t.lemma) AS n_words,
        COALESCE(p.last_token, 0) AS last_token,
        COALESCE(p.completed, 0) AS completed,
+       p.updated_at AS last_read,
        -- how much of this lesson you can already read. Counted over tokens, not
        -- distinct lemmas, so it matches what the page looks like.
        -- COALESCE, not decoration: `1 AND NULL` is NULL in SQL, so a lesson

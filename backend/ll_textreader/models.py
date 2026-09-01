@@ -54,6 +54,7 @@ class LessonSummary(BaseModel):
     n_words: int
     last_token: int = 0  # where you stopped; 0 = not started
     completed: bool = False
+    last_read: str | None = None  # when you last turned a page in it
     n_new: int = 0
     n_learning: int = 0
     n_known: int = 0

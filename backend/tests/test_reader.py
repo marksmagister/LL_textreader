@@ -206,3 +206,12 @@ def test_a_lesson_of_entirely_unknown_words_still_summarises(client):
     lesson = client.post("/api/lessons", json={"text": "Le chat dort.", "lang": "fr"}).json()
     assert (lesson["n_new"], lesson["n_learning"], lesson["n_known"]) == (lesson["n_words"], 0, 0)
     assert client.get("/api/lessons").json()[0]["n_learning"] == 0
+
+
+def test_the_library_says_when_each_lesson_was_last_read(client):
+    """Sorting by what you were last in needs a time, not just a position."""
+    lesson = make_lesson(client)
+    assert client.get("/api/lessons").json()[0]["last_read"] is None
+
+    client.post(f"/api/lessons/{lesson['id']}/finish", json={"page": 0})
+    assert client.get("/api/lessons").json()[0]["last_read"] is not None

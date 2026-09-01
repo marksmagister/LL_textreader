@@ -3,6 +3,7 @@ import Reader from './Reader'
 import Report from './Report'
 import { apply, effective, stored, type Theme } from './theme'
 import Legend from './Legend'
+import LessonList from './LessonList'
 import Vocab from './Vocab'
 import { deleteLesson, fetchUrl, importText, listLessons, undoBulk } from './api'
 import type { LessonSummary } from './types'
@@ -14,28 +15,6 @@ type View =
   | { at: 'reader'; id: number }
   | { at: 'vocab' }
   | { at: 'legend' }
-
-/** The shape of a text: what share of its words are new, learning, known. */
-function Shape({ lesson }: { lesson: LessonSummary }) {
-  const total = lesson.n_words || 1
-  const parts = [
-    ['new', lesson.n_new],
-    ['learning', lesson.n_learning],
-    ['known', lesson.n_known],
-  ] as const
-  return (
-    <span className="shape" title={parts.map(([k, n]) => `${n} ${k}`).join(' · ')}>
-      <span className="shape-bar">
-        {parts.map(([k, n]) => (
-          <span key={k} className={`tok--${k}`} style={{ width: `${(n / total) * 100}%` }} />
-        ))}
-      </span>
-      <span className="meta">
-        {Math.round((lesson.n_known / total) * 100)}% known · {lesson.n_new} new
-      </span>
-    </span>
-  )
-}
 
 function Library({
   onOpen,
@@ -93,7 +72,7 @@ function Library({
   }
 
   return (
-    <main>
+    <main className="library">
       <p className="bar">
         <strong>LL_textreader</strong>
         <button onClick={onVocab}>vocabulary</button>
@@ -150,27 +129,11 @@ function Library({
         {busy && <p className="busy">{busy}</p>}
       </section>
 
-      <ul className="lessons">
-        {lessons.map((l) => (
-          <li key={l.id}>
-            <span className="row">
-              <button className="link" onClick={() => onOpen(l.id)}>
-                {l.title}
-              </button>
-              <span className="meta">
-                {l.n_words} words
-                {l.completed
-                  ? ' · done'
-                  : l.last_token > 0 &&
-                    ` · ${Math.round((l.last_token / l.n_tokens) * 100)}% read`}
-              </span>
-              <button onClick={() => deleteLesson(l.id).then(load)}>delete</button>
-            </span>
-            {/* how much of it you can already read, before you open it */}
-            <Shape lesson={l} />
-          </li>
-        ))}
-      </ul>
+      <LessonList
+        lessons={lessons}
+        onOpen={onOpen}
+        onDelete={(id) => deleteLesson(id).then(load)}
+      />
     </main>
   )
 }
