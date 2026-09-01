@@ -14,7 +14,7 @@
   --tok-new: #cfe4ff;        /* never seen */
   --tok-learning: #ffe9a8;   /* status 1-4 */
   --tok-novel-form: #eef3d9; /* known lemma, inflection not met before */
-  --tok-review: #3b82f6;   /* the dotted 'do you know this yet?' rule */
+  --tok-review: #4a86c7;        /* "do you know this yet?" — a question, not a verdict */
   --tok-known: transparent;
 
   --fg: #1a1a1a;
@@ -33,7 +33,7 @@
     --tok-new: #24405f;
     --tok-learning: #5a4a1c;
     --tok-novel-form: #34401f;
-    --tok-review: #7dd3fc;
+    --tok-review: #6ea3d6;
     --fg: #e8e6e1;
     --bg: #16181a;
     --line: #333;
@@ -56,11 +56,18 @@ h1 { font-size: 1.3rem; font-weight: normal; }
 .tok--new { background: var(--tok-new); }
 .tok--learning { background: var(--tok-learning); }
 .tok--novel-form { background: var(--tok-novel-form); }
-/* Met often enough that the app should stop guessing and ask. The dotted rule
-   says "you decide" — the app never promotes a word to known on your behalf. */
-.tok--review { background: var(--tok-learning);
-               text-decoration: underline dotted var(--tok-review) 2px;
-               text-underline-offset: 3px; }
+/* Met often enough that the app should stop guessing and ask. Back to blue,
+   because the question is "do you actually know this?" — but dashed and unfilled,
+   because it is a question rather than a verdict. Drawn with outline, not border,
+   so switching states never reflows the paragraph. */
+.tok--review {
+  /* Hollow, not a second shade of blue: filled means never decided, outlined
+     means decided once and due again. The difference has to be legible at
+     reading speed, and two similar fills are not. */
+  background: transparent;
+  outline: 1px dashed var(--tok-review);
+  outline-offset: 1px;
+}
 .tok--known { background: var(--tok-known); cursor: default; }
 
 /* Where Tab has put you. Must read against all four backgrounds. */

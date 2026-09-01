@@ -60,6 +60,7 @@ export interface VocabEntry {
   updated_at: string
   /** The inflections you have actually met. */
   forms: string[]
-  /** Times met on a page you finished — what the level counts. */
+  /** Occurrences on pages you finished. The level counts *pages*, so this is
+   *  the larger number of the two. */
   met: number
 }

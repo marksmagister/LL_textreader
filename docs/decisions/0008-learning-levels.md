@@ -34,7 +34,9 @@ finished. That is an observation, not a guess.
 - The reader offers three actions: **learning**, **known**, **ignore**. That is the full
   set of judgements a person can actually make about a word in front of them.
 - A word marked learning starts at 1 and **rises automatically as you meet it again**,
-  one level per finished page containing it.
+  **one level per finished page**, however many times it appears on that page. A word
+  three times in one paragraph is one encounter: what makes a repeat worth anything is
+  the delay before it, and within a page there is none.
 - At 4 it stops, and is rendered with a dotted rule: met often enough that you should
   decide. Promotion to known is always yours.
 
@@ -47,6 +49,12 @@ Because the middle band is where the interesting information is, and the data is
 there. Collapsing throws away the only honest measure of "how far along am I with this
 word" the app can obtain without interrogating the user. Keeping it costs nothing: the
 schema is unchanged, and the UI gets *simpler*, not more complex.
+
+## Two different numbers
+
+`form_seen.count` counts *occurrences*; the level counts *pages*. The vocabulary page
+shows the first as "seen 6×" and the second as the status. They are deliberately
+different, and neither is a rating.
 
 ## What changes
 

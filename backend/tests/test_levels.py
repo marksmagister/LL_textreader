@@ -84,3 +84,33 @@ def test_vocab_reports_how_often_you_have_met_a_word(client):
     )
     assert entry["met"] >= 2  # marchait and marchons both appeared
     assert sorted(entry["forms"]) == ["marchait", "marchons"]
+
+
+def test_a_word_repeated_on_one_page_counts_once(client):
+    """Three occurrences in one paragraph is one encounter, not three: the value
+    of a repeat is in the delay before it, and there is none within a page."""
+    text = "Le quai. Le quai encore. Toujours le quai."
+    lesson = client.post("/api/lessons", json={"text": text, "lang": "fr"}).json()["id"]
+    client.put("/api/terms", json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": 1})
+
+    client.post(f"/api/lessons/{lesson}/finish", json={"page": 0})
+    assert status_of(client, "quai") == 2  # not 4
+
+    client.post(f"/api/lessons/{lesson}/finish", json={"page": 0})
+    assert status_of(client, "quai") == 3
+
+
+def test_seen_counts_every_occurrence_even_though_the_level_does_not(client):
+    """`seen` is how often the word appeared; the level is how many pages. They
+    are different numbers on purpose."""
+    text = "Le quai. Le quai encore. Toujours le quai."
+    lesson = client.post("/api/lessons", json={"text": text, "lang": "fr"}).json()["id"]
+    client.put(
+        "/api/terms",
+        json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": 5, "surface": "quai"},
+    )
+    client.post(f"/api/lessons/{lesson}/finish", json={"page": 0})
+    entry = next(
+        e for e in client.get("/api/vocab?lang=fr").json()["entries"] if e["lemma"] == "quai"
+    )
+    assert entry["met"] > 1

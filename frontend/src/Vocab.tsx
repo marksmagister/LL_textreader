@@ -64,8 +64,8 @@ export default function Vocab({ lang, onBack }: { lang: string; onBack: () => vo
             <span className={`tok tok--${stateClass(e.status)}`}>{e.lemma}</span>
             <span className="pos">{e.pos}</span>
             <span className="meta">{label(e.status)}</span>
-            {/* the level is this number, not an opinion */}
-            {e.met > 0 && <span className="meta">met {e.met}×</span>}
+            {/* occurrences, not pages — the level counts pages, so these differ */}
+            {e.met > 0 && <span className="meta">seen {e.met}×</span>}
             {e.note && <span className="note">{e.note}</span>}
             {/* which shapes of this word you have actually met */}
             <span className="forms">
