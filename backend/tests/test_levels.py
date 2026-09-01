@@ -36,9 +36,19 @@ def status_of(client, lemma="quai"):
 
 
 def learn(client, lemma="quai", **extra):
+    # The reader always sends the form you were looking at, so the tests do too —
+    # without it every other form of the word reads as novel, which is correct
+    # but not what these tests are about.
     client.put(
         "/api/terms",
-        json={"lang": "fr", "lemma": lemma, "pos": "VERB", "status": 1, **extra},
+        json={
+            "lang": "fr",
+            "lemma": lemma,
+            "pos": "VERB",
+            "status": 1,
+            "surface": extra.pop("surface", lemma),
+            **extra,
+        },
     )
 
 

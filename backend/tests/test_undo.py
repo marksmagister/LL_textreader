@@ -47,9 +47,12 @@ def test_undo_leaves_words_you_had_already_judged_alone(client):
     result = mark_known(client, lesson)
     client.post(f"/api/lessons/undo/{result['undo_id']}")
 
-    s = states(client, lesson)
-    assert s["quai"] == "learning"  # your judgement survived both the mark and the undo
-    assert s["marchait"] == "new"
+    quai = next(
+        e for e in client.get("/api/vocab?lang=fr").json()["entries"] if e["lemma"] == "quai"
+    )
+    # your judgement survived both the bulk mark and the undo
+    assert 1 <= quai["status"] <= 4
+    assert states(client, lesson)["marchait"] == "new"
 
 
 def test_undo_is_offered_only_when_something_changed(client):

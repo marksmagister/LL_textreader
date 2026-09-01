@@ -10,10 +10,13 @@
 }
 
 :root {
-  /* The three token states. This palette is the product. */
+  /* The palette is the product. Blue means "this wants something from you", in
+   three weights: solid you have never judged, soft you know the word but not
+   this shape, hollow-and-dashed you have met it enough that the app should stop
+   guessing and ask. Yellow is the one state that is actively yours: learning. */
   --tok-new: #cfe4ff;        /* never seen */
   --tok-learning: #ffe9a8;   /* status 1-4 */
-  --tok-novel-form: #eef3d9; /* known lemma, inflection not met before */
+  --tok-novel-form: #7fb0e8; /* the band under a form you have not met */
   --tok-review: #4a86c7;        /* "do you know this yet?" — a question, not a verdict */
   --tok-known: transparent;
 
@@ -36,7 +39,7 @@
   :root:not([data-theme='light']) {
     --tok-new: #24405f;
     --tok-learning: #5a4a1c;
-    --tok-novel-form: #34401f;
+    --tok-novel-form: #4d7fb5;
     --tok-review: #6ea3d6;
     --fg: #e8e6e1;
     --bg: #16181a;
@@ -48,7 +51,7 @@
 :root[data-theme='dark'] {
   --tok-new: #24405f;
   --tok-learning: #5a4a1c;
-  --tok-novel-form: #34401f;
+  --tok-novel-form: #4d7fb5;
   --tok-review: #6ea3d6;
   --fg: #e8e6e1;
   --bg: #16181a;
@@ -62,6 +65,12 @@ body { margin: 0; background: var(--bg); color: var(--fg); }
 /* A reading app: the text is the interface. ~65 characters of measure. */
 main { max-width: 34rem; margin: 0 auto; padding: 2rem 1.5rem 8rem; }
 
+/* The panel is docked and can grow to 45vh, so the page has to reserve that much
+   or its last lines sit underneath it — unreachable except by closing the panel.
+   Reserving the maximum rather than measuring: the panel only ever gets shorter,
+   and empty space below the final line is invisible. */
+main.with-panel { padding-bottom: calc(45vh + 3rem); }
+
 h1 { font-size: 1.3rem; font-weight: normal; }
 
 /* ---------------------------------------------------------------- tokens */
@@ -71,7 +80,13 @@ h1 { font-size: 1.3rem; font-weight: normal; }
 .tok { border-radius: 3px; padding: 2px 0; cursor: pointer; }
 .tok--new { background: var(--tok-new); }
 .tok--learning { background: var(--tok-learning); }
-.tok--novel-form { background: var(--tok-novel-form); }
+/* A shape of a word you have not met. Blue, because it wants something from
+   you — but a band under the word rather than a fill, because two blue fills of
+   different darkness do not separate at reading speed. Drawn as a gradient so
+   nothing reflows when the state changes. */
+.tok--novel-form {
+  background: linear-gradient(to top, var(--tok-novel-form) 0.18em, transparent 0.18em);
+}
 /* Met often enough that the app should stop guessing and ask. Back to blue,
    because the question is "do you actually know this?" — but dashed and unfilled,
    because it is a question rather than a verdict. Drawn with outline, not border,

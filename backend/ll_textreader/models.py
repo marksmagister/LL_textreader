@@ -149,15 +149,22 @@ class FinishRequest(BaseModel):
 
 
 def state_for(lemma: str | None, status: int | None, form_seen: bool) -> TokenState:
-    """The render rule, in one place. See docs/data-model.md."""
+    """The render rule, in one place. See docs/data-model.md.
+
+    A form you have not met reads as novel whether you know the word well or are
+    still learning it — marking `perçu` should not turn `perçoit` plain yellow,
+    because you have never met that shape. The exception is a word at REVIEW: it
+    is asking you a question about the word itself, and that outranks a remark
+    about the form.
+    """
     if lemma is None:
         return "known"  # punctuation, digits: nothing to learn, render plain
     if status is None or status == NEW:
         return "new"
     if status == IGNORED:
         return "known"
-    if status >= KNOWN:
-        return "known" if form_seen else "novel-form"
-    # You have met this often enough that the app should stop guessing and ask.
-    # Only you get to say a word is known (decision 0008).
-    return "review" if status >= REVIEW else "learning"
+    if status >= REVIEW and status < KNOWN:
+        return "review"  # the ask comes first
+    if not form_seen:
+        return "novel-form"
+    return "known" if status >= KNOWN else "learning"

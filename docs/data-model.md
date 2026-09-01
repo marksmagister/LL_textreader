@@ -24,13 +24,19 @@ beginner parses *courussent*. Hence the second table.
 
 Render:
 
-- lemma new → **blue**
-- lemma learning → **yellow**
-- lemma met on four pages → **hollow blue** — the app stops guessing and asks
-- lemma known, form novel → **a lighter tint**
-- lemma known, form seen → **plain**
+- lemma new → **solid blue**
+- a form of it you have not met → **a blue band under the word**
+- lemma learning, form met → **yellow**
+- lemma met on four pages → **hollow blue, dashed** — the app stops guessing and asks
+- lemma known, form met → **plain**
 
-The third state is what the two-table split buys. It also gives coverage data for free —
+Blue means "this wants something from you", in three weights: solid you have never
+judged, banded you know the word but not this shape, hollow you have met it often
+enough to decide. Yellow is the one state that is actively yours. The weights differ
+by *shape*, not just shade — two blue fills of different darkness do not separate at
+reading speed.
+
+The novel-form state is what the two-table split buys. It also gives coverage data for free —
 "you've met 40 verbs but never a past subjunctive" — without asking the user anything.
 
 Cost: roughly double the rows. Still tiny.

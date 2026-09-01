@@ -52,15 +52,23 @@ form_seen:    (user, lang, lemma, pos, surface) -> count, first_seen
 The lemma carries the status; the form table records which inflections have actually
 been met. Rendering follows from the join of those two against a lesson's token stream:
 
-- lemma new -> **blue**
-- lemma learning (1-3) -> **yellow**
-- lemma met often enough to ask about (4) -> **hollow blue, dashed**
-- lemma known, novel surface form -> **a lighter tint**
-- lemma known, form already met -> **plain**
+- lemma new -> **solid blue**
+- a form of it you have not met -> **a blue band under the word**
+- lemma learning, form met -> **yellow**
+- lemma met on four pages -> **hollow blue, dashed** — the app stops guessing and asks
+- lemma known, form met -> **plain**
+
+Blue means "this wants something from you", in three weights: solid you have never
+judged, banded you know the word but not this shape, hollow you have met it often
+enough to decide. Yellow is the one state that is actively yours. The weights differ
+by *shape*, not just shade — two blue fills of different darkness do not separate at
+reading speed.
 
 The novel-form state is the point of the whole design. It is the difference between
 "you don't know this word" and "you know this word, this is a shape of it you haven't
-met", which is the only useful distinction in Russian or Arabic. Levels are counted
+met", which is the only useful distinction in Russian or Arabic. It applies whether the
+lemma is known or still being learned -- marking `perçu` must not turn `perçoit` plain
+yellow, because you have never met that shape. Levels are counted
 from exposure, never self-rated — see `docs/decisions/0008-learning-levels.md`.
 
 ## Rules that are easy to get wrong

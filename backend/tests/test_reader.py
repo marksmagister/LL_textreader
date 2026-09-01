@@ -51,11 +51,18 @@ def test_known_lemma_in_an_unmet_form_gets_its_own_state(client):
     assert s["quai"] == "new"
 
 
-def test_learning_status_shows_as_learning_whatever_the_form(client):
+def test_a_learning_word_still_marks_forms_you_have_not_met(client):
+    """Marking `marchait` must not turn `marchons` plain yellow: you have never
+    met that shape. Reported from real reading — the novel-form distinction is
+    not only for words you already know."""
     lesson = make_lesson(client)
-    client.put("/api/terms", json={"lang": "fr", "lemma": "marcher", "pos": "VERB", "status": 1})
+    client.put(
+        "/api/terms",
+        json={"lang": "fr", "lemma": "marcher", "pos": "VERB", "status": 1, "surface": "marchait"},
+    )
     s = states(client, lesson["id"])
-    assert s["marchait"] == s["marchons"] == "learning"
+    assert s["marchait"] == "learning"  # the form you met
+    assert s["marchons"] == "novel-form"  # same word, shape you have not
 
 
 def test_finish_records_the_forms_you_have_now_met(client):
@@ -86,9 +93,14 @@ def test_mark_rest_known_leaves_learning_words_alone(client):
     client.put("/api/terms", json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": 2})
     client.post(f"/api/lessons/{lesson['id']}/finish", json={"mark_rest_known": True})
 
-    s = states(client, lesson["id"])
-    assert s["quai"] == "learning"  # still yellow
-    assert s["long"] == "known"  # was blue, now cleared
+    # the status is what must survive; the colour depends on which form you met
+    quai = next(
+        e for e in client.get("/api/vocab?lang=fr").json()["entries"] if e["lemma"] == "quai"
+    )
+    # The level may have risen -- finishing a page counts as an encounter --
+    # but it must not have been marked known.
+    assert 1 <= quai["status"] <= 4
+    assert states(client, lesson["id"])["long"] == "known"  # was blue, now cleared
 
 
 def test_mark_rest_known_leaves_ignored_words_ignored(client):

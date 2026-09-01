@@ -268,7 +268,7 @@ export default function Reader({
   const last = lesson.page >= lesson.n_pages - 1
 
   return (
-    <main>
+    <main className={token?.lemma ? 'with-panel' : ''}>
       <p className="bar">
         <button onClick={onBack}>← library</button>
         <span>
