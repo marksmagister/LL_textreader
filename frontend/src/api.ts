@@ -34,6 +34,9 @@ export const setTerm = (t: {
   context?: string | null
 }) => call<{ state: string }>('/api/terms', { method: 'PUT', body: JSON.stringify(t) })
 
+export const undoBulk = (undoId: number) =>
+  call<void>(`/api/lessons/undo/${undoId}`, { method: 'POST' })
+
 export const finishPage = (id: number, page: number, markRestKnown: boolean) =>
   call<LessonSummary>(`/api/lessons/${id}/finish`, {
     method: 'POST',

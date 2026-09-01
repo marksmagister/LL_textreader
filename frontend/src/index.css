@@ -140,6 +140,13 @@ input, textarea { font: inherit; font-size: 0.9rem; padding: 0.4rem;
 .form { font-size: 0.7rem; opacity: 0.7; border: 1px solid var(--line);
         border-radius: 3px; padding: 0 0.3rem; }
 
+/* A bulk action is never final. Sits above the page, in both views. */
+.undo { position: sticky; top: 0; z-index: 5; margin: 0;
+        display: flex; gap: 0.6rem; align-items: center; justify-content: center;
+        background: var(--tok-learning); color: #1a1a1a;
+        padding: 0.5rem; font-size: 0.85rem; }
+.undo button { border-color: #1a1a1a; color: #1a1a1a; opacity: 0.9; }
+
 /* ---------------------------------------------------------------- palette */
 
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.35);

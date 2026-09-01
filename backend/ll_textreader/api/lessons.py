@@ -1,5 +1,6 @@
 """Lessons: import one, list them, read one, finish one."""
 
+import json
 import sqlite3
 
 from fastapi import APIRouter, HTTPException
@@ -17,6 +18,10 @@ from ..models import (
 from ..nlp.languages import UnknownLanguage
 
 router = APIRouter(prefix="/api/lessons", tags=["lessons"])
+
+# The fields that come from a row of _SUMMARY. undo_id/undo_n are set by an
+# action, not stored, so they must not be looked for in the row.
+DB_FIELDS = [f for f in LessonSummary.model_fields if not f.startswith("undo")]
 
 # Roughly a screenful of prose. Pages break between sentences, so this is a
 # target, not a limit — a page overshoots rather than cutting a sentence.
@@ -128,7 +133,7 @@ def create_lesson(req: ImportRequest) -> LessonSummary:
         except OSError as exc:  # spaCy model not downloaded
             raise HTTPException(503, f"language model unavailable: {exc}") from None
         row = _lesson_row(conn, lesson_id)
-    return LessonSummary(**{k: row[k] for k in LessonSummary.model_fields})
+    return LessonSummary(**{k: row[k] for k in DB_FIELDS})
 
 
 @router.get("", response_model=list[LessonSummary])
@@ -137,7 +142,7 @@ def list_lessons() -> list[LessonSummary]:
         rows = conn.execute(
             f"{_SUMMARY} GROUP BY l.id ORDER BY l.imported_at DESC, l.id DESC", (USER_ID,)
         ).fetchall()
-    return [LessonSummary(**{k: r[k] for k in LessonSummary.model_fields}) for r in rows]
+    return [LessonSummary(**{k: r[k] for k in DB_FIELDS}) for r in rows]
 
 
 @router.get("/{lesson_id}", response_model=LessonDetail)
@@ -166,7 +171,7 @@ def read_lesson(lesson_id: int, page: int | None = None) -> LessonDetail:
             end = nxt["char_start"] if nxt else end
 
     return LessonDetail(
-        **{k: row[k] for k in LessonSummary.model_fields},
+        **{k: row[k] for k in DB_FIELDS},
         page=page,
         n_pages=len(pages),
         body=row["body"][start:end],
@@ -213,7 +218,39 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
         page = max(0, min(req.page, len(pages) - 1))
         lo, hi = pages[page]
 
+        undo_id, doomed = None, []
         if req.mark_rest_known:
+            # Record what the blue words were before, so a misclick is recoverable.
+            # These are exactly the rows the statement below will change.
+            doomed = conn.execute(
+                """
+                SELECT DISTINCT COALESCE(o.to_lemma, t.lemma) AS lemma,
+                                COALESCE(o.to_pos, t.pos)     AS pos,
+                                s.status
+                FROM token t
+                LEFT JOIN lemma_override o
+                       ON o.user_id = ? AND o.lang = ? AND o.surface = t.norm
+                LEFT JOIN lemma_status s
+                       ON s.user_id = ? AND s.lang = ?
+                      AND s.lemma = COALESCE(o.to_lemma, t.lemma)
+                      AND s.pos   = COALESCE(o.to_pos, t.pos)
+                WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
+                  AND (s.status IS NULL OR s.status = 0)
+                """,
+                (USER_ID, lang, USER_ID, lang, lesson_id, lo, hi),
+            ).fetchall()
+            if doomed:
+                undo_id = conn.execute(
+                    "INSERT INTO bulk_undo (user_id, lang, lesson_id, kind, n, before)"
+                    " VALUES (?,?,?,'mark_page_known',?,?)",
+                    (
+                        USER_ID,
+                        lang,
+                        lesson_id,
+                        len(doomed),
+                        json.dumps([[r["lemma"], r["pos"], r["status"]] for r in doomed]),
+                    ),
+                ).lastrowid
             # Blue words only: those with no row, and those explicitly set back to
             # new. A word you are learning (1-4) stays learning — you decided that
             # about it, and this button must not quietly undo the decision. Ignored
@@ -277,4 +314,38 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
             (USER_ID, lesson_id, hi, int(page + 1 >= len(pages))),
         )
         row = _lesson_row(conn, lesson_id)
-    return LessonSummary(**{k: row[k] for k in LessonSummary.model_fields})
+    summary = LessonSummary(**{k: row[k] for k in DB_FIELDS})
+    summary.undo_id = undo_id
+    summary.undo_n = len(doomed)
+    return summary
+
+
+@router.post("/undo/{undo_id}", status_code=204)
+def undo_bulk(undo_id: int) -> None:
+    """Put back the words a bulk action changed.
+
+    Words that had no status before are deleted rather than set to 0, so undoing
+    leaves the lexicon exactly as it was rather than littering it with zeroes.
+    """
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT lang, before, undone FROM bulk_undo WHERE id = ? AND user_id = ?",
+            (undo_id, USER_ID),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(404, "no such action")
+        if row["undone"]:
+            raise HTTPException(409, "already undone")
+        for lemma, pos, prev in json.loads(row["before"]):
+            if prev is None:
+                conn.execute(
+                    "DELETE FROM lemma_status WHERE user_id=? AND lang=? AND lemma=? AND pos=?",
+                    (USER_ID, row["lang"], lemma, pos),
+                )
+            else:
+                conn.execute(
+                    "UPDATE lemma_status SET status=?, updated_at=datetime('now')"
+                    " WHERE user_id=? AND lang=? AND lemma=? AND pos=?",
+                    (prev, USER_ID, row["lang"], lemma, pos),
+                )
+        conn.execute("UPDATE bulk_undo SET undone = 1 WHERE id = ?", (undo_id,))

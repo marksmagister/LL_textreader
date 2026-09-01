@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Reader from './Reader'
 import Vocab from './Vocab'
-import { deleteLesson, importText, listLessons } from './api'
+import { deleteLesson, importText, listLessons, undoBulk } from './api'
 import type { LessonSummary } from './types'
 
 const LANG = 'fr'
@@ -159,6 +159,11 @@ function Palette({ commands, onClose }: { commands: [string, () => void][]; onCl
 export default function App() {
   const [view, setView] = useState<View>({ at: 'library' })
   const [palette, setPalette] = useState(false)
+  // A bulk action can change a hundred words, and finishing the last page of a
+  // lesson leaves the reader — so the offer to take it back lives up here,
+  // above whichever screen you end up on.
+  const [undo, setUndo] = useState<{ id: number; n: number } | null>(null)
+  const [refresh, setRefresh] = useState(0)
 
   // `/` opens the palette from anywhere — unless you are typing.
   useEffect(() => {
@@ -181,16 +186,42 @@ export default function App() {
 
   return (
     <>
+      {undo && (
+        <p className="undo">
+          Marked {undo.n} words known.
+          <button
+            onClick={async () => {
+              await undoBulk(undo.id)
+              setUndo(null)
+              setRefresh((n) => n + 1) // remount the view so it reloads
+            }}
+          >
+            undo
+          </button>
+          <button className="ghost" onClick={() => setUndo(null)}>
+            dismiss
+          </button>
+        </p>
+      )}
       {view.at === 'library' && (
         <Library
+          key={refresh}
           onOpen={(id) => setView({ at: 'reader', id })}
           onVocab={() => setView({ at: 'vocab' })}
         />
       )}
       {view.at === 'reader' && (
-        <Reader id={view.id} lang={LANG} onBack={() => setView({ at: 'library' })} />
+        <Reader
+          key={refresh}
+          id={view.id}
+          lang={LANG}
+          onBack={() => setView({ at: 'library' })}
+          onBulk={setUndo}
+        />
       )}
-      {view.at === 'vocab' && <Vocab lang={LANG} onBack={() => setView({ at: 'library' })} />}
+      {view.at === 'vocab' && (
+        <Vocab key={refresh} lang={LANG} onBack={() => setView({ at: 'library' })} />
+      )}
       {palette && <Palette commands={commands} onClose={() => setPalette(false)} />}
     </>
   )

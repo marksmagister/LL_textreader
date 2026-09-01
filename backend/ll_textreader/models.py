@@ -57,6 +57,9 @@ class LessonSummary(BaseModel):
     n_new: int = 0
     n_learning: int = 0
     n_known: int = 0
+    # set only by a bulk action, so the reader can offer to put it back
+    undo_id: int | None = None
+    undo_n: int = 0
 
 
 class LessonDetail(LessonSummary):

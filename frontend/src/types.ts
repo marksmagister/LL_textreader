@@ -32,6 +32,9 @@ export interface LessonSummary {
   n_new: number
   n_learning: number
   n_known: number
+  /** Set by a bulk action, so it can be taken back. */
+  undo_id: number | null
+  undo_n: number
 }
 
 /** One page. Pages are derived from the token stream, not stored. */

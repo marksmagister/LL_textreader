@@ -125,6 +125,24 @@ CREATE TABLE IF NOT EXISTS root_index (
 
 CREATE INDEX IF NOT EXISTS idx_root ON root_index(lang, root);
 
+-- ---------------------------------------------------------------- undo
+-- "Mark page known" can change a hundred words at once, and a misclick used to
+-- be unrecoverable. This records what those words were before, so it can be put
+-- back. `before` is JSON rather than a child table on purpose: it is an opaque
+-- append-only log, never joined against, and one table beats two here.
+
+CREATE TABLE IF NOT EXISTS bulk_undo (
+    id          INTEGER PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES user(id),
+    lang        TEXT    NOT NULL,
+    lesson_id   INTEGER,
+    kind        TEXT    NOT NULL,          -- 'mark_page_known'
+    n           INTEGER NOT NULL,
+    before      TEXT    NOT NULL,          -- [[lemma, pos, status_or_null], ...]
+    undone      INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
 -- ---------------------------------------------------------------- reading state
 
 CREATE TABLE IF NOT EXISTS reading_progress (

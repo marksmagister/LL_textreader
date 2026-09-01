@@ -31,10 +31,12 @@ export default function Reader({
   id,
   onBack,
   lang,
+  onBulk,
 }: {
   id: number
   onBack: () => void
   lang: string
+  onBulk: (u: { id: number; n: number } | null) => void
 }) {
   const [lesson, setLesson] = useState<LessonDetail | null>(null)
   const [cursor, setCursor] = useState(-1)
@@ -171,7 +173,10 @@ export default function Reader({
    *  On the last page there is nowhere to move on to, so finishing the lesson
    *  returns you to the library — otherwise the button silently does nothing. */
   const turn = async (markRestKnown: boolean) => {
-    await finishPage(id, lesson.page, markRestKnown)
+    const done = await finishPage(id, lesson.page, markRestKnown)
+    // Handed upwards: finishing the last page leaves the reader, and the offer
+    // to take it back has to outlive the screen that made it.
+    onBulk(done.undo_id ? { id: done.undo_id, n: done.undo_n } : null)
     if (lesson.page + 1 >= lesson.n_pages) return onBack()
     await load(lesson.page + 1)
   }
