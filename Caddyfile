@@ -5,13 +5,7 @@
 read.example.com {
 	basic_auth {
 		you PASTE_BCRYPT_HASH_HERE
+		friend PASTE_ANOTHER_HASH_HERE
 	}
 	reverse_proxy reader:8000
-}
-
-friend.example.com {
-	basic_auth {
-		friend PASTE_ANOTHER_BCRYPT_HASH_HERE
-	}
-	reverse_proxy friend:8000
 }

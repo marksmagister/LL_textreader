@@ -19,10 +19,13 @@ difference between a useful word count and a fictional one.
 
 ## Status
 
-**French works.** Paste text or open a `.txt`, read it coloured, click words as you go.
+**French works.** Paste text or open a `.txt`, then read it keyboard-first: Tab to the
+next unknown word, read the sentence, press `k` or `1`, Tab again. Wiktionary glosses,
+the grammar of the form in front of you, and a vocabulary page of every word you know
+with the inflections you've actually met.
+
 Russian is one adapter file away; Arabic is designed for but deliberately not built yet;
-Dutch comes last. No dictionary glosses yet — the lookup panel takes your own note.
-Current state and roadmap: `docs/status.md`.
+Dutch comes last. Current state and roadmap: `docs/status.md`.
 
 ## Setup
 
@@ -31,8 +34,10 @@ Requires Python 3.12 and Node 20+.
 ```bash
 git clone git@github.com:marksmagister/LL_textreader.git
 cd LL_textreader
-uv sync --extra nlp          # backend deps, incl. spaCy
-./scripts/setup-models.sh fr # ~45MB, not vendored — see NOTICE
+uv sync --extra nlp              # backend deps, incl. spaCy
+./scripts/setup-models.sh fr     # ~45MB, not vendored — see NOTICE
+./scripts/setup-dictionary.sh fr # 573MB download, leaves 12MB of glosses
+./scripts/setup-font.sh          # optional: Literata, which has real Cyrillic
 cp .env.example .env
 ```
 
@@ -47,8 +52,18 @@ cd frontend && npm install && npm run dev
 ```
 
 Open `http://localhost:5173`. Paste a few paragraphs of French, hit Import, and read.
-Everything is blue at first — click a word, give it a status, and use **Mark rest
-known** freely; it's the pressure valve, not cheating.
+Everything is blue at first. Press `/` for commands, or just start pressing Tab.
+
+```
+Tab / Shift-Tab   next / previous unknown word     Enter  open the note field
+1                 learning                          Esc    back to the text
+k                 known                             o      the lemmatiser is wrong
+i                 ignore (names, numbers)           /      command palette
+Shift-K           mark the rest of the page known   j ↓ ↑  by sentence
+```
+
+Use **Mark page known** freely — it's the pressure valve, not cheating, and it can be
+undone. Deployment: `docs/deploying.md`.
 
 ## Licence
 

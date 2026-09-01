@@ -19,8 +19,12 @@ Working and verified against real text, in the browser:
 - lemma override, in the UI and honoured by the read path
 - vocabulary page: every lemma, with the inflections you have actually met
 - library shows each text's shape — what share of it you can already read
-- keyboard: Tab/Shift-Tab, 1-4, k, i, Shift-K, j/arrows, Enter, Esc, o, /
-- 70 tests, ruff and tsc clean
+- keyboard: Tab/Shift-Tab, 1, k, i, Shift-K, j/arrows, Enter, Esc, o, /
+- levels counted from exposure, not self-rated (decision 0008)
+- undo for "mark page known"
+- the sentence you first met a word in, kept and shown
+- `--dry-run`-able reprocessing for stale token streams (rule 6)
+- 93 tests, ruff and tsc clean
 
 Numbers worth knowing: a 12,000-word chapter imports in 1.3s and a page opens in
 0.08s. The dictionary is a 573MB download that leaves 12MB in the database.
@@ -50,6 +54,10 @@ without losing anyone's place. Position never moves backwards.
 
 ## Next
 
+0. **Deployment.** Files are written (`Dockerfile`, `docker-compose.yml`, `Caddyfile`,
+   `docs/deploying.md`) but the image build is untested — no Docker on the machine.
+   Single-user by design: a friend with the URL reads with your lexicon, which is what
+   a demo wants and is not a login system.
 1. **Edit and re-import a lesson.** If you notice a bad import on page 3 you should be
    able to fix the text without losing anything. Cheaper than it looks: the lexicon is
    keyed on lemma, not lesson, so it survives untouched. The only casualty is
@@ -68,12 +76,11 @@ without losing anyone's place. Position never moves backwards.
 - Reading position within a page (`last_token` is per page turn, not per scroll)
 - Lexicon export (JSON/CSV) — the vocabulary is the asset, the lessons are replaceable
 - Audio and sentence timestamps; `Space`/`Shift-Space` are reserved for it
+- A phone client (PWA + iOS share-sheet import, see 0005) — **after** the desktop web
+  app is good, not before
 
 ## Open questions
 
-- **The 1-4 learning levels.** Nobody can honestly rate how well they know a word, and
-  nothing ever prompts a re-rating, so the numbers decay into noise. Proposal and
-  recommendation in `decisions/0008-learning-levels.md`. Undecided.
 - Levantine Arabic: MSA-trained analysers mis-handle بدي / عم بكتب / مش. Not a pilot
   problem — see `decisions/0002-arabic-pipeline.md`.
 - Does "turn the page" remain the right moment to record met forms, under real use?

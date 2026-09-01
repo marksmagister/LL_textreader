@@ -39,3 +39,4 @@ frontend/.vite/
 .vscode/
 *.swp
 frontend/public/fonts/
+backups/
