@@ -8,11 +8,37 @@ import type { LessonSummary } from './types'
  *  Each is written in its natural direction; pressing it again reverses it, so
  *  "easiest" and "hardest" are one button rather than two words. */
 const SORTS: Array<[string, string, (a: LessonSummary, b: LessonSummary) => number]> = [
-  ['recent', 'last read', (a, b) => (b.last_read ?? '').localeCompare(a.last_read ?? '')],
+  // "Last read" means the last time you did anything here — judging a word
+  // counts, not only turning a page. Never touched at all falls back to when it
+  // arrived, so the order stays meaningful all the way down.
+  ['recent', 'last read', (a, b) => when(b).localeCompare(when(a))],
   ['title', 'title', (a, b) => a.title.localeCompare(b.title)],
   ['known', 'you know', (a, b) => share(b) - share(a)],
   ['length', 'length', (a, b) => b.n_words - a.n_words],
 ]
+
+/** Last read, or failing that when it arrived. */
+function when(l: LessonSummary) {
+  return l.last_read ?? l.imported_at ?? ''
+}
+
+/** "3 days ago", which is what you want to know about a lesson you half-read. */
+function ago(when: string) {
+  const days = Math.floor((Date.now() - Date.parse(when + 'Z')) / 86_400_000)
+  if (days < 1) return 'today'
+  if (days === 1) return 'yesterday'
+  return `${days} days ago`
+}
+
+/** The detail behind the bar, for hovering. The row itself stays uncluttered. */
+function detail(l: LessonSummary) {
+  return [
+    `${l.n_words} words`,
+    `${l.n_known} you know · ${l.n_learning} learning · ${l.n_new} new`,
+    l.completed ? 'finished' : l.last_token ? `${progress(l)} of the way through` : 'not started',
+    l.last_read ? `last used ${ago(l.last_read!)}` : 'never opened',
+  ].join('\n')
+}
 
 /** How much of a text you can already read. The one number worth comparing. */
 function share(l: LessonSummary) {
@@ -28,8 +54,10 @@ function progress(l: LessonSummary) {
 /** Filled you have started, hollow you have not, faded you have finished. One
  *  glyph in a fixed column, so state reads straight down the page. */
 function Marker({ lesson }: { lesson: LessonSummary }) {
-  const state = lesson.completed ? 'done' : lesson.last_token ? 'started' : ''
-  return <span className={`dot ${state}`} />
+  // Finished reads as ticked off rather than struck through: still legible,
+  // clearly behind you.
+  if (lesson.completed) return <span className="tick">✓</span>
+  return <span className={`dot ${lesson.last_token ? 'started' : ''}`} />
 }
 
 export default function LessonList({
@@ -106,13 +134,13 @@ export default function LessonList({
       </div>
 
       {shown.map((l) => (
-        <div className="lrow" key={l.id}>
+        <div className={`lrow${l.completed ? ' is-done' : ''}`} key={l.id}>
           <Marker lesson={l} />
           <button className="name" onClick={() => onOpen(l.id)}>
             {l.title}
           </button>
           <span className="pos">{progress(l)}</span>
-          <span className="diff">
+          <span className="diff" title={detail(l)}>
             {/* One bar, one meaning: how much of this you can already read. */}
             <span className="shape-bar">
               <span className="tok--known" style={{ width: `${share(l) * 100}%` }} />

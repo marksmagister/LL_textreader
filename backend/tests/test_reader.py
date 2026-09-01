@@ -215,3 +215,45 @@ def test_the_library_says_when_each_lesson_was_last_read(client):
 
     client.post(f"/api/lessons/{lesson['id']}/finish", json={"page": 0})
     assert client.get("/api/lessons").json()[0]["last_read"] is not None
+
+
+def test_judging_a_word_counts_as_using_the_lesson(client):
+    """ "Last read" should mean the last time you did anything in a lesson. Marking
+    a word without reaching the end of the page is using it."""
+    lesson = make_lesson(client)
+    assert client.get("/api/lessons").json()[0]["last_read"] is None
+
+    client.put(
+        "/api/terms",
+        json={
+            "lang": "fr",
+            "lemma": "quai",
+            "pos": "VERB",
+            "status": 1,
+            "lesson_id": lesson["id"],
+            "page": 0,
+        },
+    )
+    row = client.get("/api/lessons").json()[0]
+    assert row["last_read"] is not None
+    assert row["last_token"] == 0  # judging a word is not progress through it
+
+
+def test_judging_a_word_does_not_undo_your_place(client):
+    lesson = make_lesson(client)
+    client.post(f"/api/lessons/{lesson['id']}/finish", json={"page": 0})
+    was = client.get("/api/lessons").json()[0]["last_token"]
+    assert was > 0
+
+    client.put(
+        "/api/terms",
+        json={
+            "lang": "fr",
+            "lemma": "quai",
+            "pos": "VERB",
+            "status": 1,
+            "lesson_id": lesson["id"],
+            "page": 0,
+        },
+    )
+    assert client.get("/api/lessons").json()[0]["last_token"] == was

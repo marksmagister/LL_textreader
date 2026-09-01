@@ -50,6 +50,17 @@ def set_term(req: TermUpdate) -> dict[str, str | int | None]:
                 """,
                 (USER_ID, req.lang, req.lemma, req.pos, req.lesson_id, req.page),
             )
+            # Judging a word is using the lesson, even if you never reach the end
+            # of the page. "Last read" should mean the last time you did anything
+            # here, not the last time you happened to turn a page.
+            conn.execute(
+                """
+                INSERT INTO reading_progress (user_id, lesson_id, last_token, completed)
+                VALUES (?,?,0,0)
+                ON CONFLICT(user_id, lesson_id) DO UPDATE SET updated_at = datetime('now')
+                """,
+                (USER_ID, req.lesson_id),
+            )
         seen = req.status < KNOWN or bool(req.surface)
 
     state: TokenState = state_for(req.lemma, req.status, seen)

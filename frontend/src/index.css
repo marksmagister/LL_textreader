@@ -179,7 +179,13 @@ main.library { max-width: 44rem; }
 .dot { width: 8px; height: 8px; border-radius: 50%; justify-self: center;
        border: 1.5px solid var(--fg); opacity: 0.45; }
 .dot.started { background: var(--fg); opacity: 0.85; }
-.dot.done { opacity: 0.22; background: var(--fg); border-color: transparent; }
+.tick { justify-self: center; font-size: 0.8rem; opacity: 0.5; }
+
+/* Done is settled, not gone: dimmed like a ticked-off item, still readable. */
+.lrow.is-done .name { opacity: 0.5; }
+.lrow.is-done .pos { opacity: 0.4; }
+.lrow.is-done .diff { opacity: 0.45; }
+.lrow.is-done:hover .name { opacity: 0.85; }
 
 .pos { font-size: 0.75rem; opacity: 0.55; text-align: right; }
 
