@@ -13,7 +13,7 @@ vCPUs, so halve the throughput figures and leave the storage ones alone.
 | per lesson | 53.5 kB |
 | per known word | 120 bytes |
 | open a page | 3.9 ms |
-| **open the library** | **85–121 ms** |
+| open the library | 1.8 ms (was 85 ms — see below) |
 | import | ~11,000 words/s |
 | concurrent page opens | 52–208 req/s |
 
@@ -42,16 +42,32 @@ Imports are the spike. One is a second or two of solid CPU on the VPS, and ten p
 importing a chapter at the same moment will stall everyone. That wants a concurrency
 limit long before it wants a bigger machine.
 
-## The thing that has to be fixed first
+## The library listing, measured twice
 
-**The library listing is O(all tokens in all your lessons)** — it aggregates over every
-token of every lesson to compute the coloured bars. Measured: 121 ms at 10,000 tokens,
-which extrapolates to **about four seconds at 500 lessons**, and worse on the VPS.
+The first measurement said 121 ms at 10,000 tokens and extrapolated to four seconds at
+500 lessons. **That measurement was wrong** — the benchmark query omitted `lang` from
+the join, which defeats the primary key index and made it seven times slower than the
+query the code actually runs. The real figures were 8 ms at fifteen lessons, 283 ms at
+five hundred, 1.2 s at two thousand.
 
-This is not a scale problem, it is a *single power user* problem: one person with a few
-hundred imports makes their own library unusable, at any number of users. It needs a
-cached count per lesson, invalidated when a word's status changes, rather than a live
-aggregate. Fix before publishing anywhere.
+Still linear in every token you have ever imported, and still worth fixing, so it is
+fixed. The counts are now stored on the lesson row and recomputed only for the lessons
+a change actually touches — see `counts.py`. Measured after:
+
+| lessons | tokens | before | after |
+|---|---|---|---|
+| 15 | 9,750 | 8 ms | 0.0 ms |
+| 100 | 65,000 | 60 ms | 0.1 ms |
+| 500 | 325,000 | 297 ms | 0.7 ms |
+| 2,000 | 1,300,000 | 1,214 ms | 2.4 ms |
+
+The endpoint went from 85 ms to 1.8 ms, and is now linear in the number of lessons
+rather than the number of words in them.
+
+The rule that keeps the cache honest is **recompute, never adjust**: no arithmetic on
+deltas, no reasoning about what a change implies. `test_counts.py` compares the stored
+numbers against counting from scratch after every operation that could move a word
+between buckets, because a drifted count is worse than a slow one.
 
 ## What it costs
 

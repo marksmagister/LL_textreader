@@ -7,6 +7,7 @@ result is stored; opening a lesson is then a DB join and nothing else.
 import sqlite3
 import unicodedata
 
+from ..counts import refresh
 from ..models import AnalysedToken
 from ..nlp.languages import get_adapter
 
@@ -121,6 +122,9 @@ def reprocess(conn: sqlite3.Connection, lesson_id: int, force: bool = False) -> 
     conn.execute("DELETE FROM token WHERE lesson_id = ?", (lesson_id,))
     _insert_tokens(conn, lesson_id, tokens)
     conn.execute("UPDATE lesson SET pipeline_id = ? WHERE id = ?", (adapter.pipeline_id, lesson_id))
+    # The tokens are all new, so the library's cached counts were computed over
+    # rows that no longer exist.
+    refresh(conn, [lesson_id])
 
     for user_id, offset in where_they_were.items():
         idx = next(

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from ..counts import bucket, refresh, refresh_for_words
 from ..db import USER_ID, connect
 from ..models import KNOWN, OverrideRequest, TermUpdate, TokenState, state_for
 
@@ -16,6 +17,10 @@ def set_term(req: TermUpdate) -> dict[str, str | int | None]:
     you've met renders plain, and in a shape you haven't renders lighter.
     """
     with connect() as conn:
+        was = conn.execute(
+            "SELECT status FROM lemma_status WHERE user_id=? AND lang=? AND lemma=? AND pos=?",
+            (USER_ID, req.lang, req.lemma, req.pos),
+        ).fetchone()
         conn.execute(
             """
             INSERT INTO lemma_status (user_id, lang, lemma, pos, status, note, context)
@@ -61,6 +66,10 @@ def set_term(req: TermUpdate) -> dict[str, str | int | None]:
                 """,
                 (USER_ID, req.lesson_id),
             )
+        # Only a change of bucket moves the library's counts. Rating a word you
+        # are already learning, or a level rising on a page turn, does not.
+        if bucket(was["status"] if was else None) != bucket(req.status):
+            refresh_for_words(conn, USER_ID, req.lang, [(req.lemma, req.pos)])
         seen = req.status < KNOWN or bool(req.surface)
 
     state: TokenState = state_for(req.lemma, req.status, seen)
@@ -89,6 +98,11 @@ def set_override(req: OverrideRequest) -> dict[str, str]:
             """,
             (USER_ID, req.lang, surface, req.from_lemma, to_lemma, req.to_pos),
         )
+        # The surface now answers to a different word, so the lessons containing
+        # it are counted against a different status.
+        refresh_for_words(conn, USER_ID, req.lang, [(to_lemma, req.to_pos)])
+        if req.from_lemma:
+            refresh_for_words(conn, USER_ID, req.lang, [(req.from_lemma, req.to_pos)])
     return {"surface": surface, "lemma": to_lemma, "pos": req.to_pos}
 
 
@@ -100,3 +114,12 @@ def clear_override(lang: str, surface: str) -> None:
             "DELETE FROM lemma_override WHERE user_id = ? AND lang = ? AND surface = ?",
             (USER_ID, lang, surface.casefold()),
         )
+        ids = [
+            r[0]
+            for r in conn.execute(
+                "SELECT DISTINCT t.lesson_id FROM token t JOIN lesson l ON l.id = t.lesson_id"
+                " WHERE l.user_id = ? AND l.lang = ? AND t.norm = ?",
+                (USER_ID, lang, surface.casefold()),
+            )
+        ]
+        refresh(conn, ids)

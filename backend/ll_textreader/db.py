@@ -26,6 +26,16 @@ ADDED_COLUMNS = [
     ("token", "morph", "TEXT NOT NULL DEFAULT ''"),
     ("lesson", "collection_id", "INTEGER REFERENCES collection(id) ON DELETE SET NULL"),
     ("lesson", "position", "INTEGER NOT NULL DEFAULT 0"),
+    # Cached, because computing them meant joining every token of every lesson
+    # against the lexicon on every visit to the library — 325,000 index lookups
+    # at 500 lessons. See counts.py; they are recomputed, never adjusted.
+    ("lesson", "n_new", "INTEGER NOT NULL DEFAULT 0"),
+    ("lesson", "n_learning", "INTEGER NOT NULL DEFAULT 0"),
+    ("lesson", "n_known", "INTEGER NOT NULL DEFAULT 0"),
+    # Fixed at import: how long the lesson is. Kept here for the same reason —
+    # otherwise the library still has to touch every token to say "650 words".
+    ("lesson", "n_tokens", "INTEGER NOT NULL DEFAULT 0"),
+    ("lesson", "n_words", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 

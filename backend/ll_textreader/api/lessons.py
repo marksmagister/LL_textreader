@@ -5,6 +5,7 @@ import sqlite3
 
 from fastapi import APIRouter, HTTPException
 
+from ..counts import refresh, refresh_for_words
 from ..db import USER_ID, connect
 from ..importers import from_url
 from ..importers.from_url import BadUrl
@@ -64,28 +65,17 @@ def _resume(pages: list[tuple[int, int]], last_token: int) -> int:
 # n_words counts lexical tokens only; COUNT(col) skips NULL lemmas.
 _SUMMARY = """
 SELECT l.id, l.lang, l.title, l.source, l.pipeline_id, l.imported_at, l.body,
-       COUNT(t.idx) AS n_tokens, COUNT(t.lemma) AS n_words,
+       l.n_tokens, l.n_words,
        COALESCE(p.last_token, 0) AS last_token,
        COALESCE(p.completed, 0) AS completed,
        p.updated_at AS last_read,
        l.collection_id, l.position, c.title AS collection,
        -- how much of this lesson you can already read. Counted over tokens, not
        -- distinct lemmas, so it matches what the page looks like.
-       -- COALESCE, not decoration: `1 AND NULL` is NULL in SQL, so a lesson
-       -- whose words are all unknown summed to NULL and failed to serialise.
-       COALESCE(SUM(t.lemma IS NOT NULL AND (s.status IS NULL OR s.status = 0)), 0) AS n_new,
-       COALESCE(SUM(t.lemma IS NOT NULL AND s.status BETWEEN 1 AND 4), 0) AS n_learning,
-       COALESCE(SUM(t.lemma IS NOT NULL AND (s.status >= 5 OR s.status = -1)), 0) AS n_known
+       l.n_new, l.n_learning, l.n_known
 FROM lesson l
-LEFT JOIN token t ON t.lesson_id = l.id
 LEFT JOIN reading_progress p ON p.lesson_id = l.id AND p.user_id = l.user_id
 LEFT JOIN collection c ON c.id = l.collection_id
-LEFT JOIN lemma_override o
-       ON o.user_id = l.user_id AND o.lang = l.lang AND o.surface = t.norm
-LEFT JOIN lemma_status s
-       ON s.user_id = l.user_id AND s.lang = l.lang
-      AND s.lemma = COALESCE(o.to_lemma, t.lemma)
-      AND s.pos   = COALESCE(o.to_pos, t.pos)
 WHERE l.user_id = ?
 """
 
@@ -143,6 +133,7 @@ def create_lesson(req: ImportRequest) -> LessonSummary:
             raise HTTPException(400, f"no adapter for language {req.lang!r}") from None
         except OSError as exc:  # spaCy model not downloaded
             raise HTTPException(503, f"language model unavailable: {exc}") from None
+        refresh(conn, [lesson_id])
         row = _lesson_row(conn, lesson_id)
     return LessonSummary(**{k: row[k] for k in DB_FIELDS})
 
@@ -417,6 +408,10 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
             """,
             (USER_ID, lesson_id, hi, int(page + 1 >= len(pages))),
         )
+        # Marking a page known moves words between buckets; the level bumps above
+        # do not, since 1→2→3 stays inside "learning".
+        if req.mark_rest_known and doomed:
+            refresh_for_words(conn, USER_ID, lang, [(d["lemma"], d["pos"]) for d in doomed])
         row = _lesson_row(conn, lesson_id)
     summary = LessonSummary(**{k: row[k] for k in DB_FIELDS})
     summary.undo_id = undo_id
@@ -453,3 +448,6 @@ def undo_bulk(undo_id: int) -> None:
                     (prev, USER_ID, row["lang"], lemma, pos),
                 )
         conn.execute("UPDATE bulk_undo SET undone = 1 WHERE id = ?", (undo_id,))
+        refresh_for_words(
+            conn, USER_ID, row["lang"], [(w, p) for w, p, _ in json.loads(row["before"])]
+        )
