@@ -46,9 +46,12 @@ class FrenchAdapter:
                 continue
             norm = tok.text.casefold()
             lexical = any(c.isalpha() for c in tok.text)
-            lemma, pos, confidence = None, None, 1.0
+            lemma, pos, confidence, morph = None, None, 1.0, ""
             if lexical:
                 lemma, pos = tok.lemma_.casefold(), tok.pos_
+                # e.g. "Mood=Ind|Number=Sing|Person=3|Tense=Imp" for marchait —
+                # already computed, and it is what explains the surface form.
+                morph = str(tok.morph)
                 if pos == "X":
                     lemma, pos, confidence = norm, "X", 0.0
             out.append(
@@ -61,6 +64,7 @@ class FrenchAdapter:
                     char_start=tok.idx,
                     char_end=tok.idx + len(tok.text),
                     sent_id=sent_of.get(i, 0),
+                    morph=morph,
                     confidence=confidence,
                 )
             )

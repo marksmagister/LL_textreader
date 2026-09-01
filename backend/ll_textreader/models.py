@@ -24,6 +24,7 @@ class AnalysedToken(BaseModel):
     char_start: int
     char_end: int
     sent_id: int
+    morph: str = ""  # UD features, e.g. "Number=Sing|Tense=Imp"
     confidence: float = 1.0
 
 
@@ -37,6 +38,7 @@ class ReaderToken(BaseModel):
     char_start: int
     char_end: int
     sent_id: int  # for sentence-at-a-time keyboard navigation
+    morph: str  # why this form looks different from the lemma
     state: TokenState
 
 

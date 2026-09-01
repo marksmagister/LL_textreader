@@ -46,7 +46,8 @@ def import_text(
     lesson_id = int(cur.lastrowid)
     conn.executemany(
         "INSERT INTO token (lesson_id, idx, surface, norm, lemma, pos,"
-        " char_start, char_end, sent_id, confidence) VALUES (?,?,?,?,?,?,?,?,?,?)",
+        " char_start, char_end, sent_id, morph, confidence)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
         [
             (
                 lesson_id,
@@ -58,6 +59,7 @@ def import_text(
                 t.char_start,
                 t.char_end,
                 t.sent_id,
+                t.morph,
                 t.confidence,
             )
             for t in tokens

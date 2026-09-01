@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { clearOverride, define, finishPage, readLesson, setOverride, setTerm } from './api'
+import { describe } from './morph'
 import type { Gloss, LessonDetail, Token } from './types'
 
 /** Overlay token spans onto the original text. Never rebuild the text from tokens. */
@@ -239,6 +240,8 @@ export default function Reader({
             <strong>{token.surface}</strong>
             {token.lemma !== token.surface.toLowerCase() && <em> → {token.lemma}</em>}
             <span className="pos"> {token.pos}</span>
+            {/* why this form differs from the lemma, not just that it belongs to it */}
+            {describe(token.morph) && <span className="morph">{describe(token.morph)}</span>}
             <button className="ghost" onClick={() => setFixing(true)} title="o">
               wrong word?
             </button>

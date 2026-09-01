@@ -9,6 +9,8 @@ export interface Token {
   char_start: number
   char_end: number
   sent_id: number
+  /** UD features explaining why this form differs from the lemma. */
+  morph: string
   state: TokenState
 }
 

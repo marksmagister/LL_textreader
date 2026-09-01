@@ -100,6 +100,8 @@ input, textarea { font: inherit; font-size: 0.9rem; padding: 0.4rem;
 .panel input { width: 100%; box-sizing: border-box; margin: 0.4rem auto; display: block; }
 .panel .keys { margin-top: 0.4rem; }
 
+.morph { font-size: 0.75rem; opacity: 0.8; font-style: italic; }
+
 .glosses { margin: 0.2rem auto; padding-left: 1.2rem; font-size: 0.85rem; }
 .glosses li { margin: 0.1rem 0; }
 

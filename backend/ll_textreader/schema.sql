@@ -45,6 +45,10 @@ CREATE TABLE IF NOT EXISTS token (
     char_start  INTEGER NOT NULL,            -- char offset into lesson.body
     char_end    INTEGER NOT NULL,
     sent_id     INTEGER NOT NULL,
+    -- UD features, e.g. "Mood=Ind|Number=Sing|Person=3|Tense=Imp". The tagger
+    -- computes these anyway; storing them lets the reader say *why* a form
+    -- differs, not just which word it belongs to.
+    morph       TEXT    NOT NULL DEFAULT '',
     confidence  REAL    NOT NULL DEFAULT 1.0, -- < threshold => treat as surface form
     PRIMARY KEY (lesson_id, idx)
 );

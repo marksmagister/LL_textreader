@@ -49,3 +49,11 @@ def test_elision_is_split():
 
 def test_pipeline_id_is_stamped():
     assert get_adapter("fr").pipeline_id.startswith("spacy/fr_core_news_md@")
+
+
+def test_morphology_is_kept(tokens):
+    """The tagger computes this anyway; it is what explains the surface form."""
+    m = by_surface(tokens, "marchait").morph
+    assert "Tense=Imp" in m and "Person=3" in m and "Number=Sing" in m
+    assert "Number=Plur" in by_surface(tokens, "maisons").morph
+    assert by_surface(tokens, ".").morph == ""
