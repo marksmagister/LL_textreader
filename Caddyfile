@@ -1,0 +1,17 @@
+# Caddy gets certificates automatically. Generate a password hash with:
+#   docker run --rm caddy:2-alpine caddy hash-password --plaintext 'your-password'
+# and paste it below. The app has no login of its own — this is the only door.
+
+read.example.com {
+	basic_auth {
+		you PASTE_BCRYPT_HASH_HERE
+	}
+	reverse_proxy reader:8000
+}
+
+friend.example.com {
+	basic_auth {
+		friend PASTE_ANOTHER_BCRYPT_HASH_HERE
+	}
+	reverse_proxy friend:8000
+}

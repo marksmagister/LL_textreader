@@ -197,7 +197,8 @@ export default function Reader({
       return (e.preventDefault(), e.shiftKey ? turn(true) : rate(5))
     if (k === 'i') return (e.preventDefault(), rate(-1))
     if (k === 'o') return (e.preventDefault(), setFixing(true), void 0)
-    if ('1234'.includes(k)) return (e.preventDefault(), rate(Number(k)))
+    // 2/3/4 retired: the level is counted from exposure now, not self-rated.
+    if (k === '1') return (e.preventDefault(), rate(1))
   }
 
   const words = lesson.tokens.filter((t) => t.lemma)
@@ -292,10 +293,12 @@ export default function Reader({
           />
           <p className="keys">
             <button onClick={() => rate(1)}>1 learning</button>
-            <button onClick={() => rate(4)}>4 almost</button>
             <button onClick={() => rate(5)}>k known</button>
             <button onClick={() => rate(-1)}>i ignore</button>
             <button onClick={() => (setCursor(-1), toText())}>esc</button>
+            {token.state === 'review' && (
+              <span className="muted">met this often — do you know it now?</span>
+            )}
           </p>
         </aside>
       )}

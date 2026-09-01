@@ -229,6 +229,24 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
                 """,
                 (USER_ID, lang, lesson_id, lo, hi),
             )
+        # A word you are learning rises one level for each page you finish that
+        # contains it — an observation, not a self-assessment (decision 0008).
+        # It stops at REVIEW and never promotes itself to known: only you get to
+        # say you know a word. At REVIEW the reader marks it and asks.
+        conn.execute(
+            """
+            UPDATE lemma_status SET status = status + 1, updated_at = datetime('now')
+            WHERE user_id = ? AND lang = ? AND status BETWEEN 1 AND 3
+              AND (lemma, pos) IN (
+                  SELECT DISTINCT COALESCE(o.to_lemma, t.lemma), COALESCE(o.to_pos, t.pos)
+                  FROM token t
+                  LEFT JOIN lemma_override o
+                         ON o.user_id = ? AND o.lang = ? AND o.surface = t.norm
+                  WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
+              )
+            """,
+            (USER_ID, lang, USER_ID, lang, lesson_id, lo, hi),
+        )
         # Every form of a word you know that appeared on this page has now been met,
         # so it stops being highlighted as novel next time.
         conn.execute(

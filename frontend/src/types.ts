@@ -1,5 +1,5 @@
 /** Mirrors backend/ll_textreader/models.py. Keep the two in step. */
-export type TokenState = 'new' | 'learning' | 'novel-form' | 'known'
+export type TokenState = 'new' | 'learning' | 'review' | 'novel-form' | 'known'
 
 export interface Token {
   idx: number
@@ -60,4 +60,6 @@ export interface VocabEntry {
   updated_at: string
   /** The inflections you have actually met. */
   forms: string[]
+  /** Times met on a page you finished — what the level counts. */
+  met: number
 }

@@ -7,12 +7,15 @@ const BUCKETS = ['all', 'new', 'learning', 'known', 'ignored'] as const
 function label(status: number) {
   if (status === -1) return 'ignored'
   if (status === 0) return 'new'
-  return status >= 5 ? 'known' : `learning ${status}`
+  if (status >= 5) return 'known'
+  // 4 means "met often enough that you should decide" — not "almost known"
+  return status >= 4 ? 'do you know it?' : 'learning'
 }
 
 function stateClass(status: number) {
   if (status === -1 || status >= 5) return 'known'
-  return status === 0 ? 'new' : 'learning'
+  if (status === 0) return 'new'
+  return status >= 4 ? 'review' : 'learning'
 }
 
 export default function Vocab({ lang, onBack }: { lang: string; onBack: () => void }) {
@@ -61,6 +64,8 @@ export default function Vocab({ lang, onBack }: { lang: string; onBack: () => vo
             <span className={`tok tok--${stateClass(e.status)}`}>{e.lemma}</span>
             <span className="pos">{e.pos}</span>
             <span className="meta">{label(e.status)}</span>
+            {/* the level is this number, not an opinion */}
+            {e.met > 0 && <span className="meta">met {e.met}×</span>}
             {e.note && <span className="note">{e.note}</span>}
             {/* which shapes of this word you have actually met */}
             <span className="forms">

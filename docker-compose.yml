@@ -1,0 +1,34 @@
+# One service per reader. The app is single-user by design — one lexicon, one
+# library, USER_ID 1 — so two people means two containers with two volumes, not
+# two accounts. That keeps the "no shared lesson library" line in CLAUDE.md
+# clean too: each person imports their own texts.
+services:
+  reader:
+    build: .
+    restart: unless-stopped
+    volumes: [reader-data:/data]
+    expose: ["8000"]
+
+  # Copy this block per extra reader, with its own volume and Caddy host.
+  friend:
+    build: .
+    restart: unless-stopped
+    volumes: [friend-data:/data]
+    expose: ["8000"]
+
+  # TLS and a password. The app itself has no auth: never expose it directly.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [reader, friend]
+
+volumes:
+  reader-data:
+  friend-data:
+  caddy-data:
+  caddy-config:

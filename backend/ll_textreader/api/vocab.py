@@ -11,7 +11,8 @@ SEP = "\x1f"  # unit separator: can't occur in a French surface form
 
 _ROWS = f"""
 SELECT s.lemma, s.pos, s.status, s.note, s.updated_at,
-       group_concat(f.surface, '{SEP}') AS forms
+       group_concat(f.surface, '{SEP}') AS forms,
+       COALESCE(SUM(f."count"), 0) AS met
 FROM lemma_status s
 LEFT JOIN form_seen f
        ON f.user_id = s.user_id AND f.lang = s.lang
@@ -57,6 +58,7 @@ def list_vocab(lang: str = "fr", status: str | None = None, q: str | None = None
                 note=r["note"],
                 updated_at=r["updated_at"],
                 forms=sorted(set((r["forms"] or "").split(SEP)) - {""}),
+                met=r["met"],
             )
         )
     entries.sort(key=lambda e: (-len(e.forms), e.lemma))

@@ -1,6 +1,11 @@
 # 0008 — The 1–4 learning levels
 
-**Status: proposed, undecided.** Written for the maintainer to accept or reject.
+**Status: accepted, with one amendment, and implemented.**
+
+The amendment: **no automatic promotion to known.** Levels rise with exposure and
+stop at 4, where the word is marked with a dotted rule that asks "do you know this
+now?". Only the reader promotes a word. The app can observe how often you have met
+something; it cannot observe whether you understood it.
 
 ## The problem, as put
 
@@ -29,8 +34,9 @@ finished. That is an observation, not a guess.
 - The reader offers three actions: **learning**, **known**, **ignore**. That is the full
   set of judgements a person can actually make about a word in front of them.
 - A word marked learning starts at 1 and **rises automatically as you meet it again**,
-  one level per encounter on a finished page.
-- At 4, it is promoted to known — with the promotion visible and reversible, not silent.
+  one level per finished page containing it.
+- At 4 it stops, and is rendered with a dotted rule: met often enough that you should
+  decide. Promotion to known is always yours.
 
 The number then means something checkable: *times met since you flagged it*. It cannot
 go stale, because it is derived from behaviour rather than opinion.
@@ -52,11 +58,9 @@ schema is unchanged, and the UI gets *simpler*, not more complex.
 
 ## Risks
 
-- **Silent promotion is annoying if wrong.** Mitigate by showing what was promoted when
-  a page is turned, and making it one click to send a word back to learning.
 - **Encounters aren't understanding.** Meeting *quai* four times doesn't mean you know
-  it. But it is a strictly better estimator than a number you invented once, and the
-  cost of being wrong is one click.
+  it — which is exactly why the level stops at 4 and asks instead of deciding.
+- The dotted state could become a nag if a word sits there unanswered. Watch for it.
 - If this turns out worse in practice, the retreat is trivial: stop bumping, and the
   levels become inert.
 

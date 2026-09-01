@@ -7,10 +7,10 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-# blue / yellow / lighter / plain. See docs/data-model.md.
-TokenState = Literal["new", "learning", "novel-form", "known"]
+# blue / yellow / dotted / lighter / plain. See docs/data-model.md.
+TokenState = Literal["new", "learning", "review", "novel-form", "known"]
 
-NEW, LEARNING, KNOWN, IGNORED = 0, 1, 5, -1
+NEW, LEARNING, REVIEW, KNOWN, IGNORED = 0, 1, 4, 5, -1
 
 
 class AnalysedToken(BaseModel):
@@ -113,6 +113,7 @@ class VocabEntry(BaseModel):
     note: str | None
     updated_at: str
     forms: list[str]  # the inflections you have actually met
+    met: int  # times seen on a page you finished — what the level is counted from
 
 
 class Vocab(BaseModel):
@@ -138,4 +139,6 @@ def state_for(lemma: str | None, status: int | None, form_seen: bool) -> TokenSt
         return "known"
     if status >= KNOWN:
         return "known" if form_seen else "novel-form"
-    return "learning"
+    # You have met this often enough that the app should stop guessing and ask.
+    # Only you get to say a word is known (decision 0008).
+    return "review" if status >= REVIEW else "learning"
