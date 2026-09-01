@@ -51,6 +51,7 @@ function Library({
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState('')
+  const [file, setFile] = useState('')
 
   const load = () => listLessons().then(setLessons)
   useEffect(() => {
@@ -100,16 +101,22 @@ function Library({
           onChange={(e) => setText(e.target.value)}
         />
         <p className="bar">
-          <input
-            type="file"
-            accept=".txt,text/plain"
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (!f) return
-              f.text().then(setText)
-              if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''))
-            }}
-          />
+          {/* The browser's own file input cannot be styled, so it is hidden and
+              the label is the button. The label still opens the picker. */}
+          <label className="button">
+            {file || 'choose a .txt file'}
+            <input
+              type="file"
+              accept=".txt,text/plain"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (!f) return
+                setFile(f.name)
+                f.text().then(setText)
+                if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''))
+              }}
+            />
+          </label>
           <button onClick={submit}>Import</button>
         </p>
         {busy && <p className="busy">{busy}</p>}
