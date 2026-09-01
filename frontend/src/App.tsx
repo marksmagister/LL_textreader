@@ -4,7 +4,7 @@ import Report from './Report'
 import { apply, effective, stored, type Theme } from './theme'
 import Legend from './Legend'
 import Vocab from './Vocab'
-import { deleteLesson, importText, importUrl, listLessons, undoBulk } from './api'
+import { deleteLesson, fetchUrl, importText, listLessons, undoBulk } from './api'
 import type { LessonSummary } from './types'
 
 const LANG = 'fr'
@@ -52,22 +52,39 @@ function Library({
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState('')
   const [file, setFile] = useState('')
+  const [source, setSource] = useState('')
 
   const load = () => listLessons().then(setLessons)
   useEffect(() => {
     load()
   }, [])
 
-  const submit = async () => {
-    if (!text.trim() && !url.trim()) return
-    setBusy(url.trim() ? 'fetching the page…' : 'importing — lemmatising, this takes a moment…')
+  /** Fill the boxes from a web page. Nothing is stored until you press Import,
+   *  so a bad extraction is something you fix rather than something you undo. */
+  const pull = async () => {
+    if (!url.trim()) return
+    setBusy('reading the page…')
     try {
-      const lesson = url.trim()
-        ? await importUrl(url.trim(), title, LANG)
-        : await importText(text, title, LANG)
+      const got = await fetchUrl(url.trim())
+      setText(got.text)
+      if (!title) setTitle(got.title)
+      setSource(got.source)
+      setBusy('check it over, then import')
+    } catch (e) {
+      setBusy(String(e))
+    }
+  }
+
+  const submit = async () => {
+    if (!text.trim()) return
+    setBusy('importing — lemmatising, this takes a moment…')
+    try {
+      const lesson = await importText(text, title, LANG, source)
       setText('')
       setUrl('')
       setTitle('')
+      setFile('')
+      setSource('')
       setBusy('')
       onOpen(lesson.id)
     } catch (e) {
@@ -85,15 +102,26 @@ function Library({
       </p>
 
       <section className="import">
+        {/* Above the others because it fills them in, and a separate press
+            because extraction gets formatting wrong often enough that you want
+            to see it before it becomes a lesson. */}
+        <p className="bar">
+          <input
+            className="grow"
+            value={url}
+            placeholder="paste the address of an article…"
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && pull()}
+          />
+          <button disabled={!url.trim()} onClick={pull}>
+            fetch
+          </button>
+        </p>
+
         <input
           value={title}
           placeholder="title (optional)"
           onChange={(e) => setTitle(e.target.value)}
-        />
-        <input
-          value={url}
-          placeholder="…or paste the address of an article"
-          onChange={(e) => setUrl(e.target.value)}
         />
         <textarea
           value={text}

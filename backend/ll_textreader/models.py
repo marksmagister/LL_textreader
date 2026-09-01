@@ -76,11 +76,15 @@ class LessonDetail(LessonSummary):
     tokens: list[ReaderToken]
 
 
+class FetchRequest(BaseModel):
+    """Read a page and hand back its text. Importing is a separate step."""
+
+    url: str
+
+
 class ImportRequest(BaseModel):
-    # One of the two. A url is fetched and its article text used.
-    text: str = Field(default="", min_length=0)
-    url: str | None = None
-    title: str | None = None  # defaults to the page title, or the first line
+    text: str = Field(min_length=1)
+    title: str | None = None  # defaults to the first line of the text
 
     lang: str = "fr"
     source: str | None = None

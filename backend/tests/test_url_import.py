@@ -1,4 +1,4 @@
-"""Importing from a URL, and refusing to be used as a proxy into the network."""
+"""Fetching a URL, and refusing to be used as a proxy into the network."""
 
 import pytest
 
@@ -43,31 +43,51 @@ def test_a_name_that_does_not_resolve_is_refused():
 
 
 # ---------------------------------------------------------------- the endpoint
+#
+# Fetching is its own step. Extraction gets formatting wrong often enough that
+# you want to see the text, and fix it, before it becomes a lesson — so a URL
+# fills the boxes and Import is a separate press.
 
 
-def test_importing_a_url_uses_the_page_title_and_records_the_source(client, monkeypatch):
+def test_fetching_returns_the_text_and_title_without_importing(client, monkeypatch):
     monkeypatch.setattr(
         from_url, "fetch", lambda url: ("Le vieil homme marchait le long du quai.", "Le quai")
     )
-    lesson = client.post("/api/lessons", json={"url": "https://example.com/a", "lang": "fr"}).json()
-    assert lesson["title"] == "Le quai"
-    assert lesson["source"] == "https://example.com/a"
-    assert lesson["n_words"] > 0
+    got = client.post("/api/lessons/fetch", json={"url": "https://example.com/a"}).json()
+    assert got["title"] == "Le quai"
+    assert got["text"].startswith("Le vieil homme")
+    assert got["source"] == "https://example.com/a"
+    assert client.get("/api/lessons").json() == []  # nothing stored yet
 
 
-def test_your_own_title_wins_over_the_page_title(client, monkeypatch):
-    monkeypatch.setattr(from_url, "fetch", lambda url: ("Le chat dort.", "Their Title"))
+def test_what_you_edit_is_what_gets_imported(client, monkeypatch):
+    """The whole point of the split: bad extraction is fixable."""
+    monkeypatch.setattr(from_url, "fetch", lambda url: ("Le  chat   dort  BUTTONS MENU", "Chat"))
+    got = client.post("/api/lessons/fetch", json={"url": "https://example.com/a"}).json()
+
+    fixed = got["text"].replace(" BUTTONS MENU", "")
     lesson = client.post(
-        "/api/lessons", json={"url": "https://example.com/a", "title": "Mine", "lang": "fr"}
+        "/api/lessons",
+        json={"text": fixed, "title": got["title"], "source": got["source"], "lang": "fr"},
     ).json()
-    assert lesson["title"] == "Mine"
+    assert lesson["title"] == "Chat"
+    assert lesson["source"] == "https://example.com/a"
+    body = client.get(f"/api/lessons/{lesson['id']}").json()["body"]
+    assert "BUTTONS" not in body
 
 
-def test_a_page_with_no_article_is_a_clear_error_not_an_empty_lesson(client, monkeypatch):
+def test_a_page_with_no_article_is_a_clear_error(client, monkeypatch):
     def nothing(url):
         raise BadUrl("no article text found on that page")
 
     monkeypatch.setattr(from_url, "fetch", nothing)
-    r = client.post("/api/lessons", json={"url": "https://example.com/a", "lang": "fr"})
+    r = client.post("/api/lessons/fetch", json={"url": "https://example.com/a"})
     assert r.status_code == 400 and "no article text" in r.json()["detail"]
     assert client.get("/api/lessons").json() == []
+
+
+def test_a_page_of_only_furniture_is_refused_too(client, monkeypatch):
+    """trafilatura can succeed and still return nothing worth reading."""
+    monkeypatch.setattr(from_url, "fetch", lambda url: ("   \n  ", "Cookie notice"))
+    r = client.post("/api/lessons/fetch", json={"url": "https://example.com/a"})
+    assert r.status_code == 400

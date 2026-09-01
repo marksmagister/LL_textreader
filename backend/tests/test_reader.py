@@ -158,11 +158,10 @@ def test_tokens_say_whether_you_overrode_them(client):
 
 
 def test_a_blank_import_is_refused(client):
-    """Whitespace passes a min-length check; cleaning is what decides. Text is
-    optional now that a url can be given instead, so both empty cases are 400."""
+    """Whitespace passes a min-length check; cleaning is what decides."""
     assert client.post("/api/lessons", json={"text": "   \n  ", "lang": "fr"}).status_code == 400
-    assert client.post("/api/lessons", json={"text": "", "lang": "fr"}).status_code == 400
-    assert client.post("/api/lessons", json={"lang": "fr"}).status_code == 400
+    assert client.post("/api/lessons", json={"text": "", "lang": "fr"}).status_code == 422
+    assert client.post("/api/lessons", json={"lang": "fr"}).status_code == 422
     assert client.get("/api/lessons").json() == []
 
 
@@ -198,3 +197,12 @@ def test_a_derived_title_is_not_duplicated_either(client):
     lesson = client.get(f"/api/lessons/{r.json()['id']}").json()
     assert lesson["title"] == "Le quai"
     assert lesson["body"].count("Le quai") == 1
+
+
+def test_a_lesson_of_entirely_unknown_words_still_summarises(client):
+    """`1 AND NULL` is NULL in SQL, so summing over a lesson where nothing has a
+    status produced null counts and a 500. The first import into a fresh lexicon
+    is exactly that case."""
+    lesson = client.post("/api/lessons", json={"text": "Le chat dort.", "lang": "fr"}).json()
+    assert (lesson["n_new"], lesson["n_learning"], lesson["n_known"]) == (lesson["n_words"], 0, 0)
+    assert client.get("/api/lessons").json()[0]["n_learning"] == 0

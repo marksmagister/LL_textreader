@@ -18,19 +18,26 @@ export const readLesson = (id: number, page?: number) =>
 export const deleteLesson = (id: number) =>
   call<void>(`/api/lessons/${id}`, { method: 'DELETE' })
 
-export const importText = (text: string, title: string | null, lang: string) =>
+export const importText = (
+  text: string,
+  title: string | null,
+  lang: string,
+  source?: string | null,
+) =>
   call<LessonSummary>('/api/lessons', {
     method: 'POST',
-    body: JSON.stringify({ text, title: title || null, lang }),
+    body: JSON.stringify({ text, title: title || null, source: source || null, lang }),
+  })
+
+/** Read a page and hand back its text. Importing is a separate press, so bad
+ *  extraction can be fixed before it becomes a lesson. */
+export const fetchUrl = (url: string) =>
+  call<{ text: string; title: string; source: string }>('/api/lessons/fetch', {
+    method: 'POST',
+    body: JSON.stringify({ url }),
   })
 
 /** Fetch an article and import it. The server does the fetching. */
-export const importUrl = (url: string, title: string | null, lang: string) =>
-  call<LessonSummary>('/api/lessons', {
-    method: 'POST',
-    body: JSON.stringify({ url, title: title || null, lang }),
-  })
-
 export const setTerm = (t: {
   lang: string
   lemma: string

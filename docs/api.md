@@ -6,7 +6,8 @@ FastAPI serves the live schema at `/docs` if you'd rather read it there.
 | | | |
 |---|---|---|
 | `GET` | `/api/health` | version and configured languages |
-| `POST` | `/api/lessons` | import plain text or a URL — **tokenises and lemmatises here, once** |
+| `POST` | `/api/lessons/fetch` | read a web page and hand back its text — imports nothing |
+| `POST` | `/api/lessons` | import plain text — **tokenises and lemmatises here, once** |
 | `GET` | `/api/lessons` | the library, with per-lesson counts by state |
 | `GET` | `/api/lessons/{id}` | one page, resuming where you stopped unless `?page=` says otherwise |
 | `DELETE` | `/api/lessons/{id}` | delete a lesson and its tokens |

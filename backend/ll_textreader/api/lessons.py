@@ -10,6 +10,7 @@ from ..importers import from_url
 from ..importers.from_url import BadUrl
 from ..importers.plain_text import clean, import_text
 from ..models import (
+    FetchRequest,
     FinishRequest,
     ImportRequest,
     LessonDetail,
@@ -67,9 +68,11 @@ SELECT l.id, l.lang, l.title, l.source, l.pipeline_id, l.imported_at, l.body,
        COALESCE(p.completed, 0) AS completed,
        -- how much of this lesson you can already read. Counted over tokens, not
        -- distinct lemmas, so it matches what the page looks like.
-       SUM(t.lemma IS NOT NULL AND (s.status IS NULL OR s.status = 0)) AS n_new,
-       SUM(t.lemma IS NOT NULL AND s.status BETWEEN 1 AND 4) AS n_learning,
-       SUM(t.lemma IS NOT NULL AND (s.status >= 5 OR s.status = -1)) AS n_known
+       -- COALESCE, not decoration: `1 AND NULL` is NULL in SQL, so a lesson
+       -- whose words are all unknown summed to NULL and failed to serialise.
+       COALESCE(SUM(t.lemma IS NOT NULL AND (s.status IS NULL OR s.status = 0)), 0) AS n_new,
+       COALESCE(SUM(t.lemma IS NOT NULL AND s.status BETWEEN 1 AND 4), 0) AS n_learning,
+       COALESCE(SUM(t.lemma IS NOT NULL AND (s.status >= 5 OR s.status = -1)), 0) AS n_known
 FROM lesson l
 LEFT JOIN token t ON t.lesson_id = l.id
 LEFT JOIN reading_progress p ON p.lesson_id = l.id AND p.user_id = l.user_id
@@ -119,13 +122,6 @@ def _lesson_row(conn: sqlite3.Connection, lesson_id: int) -> sqlite3.Row:
 def create_lesson(req: ImportRequest) -> LessonSummary:
     """Import plain text. Tokenising and lemmatising happen here, once."""
     text, title, source = req.text, req.title, req.source
-    if req.url:
-        try:
-            text, page_title = from_url.fetch(req.url)
-        except BadUrl as exc:
-            raise HTTPException(400, str(exc)) from None
-        title = title or page_title
-        source = source or req.url
     if not clean(text):
         # min_length on the field passes whitespace; cleaning is what decides
         raise HTTPException(400, "no text to import")
@@ -203,6 +199,22 @@ def read_lesson(lesson_id: int, page: int | None = None) -> LessonDetail:
             for t in tokens
         ],
     )
+
+
+@router.post("/fetch")
+def fetch_url(req: FetchRequest) -> dict[str, str]:
+    """Pull the article text out of a web page, without importing anything.
+
+    Deliberately not part of importing: extraction gets formatting wrong often
+    enough that you want to see it, and fix it, before it becomes a lesson.
+    """
+    try:
+        text, title = from_url.fetch(req.url)
+    except BadUrl as exc:
+        raise HTTPException(400, str(exc)) from None
+    if not clean(text):
+        raise HTTPException(400, "nothing that looks like an article on that page")
+    return {"text": text, "title": title or "", "source": req.url}
 
 
 @router.get("/{lesson_id}/translation")
