@@ -73,6 +73,12 @@ ssh llt@the-box '/opt/ll-textreader/scripts/deploy.sh'
 - **A domain name.** Caddy gets a certificate automatically, but only for a name that
   resolves to the box. Without one you are on `https://<ip>` with a self-signed
   certificate and a browser warning, which is not something to hand a friend.
-- **Backups off the machine.** `scripts/backup.sh` on a cron, and the result copied
-  somewhere that is not this disk. The lexicon is the one thing here that cannot be
-  rebuilt, and it sits on a single volume in a single building.
+- **Somewhere to put the backups.** The timer and the script exist; what is missing is
+  a destination. Set `LL_TEXTREADER_BACKUP_TO` to an rsync target that is not this
+  machine — the script says so loudly when it is unset, because a backup on the same
+  disk as the database is not a backup.
+
+```bash
+cp deploy/ll-textreader-backup.{service,timer} /etc/systemd/system/
+systemctl enable --now ll-textreader-backup.timer
+```

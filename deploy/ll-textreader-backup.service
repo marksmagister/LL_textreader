@@ -1,0 +1,9 @@
+# Install alongside the timer. Runs once and exits.
+[Unit]
+Description=Back up the LL_textreader lexicon
+
+[Service]
+Type=oneshot
+User=llt
+WorkingDirectory=/opt/ll-textreader
+ExecStart=/opt/ll-textreader/scripts/backup.sh /var/lib/ll-textreader/backups
