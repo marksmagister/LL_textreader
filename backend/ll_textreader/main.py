@@ -1,7 +1,9 @@
+from base64 import b64encode
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from secrets import compare_digest
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -26,6 +28,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def require_password(request: Request, call_next):
+    """One shared password over HTTP basic auth.
+
+    This is a single-user app: there are no accounts, and whoever gets in reads
+    with the one lexicon. The password is not a login system, it is a door — but
+    a tunnel or a public host makes it the only thing between your reading
+    history and anyone who guesses the URL.
+    """
+    if settings.password:
+        header = request.headers.get("authorization", "")
+        expected = b64encode(f"{settings.username}:{settings.password}".encode()).decode()
+        scheme, _, given = header.partition(" ")
+        # compare_digest, so the answer doesn't leak through response timing
+        if scheme.lower() != "basic" or not compare_digest(given, expected):
+            return Response(
+                status_code=401,
+                headers={"WWW-Authenticate": 'Basic realm="LL_textreader"'},
+            )
+    return await call_next(request)
 
 
 app.include_router(dictionary.router)

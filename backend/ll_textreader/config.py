@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     languages: str = "fr"
     cors_origins: str = "http://localhost:5173"
 
+    # Set this and every request needs it. Empty means no password, which is fine
+    # on localhost and never fine behind a tunnel — scripts/serve.sh enforces that.
+    password: str = ""
+    username: str = "read"
+
     @property
     def language_list(self) -> list[str]:
         return [x.strip() for x in self.languages.split(",") if x.strip()]

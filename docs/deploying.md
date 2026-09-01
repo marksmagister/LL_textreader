@@ -1,5 +1,34 @@
 # Deploying
 
+## Sharing it from this laptop (start here)
+
+No server, no Docker, free:
+
+```bash
+echo 'LL_TEXTREADER_PASSWORD=something-long' >> .env   # once
+./scripts/serve.sh --share
+```
+
+That builds the frontend, serves API and pages together on one port, and opens a
+Cloudflare tunnel. The `https://….trycloudflare.com` URL it prints is what you send.
+
+Three things to know:
+
+- **The laptop has to be awake and online.** Close the lid and the URL dies. Fine for
+  "have a look at this", not for "use it for a week".
+- **The URL is public**, so the password is the only door. `--share` refuses to start
+  without one, deliberately.
+- **Quick-tunnel URLs are random and change** every time you restart. There is no
+  bookmark; send a fresh link each session.
+
+The server only ever binds `127.0.0.1` — cloudflared runs on the same machine and
+connects locally, so nothing else needs to listen on the network.
+
+There are no accounts. Whoever has the URL and password reads *your* lexicon and sees
+what you have read. That is what makes it a demo rather than a product.
+
+## Later: a real host
+
 `git pull` + `docker compose up -d --build`. Keep it that way.
 
 One container serves the API and the built frontend on one port; Caddy sits in front

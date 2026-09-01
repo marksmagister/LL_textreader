@@ -54,30 +54,38 @@ without losing anyone's place. Position never moves backwards.
 
 ## Next
 
-0. **Deployment.** Files are written (`Dockerfile`, `docker-compose.yml`, `Caddyfile`,
-   `docs/deploying.md`) but the image build is untested — no Docker on the machine.
-   Single-user by design: a friend with the URL reads with your lexicon, which is what
-   a demo wants and is not a login system.
-1. **Edit and re-import a lesson.** If you notice a bad import on page 3 you should be
-   able to fix the text without losing anything. Cheaper than it looks: the lexicon is
-   keyed on lemma, not lesson, so it survives untouched. The only casualty is
-   `reading_progress.last_token` — convert it to a character offset first, re-import,
-   then snap to the first token at or after it. Merge this with the library folder
-   below; they are the same mechanism.
-2. **A watched library folder.** See `decisions/0006-managing-lessons.md`. One `.txt`
-   per lesson in `data/library/`, imported on change by content hash. Solves import,
-   export, editing and backup at once, and makes the corpus greppable.
-3. **EPUB import**, then URL (trafilatura), then subtitles.
-4. **Sentence translation, toggleable.** See `decisions/0007-sentence-translation.md`.
-5. **Russian.** One adapter file, plus a decision about Stanza.
+Decided after the first working pilot. Import (URL, EPUB, watched folder) is
+deliberately **not** in this round: paste and `.txt` are enough while the reading
+habit is being tested.
 
-## Nice to have
+1. **Hosting**, enough to share it with someone. First, because once it is deployed
+   every later feature ships by `git pull` rather than by asking someone to run two
+   terminals. Single-user by design: whoever has the URL reads with this lexicon.
+   `docs/deploying.md`.
+2. **Lexicon export.** The vocabulary is the irreplaceable asset — the lessons are
+   replaceable and the glosses are a re-download. JSON and CSV, so it is neither
+   hostage to one schema version nor to SQLite.
+3. **Sentence translation**, toggleable and off by default. See
+   `decisions/0007-sentence-translation.md`: a dedicated NMT model at import time,
+   not an LLM at render time.
 
-- Reading position within a page (`last_token` is per page turn, not per scroll)
-- Lexicon export (JSON/CSV) — the vocabulary is the asset, the lessons are replaceable
-- Audio and sentence timestamps; `Space`/`Shift-Space` are reserved for it
-- A phone client (PWA + iOS share-sheet import, see 0005) — **after** the desktop web
-  app is good, not before
+Alongside: read with it properly for a fortnight and change nothing. The
+questions that matter next — is 150 tokens the right page, is "turn the page" the
+right moment for forms to count as met, does the review state prompt or nag — are
+not answerable from a chair.
+
+## Waiting, deliberately
+
+Russian · a phone client · audio · multi-user. None of these is blocked; they are
+held back so the desktop reader gets good first. Multi-user in particular stays out:
+a second reader is a second container (`docs/deploying.md`), not an auth system.
+
+## Known gap
+
+Every one of the 93 tests is backend. The reader's keyboard logic — Tab-seek,
+sentence reconstruction, focus discipline — has only ever been checked by driving a
+browser by hand. That was fine while it was small. Worth a little Vitest over the
+pure functions before the next round of reader work.
 
 ## Open questions
 
