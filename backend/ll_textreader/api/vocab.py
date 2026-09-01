@@ -1,8 +1,10 @@
 """Your lexicon, as a list: what you know, and which shapes of it you've met."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 
 from ..db import USER_ID, connect
+from ..export import as_anki, as_csv, as_json, collect
 from ..models import IGNORED, KNOWN, NEW, Vocab, VocabEntry
 
 router = APIRouter(prefix="/api/vocab", tags=["vocab"])
@@ -64,3 +66,47 @@ def list_vocab(lang: str = "fr", status: str | None = None, q: str | None = None
         )
     entries.sort(key=lambda e: (-len(e.forms), e.lemma))
     return Vocab(total=len(rows), by_status=by_status, entries=entries)
+
+
+FORMATS = {
+    "anki": ("text/tab-separated-values", "tsv"),
+    "csv": ("text/csv", "csv"),
+    "json": ("application/json", "json"),
+}
+
+
+@router.get("/export")
+def export(
+    lang: str = "fr",
+    format: str = "anki",
+    status: str | None = None,
+    q: str | None = None,
+    keys: str | None = None,
+) -> Response:
+    """Download the lexicon, or a chosen part of it.
+
+    `status` narrows to one bucket, `q` to a prefix, and `keys` to an explicit
+    list of "lemma:pos" pairs ticked in the vocabulary list. They compose, so
+    "the learning words I selected" is one request.
+    """
+    if format not in FORMATS:
+        raise HTTPException(400, f"format must be one of {', '.join(FORMATS)}")
+    media_type, suffix = FORMATS[format]
+    picked = set(filter(None, (keys or "").split(","))) or None
+
+    with connect() as conn:
+        entries = collect(conn, USER_ID, lang, status=status, q=q, keys=picked)
+
+    body = (
+        as_anki(entries, lang)
+        if format == "anki"
+        else as_csv(entries)
+        if format == "csv"
+        else as_json(entries, lang)
+    )
+    name = f"ll_textreader-{lang}-{status or 'all'}.{suffix}"
+    return Response(
+        body,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+    )

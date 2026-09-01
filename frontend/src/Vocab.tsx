@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listVocab } from './api'
+import { exportUrl, listVocab } from './api'
 import type { VocabEntry } from './types'
 
 const BUCKETS = ['all', 'new', 'learning', 'known', 'ignored'] as const
@@ -24,6 +24,7 @@ export default function Vocab({ lang, onBack }: { lang: string; onBack: () => vo
   const [total, setTotal] = useState(0)
   const [bucket, setBucket] = useState<string>('all')
   const [q, setQ] = useState('')
+  const [picked, setPicked] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     listVocab(lang, bucket === 'all' ? undefined : bucket, q || undefined).then((v) => {
@@ -32,6 +33,23 @@ export default function Vocab({ lang, onBack }: { lang: string; onBack: () => vo
       setTotal(v.total)
     })
   }, [lang, bucket, q])
+
+  const key = (e: VocabEntry) => `${e.lemma}:${e.pos}`
+  const toggle = (k: string) =>
+    setPicked((was) => {
+      const next = new Set(was)
+      if (next.has(k)) next.delete(k)
+      else next.add(k)
+      return next
+    })
+
+  // Ticked words win; otherwise you get whatever the filters are showing.
+  const selection = picked.size ? [...picked] : undefined
+  const scope = picked.size
+    ? `${picked.size} selected`
+    : bucket === 'all' && !q
+      ? `all ${total}`
+      : `${entries.length} shown`
 
   return (
     <main>
@@ -56,11 +74,35 @@ export default function Vocab({ lang, onBack }: { lang: string; onBack: () => vo
         <input value={q} placeholder="starts with…" onChange={(e) => setQ(e.target.value)} />
       </p>
 
+      <p className="bar">
+        <span className="meta">export {scope}:</span>
+        {(['anki', 'csv', 'json'] as const).map((f) => (
+          <a
+            key={f}
+            className="button"
+            href={exportUrl(lang, f, { status: bucket, q, keys: selection })}
+          >
+            {f === 'anki' ? 'Anki deck' : f}
+          </a>
+        ))}
+        {picked.size > 0 && (
+          <button className="ghost" onClick={() => setPicked(new Set())}>
+            clear selection
+          </button>
+        )}
+      </p>
+
       {entries.length === 0 && <p className="muted">Nothing here yet.</p>}
 
       <ul className="vocab">
         {entries.map((e) => (
           <li key={`${e.lemma}/${e.pos}`}>
+            <input
+              type="checkbox"
+              checked={picked.has(key(e))}
+              onChange={() => toggle(key(e))}
+              aria-label={`select ${e.lemma}`}
+            />
             <span className={`tok tok--${stateClass(e.status)}`}>{e.lemma}</span>
             <span className="pos">{e.pos}</span>
             <span className="meta">{label(e.status)}</span>

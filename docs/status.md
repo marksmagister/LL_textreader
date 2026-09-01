@@ -16,6 +16,8 @@ Working and verified against real text, in the browser:
 - Wiktionary glosses: 126k senses for French, from a kaikki.org extract
 - morphology: "conditional · 1st person singular", with rules that stay quiet
   rather than guess (see below)
+- sentence translation, off by default, per page on demand
+- lexicon export: Anki TSV, CSV, JSON — all, one bucket, or a ticked selection
 - lemma override, in the UI and honoured by the read path
 - vocabulary page: every lemma, with the inflections you have actually met
 - library shows each text's shape — what share of it you can already read
@@ -62,13 +64,6 @@ habit is being tested.
    every later feature ships by `git pull` rather than by asking someone to run two
    terminals. Single-user by design: whoever has the URL reads with this lexicon.
    `docs/deploying.md`.
-2. **Lexicon export.** The vocabulary is the irreplaceable asset — the lessons are
-   replaceable and the glosses are a re-download. JSON and CSV, so it is neither
-   hostage to one schema version nor to SQLite.
-3. **Sentence translation**, toggleable and off by default. See
-   `decisions/0007-sentence-translation.md`: a dedicated NMT model at import time,
-   not an LLM at render time.
-
 Alongside: read with it properly for a fortnight and change nothing. The
 questions that matter next — is 150 tokens the right page, is "turn the page" the
 right moment for forms to count as met, does the review state prompt or nag — are

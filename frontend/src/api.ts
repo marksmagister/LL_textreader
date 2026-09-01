@@ -75,3 +75,17 @@ export const listVocab = (lang: string, status?: string, q?: string) =>
  *  translation extra isn't installed. */
 export const translation = (id: number, page: number) =>
   call<Record<string, string>>(`/api/lessons/${id}/translation?page=${page}`)
+
+/** A download URL for the lexicon. Given straight to the browser rather than
+ *  fetched, so the Content-Disposition header does the saving. */
+export const exportUrl = (
+  lang: string,
+  format: string,
+  opts: { status?: string; q?: string; keys?: string[] } = {},
+) => {
+  const p = new URLSearchParams({ lang, format })
+  if (opts.status && opts.status !== 'all') p.set('status', opts.status)
+  if (opts.q) p.set('q', opts.q)
+  if (opts.keys?.length) p.set('keys', opts.keys.join(','))
+  return `/api/vocab/export?${p}`
+}
