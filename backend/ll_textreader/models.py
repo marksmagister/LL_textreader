@@ -133,6 +133,7 @@ class VocabEntry(BaseModel):
     updated_at: str
     forms: list[str]  # the inflections you have actually met
     met: int  # times seen on a page you finished — what the level is counted from
+    last_seen: str | None = None  # the last page you finished containing it
 
 
 class Vocab(BaseModel):

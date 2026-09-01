@@ -71,11 +71,12 @@ export const clearOverride = (lang: string, surface: string) =>
     method: 'DELETE',
   })
 
-export const listVocab = (lang: string, status?: string, q?: string) =>
+export const listVocab = (lang: string, status?: string, q?: string, sort?: string) =>
   call<{ total: number; by_status: Record<string, number>; entries: VocabEntry[] }>(
     `/api/vocab?lang=${lang}` +
       (status ? `&status=${status}` : '') +
-      (q ? `&q=${encodeURIComponent(q)}` : ''),
+      (q ? `&q=${encodeURIComponent(q)}` : '') +
+      (sort ? `&sort=${sort}` : ''),
   )
 
 /** English per sentence for one page, keyed by sent_id. 503 when the optional

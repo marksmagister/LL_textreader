@@ -14,7 +14,13 @@ SEP = "\x1f"  # unit separator: can't occur in a French surface form
 _ROWS = f"""
 SELECT s.lemma, s.pos, s.status, s.note, s.context, s.updated_at,
        group_concat(f.surface, '{SEP}') AS forms,
-       COALESCE(SUM(f."count"), 0) AS met
+       COALESCE(SUM(f."count"), 0) AS met,
+       -- When you last actually met it. `exposure` records every page you
+       -- finished that contained the word, whatever its status, so this is a
+       -- truer "last seen" than updated_at, which only moves when it changes.
+       (SELECT MAX(e.seen_at) FROM exposure e
+         WHERE e.user_id = s.user_id AND e.lang = s.lang
+           AND e.lemma = s.lemma AND e.pos = s.pos) AS last_seen
 FROM lemma_status s
 LEFT JOIN form_seen f
        ON f.user_id = s.user_id AND f.lang = s.lang
@@ -22,6 +28,17 @@ LEFT JOIN form_seen f
 WHERE s.user_id = ? AND s.lang = ?
 GROUP BY s.lemma, s.pos
 """
+
+
+# The second is the point of the feature: words you were learning that then
+# quietly stopped appearing, which nothing else in the app would ever show you.
+SORTS = {
+    "recent": lambda e: (e.last_seen or "", e.lemma),
+    "stale": lambda e: (e.last_seen or "", e.lemma),
+    "alpha": lambda e: (e.lemma, e.pos),
+    "forms": lambda e: (-len(e.forms), e.lemma),
+}
+DESCENDING = {"recent", "forms"}
 
 
 def _bucket(status: int) -> str:
@@ -33,13 +50,24 @@ def _bucket(status: int) -> str:
 
 
 @router.get("", response_model=Vocab)
-def list_vocab(lang: str = "fr", status: str | None = None, q: str | None = None) -> Vocab:
+def list_vocab(
+    lang: str = "fr",
+    status: str | None = None,
+    q: str | None = None,
+    sort: str = "recent",
+) -> Vocab:
     """Every word you have a status for.
 
     `status` filters to one bucket (new/learning/known/ignored); `q` matches the
     start of a lemma. Counts are over the whole lexicon, not the filtered view —
     otherwise the totals move every time you type in the search box.
+
+    `sort` is one of recent, stale, alpha, forms. `stale` is the useful one:
+    oldest first, so words you were learning and have not met since rise to the
+    top. Nothing else in the app would ever surface those.
     """
+    if sort not in SORTS:
+        raise HTTPException(400, f"sort must be one of {', '.join(SORTS)}")
     with connect() as conn:
         rows = conn.execute(_ROWS, (USER_ID, lang)).fetchall()
 
@@ -62,9 +90,10 @@ def list_vocab(lang: str = "fr", status: str | None = None, q: str | None = None
                 updated_at=r["updated_at"],
                 forms=sorted(set((r["forms"] or "").split(SEP)) - {""}),
                 met=r["met"],
+                last_seen=r["last_seen"],
             )
         )
-    entries.sort(key=lambda e: (-len(e.forms), e.lemma))
+    entries.sort(key=SORTS[sort], reverse=sort in DESCENDING)
     return Vocab(total=len(rows), by_status=by_status, entries=entries)
 
 

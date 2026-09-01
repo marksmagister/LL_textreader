@@ -68,4 +68,6 @@ export interface VocabEntry {
   /** Occurrences on pages you finished. The level counts *pages*, so this is
    *  the larger number of the two. */
   met: number
+  /** When you last finished a page containing it. Null means never. */
+  last_seen: string | null
 }

@@ -4,6 +4,24 @@ import type { VocabEntry } from './types'
 
 const BUCKETS = ['all', 'new', 'learning', 'known', 'ignored'] as const
 
+// "stale" is the one worth having: words you were learning that then stopped
+// appearing. Nothing else in the app would ever show you those.
+const SORTS = [
+  ['recent', 'last seen'],
+  ['stale', 'longest unseen'],
+  ['alpha', 'a–z'],
+  ['forms', 'most forms'],
+] as const
+
+/** "3 days ago" beats a timestamp when the question is "has this gone quiet?" */
+function ago(when: string | null) {
+  if (!when) return 'never met'
+  const days = Math.floor((Date.now() - Date.parse(when + 'Z')) / 86_400_000)
+  if (days < 1) return 'today'
+  if (days === 1) return 'yesterday'
+  return `${days}d ago`
+}
+
 function label(status: number) {
   if (status === -1) return 'ignored'
   if (status === 0) return 'new'
@@ -25,14 +43,15 @@ export default function Vocab({ lang, onBack }: { lang: string; onBack: () => vo
   const [bucket, setBucket] = useState<string>('all')
   const [q, setQ] = useState('')
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [sort, setSort] = useState('recent')
 
   useEffect(() => {
-    listVocab(lang, bucket === 'all' ? undefined : bucket, q || undefined).then((v) => {
+    listVocab(lang, bucket === 'all' ? undefined : bucket, q || undefined, sort).then((v) => {
       setEntries(v.entries)
       setCounts(v.by_status)
       setTotal(v.total)
     })
-  }, [lang, bucket, q])
+  }, [lang, bucket, q, sort])
 
   const key = (e: VocabEntry) => `${e.lemma}:${e.pos}`
   const toggle = (k: string) =>
@@ -75,6 +94,15 @@ export default function Vocab({ lang, onBack }: { lang: string; onBack: () => vo
       </p>
 
       <p className="bar">
+        <span className="meta">sort:</span>
+        {SORTS.map(([key, label]) => (
+          <button key={key} className={key === sort ? 'on' : ''} onClick={() => setSort(key)}>
+            {label}
+          </button>
+        ))}
+      </p>
+
+      <p className="bar">
         <span className="meta">export {scope}:</span>
         {(['anki', 'csv', 'json'] as const).map((f) => (
           <a
@@ -108,6 +136,7 @@ export default function Vocab({ lang, onBack }: { lang: string; onBack: () => vo
             <span className="meta">{label(e.status)}</span>
             {/* occurrences, not pages — the level counts pages, so these differ */}
             {e.met > 0 && <span className="meta">seen {e.met}×</span>}
+            <span className="meta">{ago(e.last_seen)}</span>
             {e.note && <span className="note">{e.note}</span>}
             {/* where you met it — often more use than a definition */}
             {e.context && <span className="context">“{e.context}”</span>}
