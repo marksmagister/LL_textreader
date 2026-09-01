@@ -12,11 +12,13 @@ what you know, Tab between unknown words, and the page decolourises as you go.
 Working and verified against real text, in the browser:
 - French pipeline: spaCy `fr_core_news_md`, POS-tagged lemmas, run at import
 - plain-text import (paste or `.txt`), pages, saved position, "mark page known"
-- all four render states, including known-lemma-novel-form
+- all five render states, including known-lemma-novel-form
+- a legend page explaining them, reachable from the library and the palette
 - Wiktionary glosses: 126k senses for French, from a kaikki.org extract
 - morphology: "conditional · 1st person singular", with rules that stay quiet
   rather than guess (see below)
 - sentence translation, off by default, per page on demand
+- a legend page explaining the colours and keys
 - lexicon export: Anki TSV, CSV, JSON — all, one bucket, or a ticked selection
 - lemma override, in the UI and honoured by the read path
 - vocabulary page: every lemma, with the inflections you have actually met

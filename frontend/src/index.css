@@ -221,3 +221,23 @@ input, textarea { font: inherit; font-size: 0.9rem; padding: 0.4rem;
 .theme-tab { position: fixed; left: 0.75rem; bottom: 0.75rem; z-index: 6;
              font-size: 0.7rem; opacity: 0.35; background: var(--bg); }
 .theme-tab:hover { opacity: 0.9; }
+
+/* ---------------------------------------------------------------- legend */
+
+/* Shown rather than described: the samples carry the reader's own classes. */
+.legend-demo { font-size: 1.05rem; line-height: 2.2; margin: 0.5rem 0 2rem; }
+
+.legend { list-style: none; padding: 0; }
+.legend li { display: grid; grid-template-columns: 9rem 1fr; gap: 1rem;
+             align-items: baseline; margin-bottom: 0.7rem; }
+.legend li > .tok { justify-self: start; }
+.legend.keys-list li { grid-template-columns: 10rem 1fr; margin-bottom: 0.45rem; }
+
+kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--line);
+      border-radius: 4px; padding: 0.1rem 0.4rem; white-space: nowrap; }
+.legend-btn { font-size: 0.75rem; border: 1px solid currentColor; border-radius: 4px;
+              padding: 0.15rem 0.4rem; opacity: 0.75; justify-self: start;
+              white-space: nowrap; }
+.legend-loop { font-size: 1rem; line-height: 2.4; }
+.legend-notes { padding-left: 1.1rem; }
+.legend-notes li { margin-bottom: 0.7rem; }

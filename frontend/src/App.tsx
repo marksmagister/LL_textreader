@@ -2,13 +2,18 @@ import { useEffect, useState } from 'react'
 import Reader from './Reader'
 import Report from './Report'
 import { apply, effective, stored, type Theme } from './theme'
+import Legend from './Legend'
 import Vocab from './Vocab'
 import { deleteLesson, importText, importUrl, listLessons, undoBulk } from './api'
 import type { LessonSummary } from './types'
 
 const LANG = 'fr'
 
-type View = { at: 'library' } | { at: 'reader'; id: number } | { at: 'vocab' }
+type View =
+  | { at: 'library' }
+  | { at: 'reader'; id: number }
+  | { at: 'vocab' }
+  | { at: 'legend' }
 
 /** The shape of a text: what share of its words are new, learning, known. */
 function Shape({ lesson }: { lesson: LessonSummary }) {
@@ -32,7 +37,15 @@ function Shape({ lesson }: { lesson: LessonSummary }) {
   )
 }
 
-function Library({ onOpen, onVocab }: { onOpen: (id: number) => void; onVocab: () => void }) {
+function Library({
+  onOpen,
+  onVocab,
+  onLegend,
+}: {
+  onOpen: (id: number) => void
+  onVocab: () => void
+  onLegend: () => void
+}) {
   const [lessons, setLessons] = useState<LessonSummary[]>([])
   const [text, setText] = useState('')
   const [url, setUrl] = useState('')
@@ -66,6 +79,7 @@ function Library({ onOpen, onVocab }: { onOpen: (id: number) => void; onVocab: (
       <p className="bar">
         <strong>LL_textreader</strong>
         <button onClick={onVocab}>vocabulary</button>
+        <button onClick={onLegend}>legend</button>
         <span className="muted">press / for commands</span>
       </p>
 
@@ -202,6 +216,7 @@ export default function App() {
   const commands: [string, () => void][] = [
     ['library — import or open a text', () => setView({ at: 'library' })],
     ['vocabulary — everything you know', () => setView({ at: 'vocab' })],
+    ['legend — what the colours and keys mean', () => setView({ at: 'legend' })],
     ['dark / light — switch the theme', flip],
     ['follow the system theme', () => setTheme('system')],
   ]
@@ -230,6 +245,7 @@ export default function App() {
           key={refresh}
           onOpen={(id) => setView({ at: 'reader', id })}
           onVocab={() => setView({ at: 'vocab' })}
+          onLegend={() => setView({ at: 'legend' })}
         />
       )}
       {view.at === 'reader' && (
@@ -244,6 +260,7 @@ export default function App() {
       {view.at === 'vocab' && (
         <Vocab key={refresh} lang={LANG} onBack={() => setView({ at: 'library' })} />
       )}
+      {view.at === 'legend' && <Legend onBack={() => setView({ at: 'library' })} />}
       {palette && <Palette commands={commands} onClose={() => setPalette(false)} />}
       <Report lessonId={view.at === 'reader' ? view.id : undefined} />
       <button className="theme-tab" onClick={flip} title="light or dark">
