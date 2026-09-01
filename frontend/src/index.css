@@ -190,7 +190,31 @@ main.library { max-width: 44rem; }
 .pos { font-size: 0.75rem; opacity: 0.55; text-align: right; }
 
 /* One bar, one meaning: how much of this you can already read. */
-.diff { display: flex; gap: 0.45rem; align-items: center; justify-content: flex-end; }
+.diff { display: flex; gap: 0.45rem; align-items: center; justify-content: flex-end;
+        position: relative; }
+
+/* Instant, because a native tooltip's one-second wait on a small target means
+   nobody ever finds it. Hover-only, so it never takes up room in the row. */
+/* Below the row, not above: above, the first row's card would open off the
+   top of the window, and the first rows are the ones you look at. */
+.detail { position: absolute; right: 0; top: calc(100% + 0.4rem); z-index: 8;
+          display: none; flex-direction: column; gap: 0.15rem;
+          background: var(--bg); border: 1px solid var(--line); border-radius: 5px;
+          padding: 0.55rem 0.7rem; width: 12.5rem; font-size: 0.75rem;
+          line-height: 1.6; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+/* Only from the bar itself, not the whole row: opening every time the
+   pointer crosses a title makes it something that happens to you rather
+   than something you asked for. The card is inside .diff, so moving onto
+   it keeps the hover alive. */
+.diff:hover .detail { display: flex; }
+.detail strong { font-size: 0.8rem; }
+.detail-row { display: flex; align-items: center; gap: 0.4rem; }
+.detail-row i { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.detail-row .tok--known { background: var(--fg); opacity: 0.35; }
+.detail-row .tok--learning { background: var(--tok-learning); }
+.detail-row .tok--new { background: var(--tok-new); }
+.detail-row em { margin-left: auto; opacity: 0.55; font-style: normal; }
+.detail-foot { opacity: 0.55; margin-top: 0.25rem; }
 .diff .shape-bar { flex: 0 0 3.6rem; height: 5px; }
 .diff .pct { font-size: 0.75rem; opacity: 0.6; width: 2.2rem; text-align: right; }
 

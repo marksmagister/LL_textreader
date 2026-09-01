@@ -64,8 +64,10 @@ function Library({
       setTitle('')
       setFile('')
       setSource('')
-      setBusy('')
-      onOpen(lesson.id)
+      // Added to the list rather than opened: importing several in a row is the
+      // common case, and being thrown into the reader interrupts it.
+      setBusy(`added “${lesson.title}”`)
+      load()
     } catch (e) {
       setBusy(String(e))
     }

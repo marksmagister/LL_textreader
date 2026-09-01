@@ -30,14 +30,37 @@ function ago(when: string) {
   return `${days} days ago`
 }
 
-/** The detail behind the bar, for hovering. The row itself stays uncluttered. */
-function detail(l: LessonSummary) {
-  return [
-    `${l.n_words} words`,
-    `${l.n_known} you know · ${l.n_learning} learning · ${l.n_new} new`,
-    l.completed ? 'finished' : l.last_token ? `${progress(l)} of the way through` : 'not started',
-    l.last_read ? `last used ${ago(l.last_read!)}` : 'never opened',
-  ].join('\n')
+/** What the bar is made of, on hover.
+ *
+ * Its own element rather than a `title` attribute: a native tooltip waits about
+ * a second, cannot be styled, and on a hundred-pixel target most people never
+ * see it at all. The swatches are the bar's own colours, so the numbers and the
+ * picture are obviously the same thing. */
+function Detail({ lesson: l }: { lesson: LessonSummary }) {
+  const pct = (n: number) => (l.n_words ? Math.round((n / l.n_words) * 100) : 0)
+  return (
+    <span className="detail">
+      <strong>{l.n_words} words</strong>
+      <span className="detail-row">
+        <i className="tok--known" /> {l.n_known} you know <em>{pct(l.n_known)}%</em>
+      </span>
+      <span className="detail-row">
+        <i className="tok--learning" /> {l.n_learning} learning <em>{pct(l.n_learning)}%</em>
+      </span>
+      <span className="detail-row">
+        <i className="tok--new" /> {l.n_new} never seen <em>{pct(l.n_new)}%</em>
+      </span>
+      <span className="detail-foot">
+        {l.completed
+          ? 'finished'
+          : l.last_token
+            ? `${progress(l)} of the way through`
+            : 'not started'}
+        {' · '}
+        {l.last_read ? `used ${ago(l.last_read)}` : 'never opened'}
+      </span>
+    </span>
+  )
 }
 
 /** How much of a text you can already read. The one number worth comparing. */
@@ -140,7 +163,7 @@ export default function LessonList({
             {l.title}
           </button>
           <span className="pos">{progress(l)}</span>
-          <span className="diff" title={detail(l)}>
+          <span className="diff">
             {/* One bar, one meaning: how much of this you can already read. */}
             <span className="shape-bar">
               <span className="tok--known" style={{ width: `${share(l) * 100}%` }} />
@@ -154,6 +177,7 @@ export default function LessonList({
               />
             </span>
             <span className="pct">{Math.round(share(l) * 100)}%</span>
+            <Detail lesson={l} />
           </span>
           {/* Out of the row until you reach for it: delete used to sit one slip
               from every title. */}
