@@ -97,6 +97,51 @@ the ownership, and it is a tenth of the work.
 
 Self-hosters get `LL_TEXTREADER_SIGNUP=off` and no mail configuration.
 
+### What sending email actually involves
+
+Not the sending. The sending is fifteen lines.
+
+```python
+def send(to: str, subject: str, body: str) -> None:
+    httpx.post("https://api.resend.com/emails",
+               headers={"Authorization": f"Bearer {settings.email_key}"},
+               json={"from": settings.email_from, "to": to,
+                     "subject": subject, "text": body}).raise_for_status()
+```
+
+Four things around it are the actual work:
+
+1. **A provider.** Sending straight from the VPS does not work — cloud IP ranges are
+   blocklisted by default and nobody accepts mail from an unwarmed one. Resend's free
+   tier is 3,000 a month (100/day) and Brevo's is 300/day, either of which is thousands
+   of sign-ups. Free is genuinely free at this size.
+
+2. **A domain you own.** This is the one that bites, because SPF and DKIM are DNS
+   records on the sending domain — and **a DuckDNS subdomain cannot have them**, since
+   the domain is not yours. Email means buying a domain, five to ten euros a year. It
+   also gives a URL worth putting in a Reddit post, so it is a purchase with two uses.
+
+3. **The reset flow, which is the real cost.** A `password_reset` table with a
+   single-use token and a short expiry, an endpoint to request one that is rate-limited
+   and **answers the same whether or not the address exists** — otherwise it is a
+   quiet way to enumerate who has an account — an endpoint to consume it, and a form.
+
+4. **Deliverability.** Some will land in spam however correctly it is set up, so
+   "I never got the email" becomes a thing you answer. Nothing fixes this; it is a cost
+   of the feature.
+
+About a day, most of it in the flow rather than the mail.
+
+### The cheap decision to make now
+
+**Collect an email address at sign-up and do nothing with it.** One nullable column.
+It costs nothing today, and it is the difference between adding reset later as a purely
+additive feature and having to ask every existing account for an address first.
+
+If accounts are keyed on a username with no address anywhere, password reset is not
+merely unbuilt — it is impossible without a migration and a round of emails you have no
+way to send.
+
 ## What self-signup adds that a command-line user list did not
 
 Strangers change three things:
