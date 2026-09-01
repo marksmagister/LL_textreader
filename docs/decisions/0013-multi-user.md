@@ -1,89 +1,130 @@
-# 0013 — Multi-user
+# 0013 — Accounts
 
-**Status: planned, not built.** With a recommendation to think twice first.
+**Status: planned, not built.** Rewritten once the goal changed from "let a friend try
+it" to "publish it and let people sign up".
 
-## The argument against doing this
+## "Ownership" is three things, and only one of them is accounts
 
-The stated long-term direction is that each reader's storage and compute should be
-theirs — local, or at least personal. Multi-user on one server is the opposite of that:
-it puts everyone's reading history in one database, which then has to be kept separate
-by code that is correct on all 34 call sites, forever.
+The instinct — people should be able to get back into their stuff — is right, but it
+bundles three separate problems that have different answers and very different costs:
 
-There is already a way to give a person their own data with **no code at all**: a second
-instance. A systemd template unit, a second data directory, a second hostname in Caddy.
-Twenty minutes, no auth logic, no isolation bugs possible, and it *is* the local-first
-end state — a personal server is local-first in the way that matters, since the data is
-not pooled with strangers'.
+1. **Get back in.** Recovery. The expensive one.
+2. **Take it with you.** Export. Half-built already.
+3. **Leave.** Deletion. Not built.
 
-So: **for two to five readers, run instances.** Build the below when running instances
-becomes the annoying part, which is somewhere around five to ten people — and know that
-building it makes the local-first direction harder, not easier.
+Worth saying plainly: an account on someone else's server is the *weakest* form of
+ownership there is. What actually makes reading history yours is that a copy of it sits
+on your machine, in a format that outlives this project. That is 2 and 3, not 1.
 
-The rest of this is the plan for when that day comes.
+So the order below builds them in the order of what they are worth, not the order they
+are usually built in.
 
-## The design
+## First: make losing an account survivable
 
-Deliberately not a login page, not sessions, not registration.
+Cheap, and it changes how frightening everything else is.
 
-**Basic auth already identifies a username.** It is in the header on every request, the
-browser stores and re-sends it, and there is no session state to expire, leak or
-invalidate. What is missing is only that the username is currently ignored.
+- **Export the lessons too.** `export.py` covers the lexicon — the irreplaceable part —
+  but there is no way to get the texts out. One endpoint returning a zip of `.txt`
+  files plus the lexicon JSON is an afternoon.
+- **Automatic periodic export.** Drop the JSON into Downloads every so often, with an
+  obvious restore. Inelegant; it is also what has saved a lot of Anki users.
+- **Account deletion that actually deletes.** Not a flag. `ON DELETE CASCADE` already
+  covers the lesson-owned tables; the lexicon tables need the same.
+
+With those, a forgotten password costs you an account and not six months of reading. That
+is a better guarantee than any reset flow, because it holds even if this project stops
+existing.
+
+## Then: accounts
+
+**Sessions, not basic auth.** 0013's earlier draft leaned on basic auth because the
+browser stores the credentials and there is no session state to get wrong. Self-signup
+kills that: signing up needs a form, a form needs a login page, and once there is a
+login page, basic auth's one advantage — no UI — is gone. It also has no logout worth
+the name.
+
+So: a `session` table in SQLite, a random token in an `HttpOnly; Secure; SameSite=Lax`
+cookie. Server-side rather than signed-and-stateless, because that makes logout and
+revocation real rather than decorative.
 
 ```sql
-ALTER TABLE user ADD COLUMN password TEXT NOT NULL DEFAULT '';  -- scrypt output
-ALTER TABLE user ADD COLUMN name_lower TEXT;                    -- unique, case-folded
+CREATE TABLE session (
+    token      TEXT PRIMARY KEY,        -- secrets.token_urlsafe(32)
+    user_id    INTEGER NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    seen_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
 ```
 
-`hashlib.scrypt` from the standard library. No new dependency, and password hashing is
-not somewhere to be clever.
+Passwords with `hashlib.scrypt` from the standard library. Password hashing is not a
+place to be clever, and it is not a place to add a dependency either.
 
-**Users are made by a command**, not a form:
+## Recovery, and why it is the expensive part
 
-```
-uv run python -m ll_textreader.users add ami
-uv run python -m ll_textreader.users passwd ami
-```
+This is the piece that changes the character of the project, because it is the first
+thing that needs infrastructure having nothing to do with reading.
 
-A self-hosted reader for a handful of people does not need a registration flow, and not
-having one removes an entire category of abuse.
+| | what it costs | what it gives |
+|---|---|---|
+| **Email reset** | an email provider, deliverability, reset tokens, rate limits | what everyone expects |
+| **Recovery code at signup** | almost nothing | works until they lose the code |
+| **OAuth (Google/GitHub)** | an OAuth app; awkward for self-hosters | no passwords at all, recovery is someone else's problem |
+| **Nothing, plus export** | nothing | the account is lost, the reading is not |
+
+**Recommendation: email reset, and build the export first anyway.** Free tiers (Resend,
+Brevo) cover thousands of sign-ups a month at zero cost, and "forgot password" missing
+reads as broken however good the export is. But the export is what actually delivers
+the ownership, and it is a tenth of the work.
+
+Self-hosters get `LL_TEXTREADER_SIGNUP=off` and no mail configuration.
+
+## What self-signup adds that a command-line user list did not
+
+Strangers change three things:
+
+- **Rate limits** on signup and login. Not sophisticated — a per-IP counter in SQLite is
+  enough to stop the boring attacks.
+- **Quotas.** A lesson is 53.5 kB; unbounded is still unbounded. A cap on lessons or
+  total words per account, generous enough that nobody real notices.
+- **A copyright posture.** `CLAUDE.md` rules out a shared lesson library deliberately:
+  hosting other people's copyrighted text is the line. Accounts do not cross it, since
+  each person's imports stay theirs — but hosting a thousand strangers' imports is a
+  different risk from hosting your own. A terms page and a way to receive a takedown
+  should exist before a Reddit post, not after one.
 
 ## The part that must not go wrong
 
-Thirty-four call sites read `USER_ID`. Missing one means one reader seeing another's
-vocabulary — the worst failure this application could have.
+Unchanged from the earlier draft, and still the only genuinely dangerous piece.
 
-**Delete the constant.** Do not leave `USER_ID = 1` in `db.py` as a fallback. Replace it
-with a dependency:
+Thirty-four sites read `USER_ID`. Missing one means a reader seeing another's
+vocabulary. **Delete the constant** rather than leaving it as a fallback, so anything
+missed fails to import instead of silently serving user 1's words. A compile-time
+guarantee beats a code review.
 
-```python
-def current_user(request: Request) -> int: ...   # from the basic-auth header
-```
+Then a test that creates two accounts and loops over every endpoint asserting each sees
+only its own — so an endpoint added later without isolation fails it.
 
-and thread it through as `user: int = Depends(current_user)`. With the constant gone,
-any site that was missed **fails to import** rather than silently serving user 1's
-words. A compile-time guarantee beats a code review.
+## Honest cost
 
-Then the test that actually matters: create two users, and for every endpoint that
-reads or writes, assert that each sees only their own. Not a spot check — a loop over
-the endpoint list, so a new endpoint added later without isolation fails it.
+Not the half-day the earlier draft claimed; that assumed no signup and no recovery.
 
-## What stays shared
+| | |
+|---|---|
+| export lessons, auto-export, deletion | ~1 day |
+| users, sessions, signup, login, logout | ~1 day |
+| password reset by email | ~1 day |
+| `USER_ID` removal and the isolation test | ~½ day |
 
-`hint` and `root_index` are reference data — dictionaries, not history — and have no
-`user_id` on purpose. `token` and `sentence_gloss` belong to a lesson, and a lesson
-belongs to a user, so they inherit isolation.
+Call it **three to four days**, and note that almost none of it is about reading. That
+is the real cost of publishing, and it is worth knowing before starting rather than
+halfway through.
 
-One consequence worth accepting: two readers importing the same article each get their
-own copy and each translation is computed twice. That is the right trade against a
-shared lesson library, which `CLAUDE.md` rules out for copyright reasons.
+## Order
 
-## Migration
+1. Export and deletion — worth having whether or not accounts ever happen
+2. Users, sessions, signup
+3. `USER_ID` removal, isolation test
+4. Password reset
+5. Rate limits, quotas, terms
 
-The existing reader becomes user 1 with the password from `LL_TEXTREADER_PASSWORD`. No
-data moves. `LL_TEXTREADER_PASSWORD` then only bootstraps the first account.
-
-## Cost
-
-Half a day for the change, and the isolation test is most of it. The risk is not the
-writing; it is that a leak is silent and would not be noticed until someone saw a word
-they had never met marked as known.
+Steps 1 and 3 are the ones that would be painful to retrofit. The rest can arrive late.
