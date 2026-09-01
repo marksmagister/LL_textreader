@@ -140,6 +140,39 @@ data/            gitignored: the sqlite db, downloaded models, imported texts
 - Don't name it, style it, or word it after LingQ. Trademark is a separate risk from
   copyright and it's the one that generates letters.
 
+## Starting a session
+
+Run `./scripts/check.sh` first. Two seconds, changes nothing, and every line in it has
+gone wrong at least once — most often `uv sync` silently pruning the spaCy model.
+
+Then read `docs/status.md`. It says where things stand and what is next; `docs/api.md`
+lists every endpoint; `docs/decisions/` holds the reasoning behind anything that looks
+arbitrary. If something in the code seems odd, the explanation is usually in a decision
+file rather than a comment.
+
+## Keeping the record straight
+
+Everything about this project lives in this repo, so a thing not written down is a thing
+lost when the session ends. This has already happened once: an entire keyboard spec and
+an architecture document existed only in a chat log and had to be recovered from another
+session's transcript.
+
+- **Write down what the maintainer says, in the same turn they say it.** Feature ideas,
+  preferences, decisions — even in passing, even prefixed "long term" or "low priority".
+  `docs/status.md` for state and backlog, `docs/decisions/` for anything with a reason
+  behind it. Capture the *why*: the feature is easy to reconstruct later, the reasoning
+  is not. Do not wait to be asked and do not batch it to the end.
+- **Fix the docs in the same commit as the code.** Five things have gone stale here
+  already — a file map missing three modules, two documents describing three render
+  states when there were five, a keyboard spec listing keys that had been retired, and
+  an endpoint list that did not exist. Each would have had a new session confidently
+  building the wrong thing.
+- **A decision file per real decision, numbered, never reused.** Two files were both
+  0010 at one point. Check `ls docs/decisions/` before picking a number.
+- **Correct the record when you were wrong.** Measurements especially: one capacity
+  figure in this repo was out by 7× because the benchmark query differed from the real
+  one. The correction lives in the document beside the original, not instead of it.
+
 ## Working style
 
 - Commit straight to `main`, no branches, no PRs — one person, branching is friction.

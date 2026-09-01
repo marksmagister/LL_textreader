@@ -1,5 +1,7 @@
 # Status & roadmap
 
+**New session? Run `./scripts/check.sh`, then read this file.**
+
 Current state and what's next. Design lives in `../CLAUDE.md`, the data model in
 `data-model.md`, and the reasoning behind individual decisions in `decisions/`. Those
 change on a decision; this file changes on an event. Don't copy one into the other.
@@ -61,18 +63,23 @@ without losing anyone's place. Position never moves backwards.
 
 ## Next
 
-Decided after the first working pilot. Import (URL, EPUB, watched folder) is
-deliberately **not** in this round: paste and `.txt` are enough while the reading
-habit is being tested.
+1. **Finish the hosting.** The box is rented but not provisioned; `deploying.md` has the
+   three steps and the deploy key. Until then `./scripts/serve.sh --share` puts it on a
+   Cloudflare tunnel from the laptop, which is enough to show someone.
+2. **Russian** — `decisions/0012`. Before accounts, deliberately: Russian is the thing
+   that proves the lemma-keyed model was worth building, and it is better to find that
+   out before strangers arrive. Mostly front-end work; the step not to skip is measuring
+   Russian morphology before trusting it.
+3. **Export the lessons, and account deletion** — `decisions/0013`. An afternoon each,
+   and they are what "your data is yours" actually means. Worth having whether accounts
+   ever happen or not.
+4. **Accounts**, by invite first — `decisions/0013`. Roughly two days to an invite-only
+   beta; open sign-up is then a flag, and password reset can wait behind invites.
 
-1. **Hosting**, enough to share it with someone. First, because once it is deployed
-   every later feature ships by `git pull` rather than by asking someone to run two
-   terminals. Single-user by design: whoever has the URL reads with this lexicon.
-   `docs/deploying.md`.
-Alongside: read with it properly for a fortnight and change nothing. The
-questions that matter next — is 150 tokens the right page, is "turn the page" the
-right moment for forms to count as met, does the review state prompt or nag — are
-not answerable from a chair.
+Alongside all of it: read with the thing. Every real bug so far came from using it, not
+from the 195 tests — the Finish button that did nothing, "mark known" eating learning
+words, levels rising five times too fast. That is still the highest-yield activity
+available.
 
 ## Planned in detail, not started
 
