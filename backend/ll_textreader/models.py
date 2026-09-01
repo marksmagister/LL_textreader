@@ -39,6 +39,7 @@ class ReaderToken(BaseModel):
     char_end: int
     sent_id: int  # for sentence-at-a-time keyboard navigation
     morph: str  # why this form looks different from the lemma
+    overridden: bool  # the user has corrected the lemmatiser on this form
     state: TokenState
 
 
@@ -53,6 +54,9 @@ class LessonSummary(BaseModel):
     n_words: int
     last_token: int = 0  # where you stopped; 0 = not started
     completed: bool = False
+    n_new: int = 0
+    n_learning: int = 0
+    n_known: int = 0
 
 
 class LessonDetail(LessonSummary):

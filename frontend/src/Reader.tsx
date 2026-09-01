@@ -245,16 +245,18 @@ export default function Reader({
             <button className="ghost" onClick={() => setFixing(true)} title="o">
               wrong word?
             </button>
-            <button
-              className="ghost"
-              onClick={async () => {
-                await clearOverride(lang, token.surface)
-                await reload()
-                toText()
-              }}
-            >
-              undo override
-            </button>
+            {token.overridden && (
+              <button
+                className="ghost"
+                onClick={async () => {
+                  await clearOverride(lang, token.surface)
+                  await reload()
+                  toText()
+                }}
+              >
+                undo override
+              </button>
+            )}
           </p>
 
           <ol className="glosses">

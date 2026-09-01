@@ -56,10 +56,21 @@ _SUMMARY = """
 SELECT l.id, l.lang, l.title, l.source, l.pipeline_id, l.imported_at, l.body,
        COUNT(t.idx) AS n_tokens, COUNT(t.lemma) AS n_words,
        COALESCE(p.last_token, 0) AS last_token,
-       COALESCE(p.completed, 0) AS completed
+       COALESCE(p.completed, 0) AS completed,
+       -- how much of this lesson you can already read. Counted over tokens, not
+       -- distinct lemmas, so it matches what the page looks like.
+       SUM(t.lemma IS NOT NULL AND (s.status IS NULL OR s.status = 0)) AS n_new,
+       SUM(t.lemma IS NOT NULL AND s.status BETWEEN 1 AND 4) AS n_learning,
+       SUM(t.lemma IS NOT NULL AND (s.status >= 5 OR s.status = -1)) AS n_known
 FROM lesson l
 LEFT JOIN token t ON t.lesson_id = l.id
 LEFT JOIN reading_progress p ON p.lesson_id = l.id AND p.user_id = l.user_id
+LEFT JOIN lemma_override o
+       ON o.user_id = l.user_id AND o.lang = l.lang AND o.surface = t.norm
+LEFT JOIN lemma_status s
+       ON s.user_id = l.user_id AND s.lang = l.lang
+      AND s.lemma = COALESCE(o.to_lemma, t.lemma)
+      AND s.pos   = COALESCE(o.to_pos, t.pos)
 WHERE l.user_id = ?
 """
 
@@ -70,7 +81,8 @@ SELECT t.idx, t.surface, t.char_start, t.char_end, t.sent_id, t.morph,
        COALESCE(o.to_lemma, t.lemma) AS lemma,
        COALESCE(o.to_pos, t.pos)     AS pos,
        s.status,
-       f.surface IS NOT NULL         AS form_seen
+       f.surface IS NOT NULL         AS form_seen,
+       o.surface IS NOT NULL         AS overridden
 FROM token t
 LEFT JOIN lemma_override o
        ON o.user_id = ? AND o.lang = ? AND o.surface = t.norm
@@ -166,6 +178,7 @@ def read_lesson(lesson_id: int, page: int | None = None) -> LessonDetail:
                 char_end=t["char_end"],
                 sent_id=t["sent_id"],
                 morph=t["morph"],
+                overridden=bool(t["overridden"]),
                 state=state_for(t["lemma"], t["status"], bool(t["form_seen"])),
             )
             for t in tokens

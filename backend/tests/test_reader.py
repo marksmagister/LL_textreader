@@ -108,3 +108,38 @@ def test_delete_and_unknown_lesson(client):
 def test_unknown_language_is_rejected(client):
     r = client.post("/api/lessons", json={"text": "hallo", "lang": "xx"})
     assert r.status_code == 400
+
+
+def test_lesson_summary_reports_what_you_can_already_read(client):
+    """The library needs to show the shape of a text before you open it."""
+    lesson = make_lesson(client)
+    before = client.get("/api/lessons").json()[0]
+    assert before["n_new"] == before["n_words"] and before["n_known"] == 0
+
+    client.put("/api/terms", json={"lang": "fr", "lemma": "marcher", "pos": "VERB", "status": 5})
+    client.put("/api/terms", json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": 2})
+    after = client.get("/api/lessons").json()[0]
+
+    assert after["n_known"] == 2  # marchait and marchons
+    assert after["n_learning"] == 1
+    assert after["n_new"] == after["n_words"] - 3
+    # the three buckets must account for every word, or the bar lies
+    assert after["n_new"] + after["n_learning"] + after["n_known"] == after["n_words"]
+    assert client.get(f"/api/lessons/{lesson['id']}").json()["n_known"] == 2
+
+
+def test_ignored_words_count_as_readable(client):
+    make_lesson(client)
+    client.put("/api/terms", json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": -1})
+    assert client.get("/api/lessons").json()[0]["n_known"] == 1
+
+
+def test_tokens_say_whether_you_overrode_them(client):
+    lesson = make_lesson(client, "Les quais sont longs.")
+    assert not any(
+        t["overridden"] for t in client.get(f"/api/lessons/{lesson['id']}").json()["tokens"]
+    )
+
+    client.put("/api/terms/override", json={"lang": "fr", "surface": "quais"})
+    tokens = client.get(f"/api/lessons/{lesson['id']}").json()["tokens"]
+    assert [t["surface"] for t in tokens if t["overridden"]] == ["quais"]

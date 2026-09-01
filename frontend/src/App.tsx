@@ -8,6 +8,28 @@ const LANG = 'fr'
 
 type View = { at: 'library' } | { at: 'reader'; id: number } | { at: 'vocab' }
 
+/** The shape of a text: what share of its words are new, learning, known. */
+function Shape({ lesson }: { lesson: LessonSummary }) {
+  const total = lesson.n_words || 1
+  const parts = [
+    ['new', lesson.n_new],
+    ['learning', lesson.n_learning],
+    ['known', lesson.n_known],
+  ] as const
+  return (
+    <span className="shape" title={parts.map(([k, n]) => `${n} ${k}`).join(' · ')}>
+      <span className="shape-bar">
+        {parts.map(([k, n]) => (
+          <span key={k} className={`tok--${k}`} style={{ width: `${(n / total) * 100}%` }} />
+        ))}
+      </span>
+      <span className="meta">
+        {Math.round((lesson.n_known / total) * 100)}% known · {lesson.n_new} new
+      </span>
+    </span>
+  )
+}
+
 function Library({ onOpen, onVocab }: { onOpen: (id: number) => void; onVocab: () => void }) {
   const [lessons, setLessons] = useState<LessonSummary[]>([])
   const [text, setText] = useState('')
@@ -71,17 +93,21 @@ function Library({ onOpen, onVocab }: { onOpen: (id: number) => void; onVocab: (
       <ul className="lessons">
         {lessons.map((l) => (
           <li key={l.id}>
-            <button className="link" onClick={() => onOpen(l.id)}>
-              {l.title}
-            </button>
-            <span className="meta">
-              {l.n_words} words
-              {l.completed
-                ? ' · done'
-                : l.last_token > 0 &&
-                  ` · ${Math.round((l.last_token / l.n_tokens) * 100)}% read`}
+            <span className="row">
+              <button className="link" onClick={() => onOpen(l.id)}>
+                {l.title}
+              </button>
+              <span className="meta">
+                {l.n_words} words
+                {l.completed
+                  ? ' · done'
+                  : l.last_token > 0 &&
+                    ` · ${Math.round((l.last_token / l.n_tokens) * 100)}% read`}
+              </span>
+              <button onClick={() => deleteLesson(l.id).then(load)}>delete</button>
             </span>
-            <button onClick={() => deleteLesson(l.id).then(load)}>delete</button>
+            {/* how much of it you can already read, before you open it */}
+            <Shape lesson={l} />
           </li>
         ))}
       </ul>

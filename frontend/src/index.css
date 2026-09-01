@@ -85,7 +85,18 @@ input, textarea { font: inherit; font-size: 0.9rem; padding: 0.4rem;
 .busy { font-size: 0.8rem; opacity: 0.7; }
 
 .lessons { list-style: none; padding: 0; }
-.lessons li { display: flex; gap: 0.75rem; align-items: baseline; margin-bottom: 0.5rem; }
+.lessons li { margin-bottom: 1rem; }
+.lessons .row { display: flex; gap: 0.75rem; align-items: baseline; }
+
+/* The shape of a text, in the same colours the page will be. A known-heavy bar
+   means you can read it; a blue one means you can't, yet. */
+.shape { display: flex; gap: 0.6rem; align-items: center; margin-top: 0.25rem; }
+.shape-bar { display: flex; width: 12rem; height: 6px; border-radius: 3px;
+             overflow: hidden; background: var(--line); }
+.shape-bar > span { display: block; }
+.shape-bar .tok--new { background: var(--tok-new); }
+.shape-bar .tok--learning { background: var(--tok-learning); }
+.shape-bar .tok--known { background: var(--fg); opacity: 0.35; }
 .meta, .pos, .muted { font-size: 0.75rem; opacity: 0.55; }
 
 /* ---------------------------------------------------------------- panel */

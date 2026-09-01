@@ -11,6 +11,8 @@ export interface Token {
   sent_id: number
   /** UD features explaining why this form differs from the lemma. */
   morph: string
+  /** You have corrected the lemmatiser on this form. */
+  overridden: boolean
   state: TokenState
 }
 
@@ -26,6 +28,10 @@ export interface LessonSummary {
   /** Where you stopped, as a token index. 0 = not started. */
   last_token: number
   completed: boolean
+  /** Token counts by state, so the library can show the shape of a text. */
+  n_new: number
+  n_learning: number
+  n_known: number
 }
 
 /** One page. Pages are derived from the token stream, not stored. */
