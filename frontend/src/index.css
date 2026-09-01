@@ -28,8 +28,12 @@
   line-height: 1.85;
 }
 
+/* Dark is defined twice on purpose: once for "the system is dark and you
+   have not overridden it", once for "you asked for dark". A media query
+   cannot be reused as a selector, and duplicating eight custom properties
+   is less trouble than any scheme for avoiding it. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --tok-new: #24405f;
     --tok-learning: #5a4a1c;
     --tok-novel-form: #34401f;
@@ -41,7 +45,19 @@
   }
 }
 
-body { margin: 0; }
+:root[data-theme='dark'] {
+  --tok-new: #24405f;
+  --tok-learning: #5a4a1c;
+  --tok-novel-form: #34401f;
+  --tok-review: #6ea3d6;
+  --fg: #e8e6e1;
+  --bg: #16181a;
+  --line: #333;
+  --cursor: #fb923c;
+}
+
+/* The browser paints its own ground behind a transparent body. */
+body { margin: 0; background: var(--bg); color: var(--fg); }
 
 /* A reading app: the text is the interface. ~65 characters of measure. */
 main { max-width: 34rem; margin: 0 auto; padding: 2rem 1.5rem 8rem; }
@@ -185,3 +201,8 @@ input, textarea { font: inherit; font-size: 0.9rem; padding: 0.4rem;
           border: 1px solid var(--line); border-radius: 6px; padding: 0.6rem; }
 .report textarea { width: 100%; box-sizing: border-box; min-height: 5rem; }
 .report .bar { margin: 0.4rem 0 0; }
+
+/* The theme switch, mirroring the report tab in the opposite corner. */
+.theme-tab { position: fixed; left: 0.75rem; bottom: 0.75rem; z-index: 6;
+             font-size: 0.7rem; opacity: 0.35; background: var(--bg); }
+.theme-tab:hover { opacity: 0.9; }

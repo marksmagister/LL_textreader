@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Reader from './Reader'
 import Report from './Report'
+import { apply, effective, stored, type Theme } from './theme'
 import Vocab from './Vocab'
 import { deleteLesson, importText, importUrl, listLessons, undoBulk } from './api'
 import type { LessonSummary } from './types'
@@ -174,6 +175,11 @@ export default function App() {
   // above whichever screen you end up on.
   const [undo, setUndo] = useState<{ id: number; n: number } | null>(null)
   const [refresh, setRefresh] = useState(0)
+  const [theme, setTheme] = useState<Theme>(stored)
+
+  useEffect(() => {
+    apply(theme)
+  }, [theme])
 
   // `/` opens the palette from anywhere — unless you are typing.
   useEffect(() => {
@@ -189,9 +195,15 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Toggling flips to the opposite of what is on screen, so the first press
+  // always visibly changes something whatever the system is set to.
+  const flip = () => setTheme(effective(theme) === 'dark' ? 'light' : 'dark')
+
   const commands: [string, () => void][] = [
     ['library — import or open a text', () => setView({ at: 'library' })],
     ['vocabulary — everything you know', () => setView({ at: 'vocab' })],
+    ['dark / light — switch the theme', flip],
+    ['follow the system theme', () => setTheme('system')],
   ]
 
   return (
@@ -234,6 +246,9 @@ export default function App() {
       )}
       {palette && <Palette commands={commands} onClose={() => setPalette(false)} />}
       <Report lessonId={view.at === 'reader' ? view.id : undefined} />
+      <button className="theme-tab" onClick={flip} title="light or dark">
+        {effective(theme) === 'dark' ? 'light mode' : 'dark mode'}
+      </button>
     </>
   )
 }
