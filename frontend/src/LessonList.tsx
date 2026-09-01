@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { setCollection } from './api'
 import type { LessonSummary } from './types'
 
 /** Sorted and searched here rather than on the server: the whole library is one
@@ -63,6 +64,13 @@ function Detail({ lesson: l }: { lesson: LessonSummary }) {
   )
 }
 
+/** A collection's difficulty is its words all together, not the mean of its
+ *  chapters — a long hard chapter should weigh more than a short easy one. */
+function aggregate(rows: LessonSummary[]) {
+  const words = rows.reduce((n, r) => n + r.n_words, 0)
+  return words ? rows.reduce((n, r) => n + r.n_known, 0) / words : 0
+}
+
 /** How much of a text you can already read. The one number worth comparing. */
 function share(l: LessonSummary) {
   return l.n_words ? l.n_known / l.n_words : 0
@@ -83,19 +91,120 @@ function Marker({ lesson }: { lesson: LessonSummary }) {
   return <span className={`dot ${lesson.last_token ? 'started' : ''}`} />
 }
 
+/** A row, whether it stands alone or sits inside a collection. */
+function Row({
+  lesson: l,
+  onOpen,
+  onDelete,
+  onMove,
+  names,
+  inside,
+}: {
+  lesson: LessonSummary
+  onOpen: (id: number) => void
+  onDelete: (id: number) => void
+  onMove: (id: number, name: string | null) => void
+  names: string[]
+  inside?: boolean
+}) {
+  const [act, setAct] = useState<'' | 'delete' | 'move'>('')
+  const [name, setName] = useState(l.collection ?? '')
+
+  return (
+    <div className={`lrow${l.completed ? ' is-done' : ''}${inside ? ' chap' : ''}`}>
+      <Marker lesson={l} />
+      {act === 'move' ? (
+        <span className="bar">
+          <input
+            autoFocus
+            className="grow"
+            list="collection-names"
+            value={name}
+            placeholder="collection name — blank to take it out"
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onMove(l.id, name.trim() || null)
+                setAct('')
+              }
+              if (e.key === 'Escape') setAct('')
+            }}
+          />
+          <datalist id="collection-names">
+            {names.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+        </span>
+      ) : (
+        <button className="name" onClick={() => onOpen(l.id)}>
+          {l.title}
+        </button>
+      )}
+      <span className="pos">{progress(l)}</span>
+      <span className="diff">
+        <span className="shape-bar">
+          <span className="tok--known" style={{ width: `${share(l) * 100}%` }} />
+          <span
+            className="tok--learning"
+            style={{ width: `${(l.n_words ? l.n_learning / l.n_words : 0) * 100}%` }}
+          />
+          <span
+            className="tok--new"
+            style={{ width: `${(l.n_words ? l.n_new / l.n_words : 0) * 100}%` }}
+          />
+        </span>
+        <span className="pct">{Math.round(share(l) * 100)}%</span>
+        <Detail lesson={l} />
+      </span>
+      <span className="acts">
+        {act === 'delete' ? (
+          <button
+            className="ghost"
+            onClick={() => {
+              onDelete(l.id)
+              setAct('')
+            }}
+          >
+            delete?
+          </button>
+        ) : (
+          <>
+            <button className="act" title="put in a collection" onClick={() => setAct('move')}>
+              ⊞
+            </button>
+            <button className="act" title="remove" onClick={() => setAct('delete')}>
+              ×
+            </button>
+          </>
+        )}
+      </span>
+    </div>
+  )
+}
+
 export default function LessonList({
   lessons,
   onOpen,
   onDelete,
+  onChanged,
 }: {
   lessons: LessonSummary[]
   onOpen: (id: number) => void
   onDelete: (id: number) => void
+  onChanged: () => void
 }) {
   const [q, setQ] = useState('')
   const [sort, setSort] = useState('recent')
   const [flipped, setFlipped] = useState(false)
-  const [confirming, setConfirming] = useState<number | null>(null)
+  const [open, setOpen] = useState<Set<string>>(new Set())
+
+  const names = useMemo(
+    () => [...new Set(lessons.map((l) => l.collection).filter(Boolean))] as string[],
+    [lessons],
+  )
+
+  const move = (id: number, name: string | null) => setCollection(id, name).then(onChanged)
 
   const shown = useMemo(() => {
     const compare = SORTS.find(([k]) => k === sort)![2]
@@ -104,6 +213,29 @@ export default function LessonList({
       .filter((l) => !needle || l.title.toLowerCase().includes(needle))
       .sort((a, b) => (flipped ? -compare(a, b) : compare(a, b)))
   }, [lessons, q, sort, flipped])
+
+  /** Collections keep their internal order; loose lessons follow the chosen sort.
+   *  A collection sits where its most recently used member would have sat, so
+   *  sorting still means something with books in the list. */
+  const groups = useMemo(() => {
+    const out: Array<[string | null, LessonSummary[]]> = []
+    const seen = new Map<string, LessonSummary[]>()
+    for (const l of shown) {
+      if (!l.collection) {
+        out.push([null, [l]])
+        continue
+      }
+      let rows = seen.get(l.collection)
+      if (!rows) {
+        rows = []
+        seen.set(l.collection, rows)
+        out.push([l.collection, rows])
+      }
+      rows.push(l)
+    }
+    for (const rows of seen.values()) rows.sort((a, b) => a.position - b.position)
+    return out
+  }, [shown])
 
   // What you almost always want: the thing you were last in and have not finished.
   const continuing = useMemo(
@@ -156,50 +288,45 @@ export default function LessonList({
         <span />
       </div>
 
-      {shown.map((l) => (
-        <div className={`lrow${l.completed ? ' is-done' : ''}`} key={l.id}>
-          <Marker lesson={l} />
-          <button className="name" onClick={() => onOpen(l.id)}>
-            {l.title}
-          </button>
-          <span className="pos">{progress(l)}</span>
-          <span className="diff">
-            {/* One bar, one meaning: how much of this you can already read. */}
-            <span className="shape-bar">
-              <span className="tok--known" style={{ width: `${share(l) * 100}%` }} />
-              <span
-                className="tok--learning"
-                style={{ width: `${(l.n_words ? l.n_learning / l.n_words : 0) * 100}%` }}
-              />
-              <span
-                className="tok--new"
-                style={{ width: `${(l.n_words ? l.n_new / l.n_words : 0) * 100}%` }}
-              />
-            </span>
-            <span className="pct">{Math.round(share(l) * 100)}%</span>
-            <Detail lesson={l} />
-          </span>
-          {/* Out of the row until you reach for it: delete used to sit one slip
-              from every title. */}
-          {confirming === l.id ? (
-            <span className="act shown">
-              <button
-                className="ghost"
-                onClick={() => {
-                  onDelete(l.id)
-                  setConfirming(null)
-                }}
-              >
-                delete?
-              </button>
-            </span>
-          ) : (
-            <button className="act" title="remove" onClick={() => setConfirming(l.id)}>
-              ×
-            </button>
-          )}
-        </div>
-      ))}
+      {groups.map(([name, rows]) =>
+        name === null ? (
+          rows.map((l) => (
+            <Row key={l.id} lesson={l} onOpen={onOpen} onDelete={onDelete} onMove={move} names={names} />
+          ))
+        ) : (
+          // Collapsed by default: a book should be one line until you want it.
+          <details className="group" key={name} open={open.has(name)}>
+            <summary
+              className="lrow"
+              onClick={(e) => {
+                e.preventDefault()
+                setOpen((was) => {
+                  const next = new Set(was)
+                  if (next.has(name)) next.delete(name)
+                  else next.add(name)
+                  return next
+                })
+              }}
+            >
+              <span className="caret">{open.has(name) ? '▾' : '▸'}</span>
+              <span className="name group-name">
+                {name} <span className="meta">{rows.length} parts</span>
+              </span>
+              <span className="pos">{rows.filter((r) => r.completed).length} read</span>
+              <span className="diff">
+                <span className="shape-bar">
+                  <span className="tok--known" style={{ width: `${aggregate(rows) * 100}%` }} />
+                </span>
+                <span className="pct">{Math.round(aggregate(rows) * 100)}%</span>
+              </span>
+              <span />
+            </summary>
+            {rows.map((l) => (
+              <Row key={l.id} lesson={l} onOpen={onOpen} onDelete={onDelete} onMove={move} names={names} inside />
+            ))}
+          </details>
+        ),
+      )}
 
       {!shown.length && <p className="muted">Nothing matches “{q}”.</p>}
     </>

@@ -15,6 +15,19 @@ CREATE TABLE IF NOT EXISTS user (
 
 -- ---------------------------------------------------------------- lessons
 
+-- A book, a series, a set of articles: an ordered group of lessons. One table
+-- and two columns on `lesson`, deliberately. Not tags, not folders inside
+-- folders — a lesson belongs to at most one of these, which is what "a folder"
+-- means and what an EPUB actually is.
+CREATE TABLE IF NOT EXISTS collection (
+    id          INTEGER PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES user(id),
+    lang        TEXT    NOT NULL,
+    title       TEXT    NOT NULL,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (user_id, lang, title)
+);
+
 CREATE TABLE IF NOT EXISTS lesson (
     id            INTEGER PRIMARY KEY,
     user_id       INTEGER NOT NULL REFERENCES user(id),

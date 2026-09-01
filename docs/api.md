@@ -11,6 +11,7 @@ FastAPI serves the live schema at `/docs` if you'd rather read it there.
 | `GET` | `/api/lessons` | the library, with per-lesson counts by state |
 | `GET` | `/api/lessons/{id}` | one page, resuming where you stopped unless `?page=` says otherwise |
 | `DELETE` | `/api/lessons/{id}` | delete a lesson and its tokens |
+| `PUT` | `/api/lessons/{id}/collection` | put it in a collection by name; empty takes it out |
 | `POST` | `/api/lessons/{id}/finish` | turn a page: record met forms, raise levels, save position, optionally clear the blue |
 | `POST` | `/api/lessons/undo/{undo_id}` | put back what a bulk action changed |
 | `GET` | `/api/lessons/{id}/translation` | English per sentence for a page; translates and caches on first ask |

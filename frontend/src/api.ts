@@ -111,3 +111,10 @@ export const sendReport = (text: string, lesson_id?: number, page?: number) =>
     method: 'POST',
     body: JSON.stringify({ text, lesson_id: lesson_id ?? null, page: page ?? null }),
   })
+
+/** Put a lesson in a collection by name, creating it if new. Empty removes it. */
+export const setCollection = (id: number, name: string | null) =>
+  call<LessonSummary>(`/api/lessons/${id}/collection`, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  })

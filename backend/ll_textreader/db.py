@@ -24,6 +24,8 @@ def connect() -> sqlite3.Connection:
 # number to keep in step.
 ADDED_COLUMNS = [
     ("token", "morph", "TEXT NOT NULL DEFAULT ''"),
+    ("lesson", "collection_id", "INTEGER REFERENCES collection(id) ON DELETE SET NULL"),
+    ("lesson", "position", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 

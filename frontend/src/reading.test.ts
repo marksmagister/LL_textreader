@@ -32,7 +32,7 @@ function tokens(): Token[] {
 function lesson(over: Partial<LessonDetail> = {}): LessonDetail {
   return {
     id: 1, lang: 'fr', title: 'x', source: null, pipeline_id: 'stub',
-    imported_at: '', n_tokens: 0, n_words: 0, last_token: 0, completed: false, last_read: null,
+    imported_at: '', n_tokens: 0, n_words: 0, last_token: 0, completed: false, last_read: null, collection_id: null, collection: null, position: 0,
     n_new: 0, n_learning: 0, n_known: 0, undo_id: null, undo_n: 0,
     page: 0, n_pages: 1, body: BODY, body_offset: 0, tokens: tokens(),
     ...over,

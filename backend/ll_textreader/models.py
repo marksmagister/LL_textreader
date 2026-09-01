@@ -55,6 +55,9 @@ class LessonSummary(BaseModel):
     last_token: int = 0  # where you stopped; 0 = not started
     completed: bool = False
     last_read: str | None = None  # when you last turned a page in it
+    collection_id: int | None = None
+    collection: str | None = None  # its title, so the library needs one request
+    position: int = 0
     n_new: int = 0
     n_learning: int = 0
     n_known: int = 0
@@ -145,6 +148,12 @@ class Vocab(BaseModel):
     total: int
     by_status: dict[str, int]
     entries: list[VocabEntry]
+
+
+class CollectionRequest(BaseModel):
+    """Put a lesson in a collection, by name. Empty takes it back out again."""
+
+    name: str | None = None
 
 
 class FinishRequest(BaseModel):

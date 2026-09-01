@@ -158,7 +158,7 @@ main.library { max-width: 44rem; }
 /* One row shape everywhere — marker · title · read · you know · remove — so the
    columns align down the page and fifty rows can be scanned by eye rather than
    only through the search box. */
-.lrow { display: grid; grid-template-columns: 0.9rem 1fr 5rem 6.6rem 1.4rem;
+.lrow { display: grid; grid-template-columns: 0.9rem 1fr 5rem 6.6rem 2.6rem;
         gap: 0.9rem; align-items: center; padding: 0.42rem 0.2rem;
         border-bottom: 1px solid var(--line); }
 .lrow:hover { background: color-mix(in srgb, var(--fg) 5%, transparent); }
@@ -214,6 +214,17 @@ main.library { max-width: 44rem; }
 .detail-foot { opacity: 0.55; margin-top: 0.25rem; }
 .diff .shape-bar { flex: 0 0 3.6rem; height: 5px; }
 .diff .pct { font-size: 0.75rem; opacity: 0.6; width: 2.2rem; text-align: right; }
+
+/* A collection is one line until you open it. */
+.group > summary { list-style: none; cursor: pointer; }
+.group > summary::-webkit-details-marker { display: none; }
+.caret { opacity: 0.45; font-size: 0.7rem; justify-self: center; }
+.group-name { font-weight: 600; }
+.lrow.chap { padding-left: 1.6rem; }
+.lrow.chap .name { font-size: 0.92rem; opacity: 0.85; }
+.lrow.chap.is-done .name { opacity: 0.45; }
+
+.acts { display: flex; gap: 0.3rem; justify-content: flex-end; }
 
 /* Out of the way until reached for: delete used to sit beside every title. */
 .act { opacity: 0; border: none; background: none; color: inherit; cursor: pointer;

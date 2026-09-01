@@ -10,6 +10,7 @@ from ..importers import from_url
 from ..importers.from_url import BadUrl
 from ..importers.plain_text import clean, import_text
 from ..models import (
+    CollectionRequest,
     FetchRequest,
     FinishRequest,
     ImportRequest,
@@ -67,6 +68,7 @@ SELECT l.id, l.lang, l.title, l.source, l.pipeline_id, l.imported_at, l.body,
        COALESCE(p.last_token, 0) AS last_token,
        COALESCE(p.completed, 0) AS completed,
        p.updated_at AS last_read,
+       l.collection_id, l.position, c.title AS collection,
        -- how much of this lesson you can already read. Counted over tokens, not
        -- distinct lemmas, so it matches what the page looks like.
        -- COALESCE, not decoration: `1 AND NULL` is NULL in SQL, so a lesson
@@ -77,6 +79,7 @@ SELECT l.id, l.lang, l.title, l.source, l.pipeline_id, l.imported_at, l.body,
 FROM lesson l
 LEFT JOIN token t ON t.lesson_id = l.id
 LEFT JOIN reading_progress p ON p.lesson_id = l.id AND p.user_id = l.user_id
+LEFT JOIN collection c ON c.id = l.collection_id
 LEFT JOIN lemma_override o
        ON o.user_id = l.user_id AND o.lang = l.lang AND o.surface = t.norm
 LEFT JOIN lemma_status s
@@ -241,6 +244,48 @@ def delete_lesson(lesson_id: int) -> None:
     with connect() as conn:
         _lesson_row(conn, lesson_id)
         conn.execute("DELETE FROM lesson WHERE id = ? AND user_id = ?", (lesson_id, USER_ID))
+
+
+@router.put("/{lesson_id}/collection", response_model=LessonSummary)
+def set_collection(lesson_id: int, req: CollectionRequest) -> LessonSummary:
+    """Put a lesson in a collection, creating it if the name is new.
+
+    By name rather than by id: there is no screen for managing collections and
+    there should not need to be one — typing the same name twice is how you put
+    two things together.
+    """
+    with connect() as conn:
+        row = _lesson_row(conn, lesson_id)
+        name = (req.name or "").strip()
+        if not name:
+            conn.execute(
+                "UPDATE lesson SET collection_id = NULL, position = 0 WHERE id = ?", (lesson_id,)
+            )
+        else:
+            conn.execute(
+                "INSERT OR IGNORE INTO collection (user_id, lang, title) VALUES (?,?,?)",
+                (USER_ID, row["lang"], name),
+            )
+            cid = conn.execute(
+                "SELECT id FROM collection WHERE user_id=? AND lang=? AND title=?",
+                (USER_ID, row["lang"], name),
+            ).fetchone()["id"]
+            # Appended, so the order is the order things were added unless the
+            # importer says otherwise.
+            nxt = conn.execute(
+                "SELECT COALESCE(MAX(position), 0) + 1 FROM lesson WHERE collection_id = ?", (cid,)
+            ).fetchone()[0]
+            conn.execute(
+                "UPDATE lesson SET collection_id = ?, position = ? WHERE id = ?",
+                (cid, nxt, lesson_id),
+            )
+        # A collection nobody is in should not linger in the suggestions.
+        conn.execute(
+            "DELETE FROM collection WHERE id NOT IN"
+            " (SELECT collection_id FROM lesson WHERE collection_id IS NOT NULL)"
+        )
+        row = _lesson_row(conn, lesson_id)
+    return LessonSummary(**{k: row[k] for k in DB_FIELDS})
 
 
 @router.post("/{lesson_id}/finish", response_model=LessonSummary)

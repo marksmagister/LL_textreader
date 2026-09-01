@@ -29,6 +29,7 @@ const KEYS: Array<[string, string]> = [
 
 const BUTTONS: Array<[string, string]> = [
   ['English', 'put a translation under each sentence'],
+  ['click = learning', 'while on, clicking a blue word marks it — good for a fast pass'],
   ['Mark page known', 'everything still blue here → known, then turn the page'],
   ['Next page', 'turn the page and record what you met'],
   ['undo', 'appears after a bulk change; takes it back'],

@@ -30,6 +30,9 @@ export interface LessonSummary {
   completed: boolean
   /** When you last turned a page in it. Null means never opened. */
   last_read: string | null
+  collection_id: number | null
+  collection: string | null
+  position: number
   /** Token counts by state, so the library can show the shape of a text. */
   n_new: number
   n_learning: number

@@ -1,7 +1,12 @@
 # 0011 — Organising the library
 
-**Status: proposed, not built.** Two drafts exist as standalone HTML using the app's
-real stylesheet.
+**Status: built**, as draft 2 with one change — the import field stays visible rather
+than folding behind a button, because it is the core of the thing.
+
+Collections landed too: named rather than managed. There is no screen for creating or
+editing one; typing the same name on two lessons is how you put them together, and a
+collection nobody is in disappears. That keeps the feature to one table, two columns
+and one endpoint.
 
 ## The problem
 

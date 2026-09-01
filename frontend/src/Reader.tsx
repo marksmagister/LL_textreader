@@ -63,6 +63,10 @@ export default function Reader({
   const [note, setNote] = useState('')
   const [english, setEnglish] = useState<Record<string, string> | null>(null)
   const [englishError, setEnglishError] = useState('')
+  // Off by default: clicking a word to look at it and clicking to judge it are
+  // different intentions, and conflating them silently would be worse than a
+  // toggle. On, it turns a review pass into one click per word.
+  const [markOnClick, setMarkOnClick] = useState(false)
   const [fixing, setFixing] = useState(false)
   const [fix, setFix] = useState('')
   const text = useRef<HTMLDivElement>(null)
@@ -145,7 +149,8 @@ export default function Reader({
     return lesson.body.slice(from, to).trim().slice(0, 300) || null
   }
 
-  const save = async (status: number) => {
+  const save = async (status: number, at = cursor) => {
+    const token = at >= 0 ? lesson.tokens[at] : null
     if (!token?.lemma) return
     await setTerm({
       lang,
@@ -158,17 +163,19 @@ export default function Reader({
       lesson_id: id,
       page: lesson.page,
     })
-    const keep = cursor
     const l = await readLesson(id, lesson.page)
     setLesson(l)
-    setCursor(keep)
+    setCursor(at)
   }
 
-  /** Set a status, then jump straight to the next blue word. The core loop. */
-  const rate = async (status: number) => {
-    await save(status)
-    seek(1)
-    toText()
+  /** Set a status, then jump straight to the next blue word. The core loop.
+   *  Clicking a word rates that word rather than wherever the cursor was. */
+  const rate = async (status: number, at = cursor) => {
+    await save(status, at)
+    if (at === cursor) {
+      seek(1)
+      toText()
+    }
   }
 
   const reload = async () => {
@@ -271,6 +278,13 @@ export default function Reader({
         >
           English
         </button>
+        <button
+          className={markOnClick ? 'on' : ''}
+          title="clicking a blue word marks it as learning"
+          onClick={() => setMarkOnClick(!markOnClick)}
+        >
+          click = learning
+        </button>
         <button onClick={() => turn(true)}>Mark page known</button>
         <button onClick={() => turn(false)}>{last ? 'Finish' : 'Next page ›'}</button>
       </p>
@@ -284,7 +298,12 @@ export default function Reader({
         onKeyDown={onKey}
         onClick={(e) => {
           const el = (e.target as HTMLElement).closest('[data-i]')
-          if (el) setCursor(Number(el.getAttribute('data-i')))
+          if (!el) return
+          const i = Number(el.getAttribute('data-i'))
+          setCursor(i)
+          // Only words you have not judged: clicking a word you already know
+          // should not quietly demote it back to learning.
+          if (markOnClick && lesson.tokens[i]?.state === 'new') rate(1, i)
         }}
       >
         {english ? renderWithGlosses(lesson, cursor, english) : render(lesson, cursor)}

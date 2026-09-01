@@ -135,6 +135,7 @@ function Library({
         lessons={lessons}
         onOpen={onOpen}
         onDelete={(id) => deleteLesson(id).then(load)}
+        onChanged={load}
       />
     </main>
   )
