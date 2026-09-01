@@ -74,3 +74,32 @@ def test_an_action_cannot_be_undone_twice(client):
     assert client.post(f"/api/lessons/undo/{result['undo_id']}").status_code == 204
     assert client.post(f"/api/lessons/undo/{result['undo_id']}").status_code == 409
     assert client.post("/api/lessons/undo/9999").status_code == 404
+
+
+def test_marking_a_page_known_answers_the_words_it_was_asking_about(client):
+    """A word at review is the app asking "do you know it yet?". Clearing the page
+    is the user answering yes — the app still never promotes one by itself."""
+    lesson = make(client)
+    client.put(
+        "/api/terms",
+        json={"lang": "fr", "lemma": "marcher", "pos": "VERB", "status": 4, "surface": "marchait"},
+    )
+    client.put("/api/terms", json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": 2})
+
+    mark_known(client, lesson)
+    entries = {e["lemma"]: e["status"] for e in client.get("/api/vocab?lang=fr").json()["entries"]}
+    assert entries["marcher"] == 5  # it had been asking; you answered
+    # still yours to finish. It rises, because finishing a page is an encounter,
+    # but it is not answered for you.
+    assert 1 <= entries["quai"] < 5
+
+
+def test_undo_puts_a_review_word_back_where_it_was(client):
+    lesson = make(client)
+    client.put("/api/terms", json={"lang": "fr", "lemma": "marcher", "pos": "VERB", "status": 4})
+    result = mark_known(client, lesson)
+    client.post(f"/api/lessons/undo/{result['undo_id']}")
+    entry = next(
+        e for e in client.get("/api/vocab?lang=fr").json()["entries"] if e["lemma"] == "marcher"
+    )
+    assert entry["status"] == 4

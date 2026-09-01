@@ -322,7 +322,7 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
                       AND s.lemma = COALESCE(o.to_lemma, t.lemma)
                       AND s.pos   = COALESCE(o.to_pos, t.pos)
                 WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
-                  AND (s.status IS NULL OR s.status = 0)
+                  AND (s.status IS NULL OR s.status IN (0, 4))
                 """,
                 (USER_ID, lang, USER_ID, lang, lesson_id, lo, hi),
             ).fetchall()
@@ -338,10 +338,11 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
                         json.dumps([[r["lemma"], r["pos"], r["status"]] for r in doomed]),
                     ),
                 ).lastrowid
-            # Blue words only: those with no row, and those explicitly set back to
-            # new. A word you are learning (1-4) stays learning — you decided that
-            # about it, and this button must not quietly undo the decision. Ignored
-            # (-1) and known (5) are likewise left alone.
+            # The words that want something from you: never judged (no row or 0),
+            # and those the app has been asking about (4). Pressing this button is
+            # the answer to that question — the app still never promotes a word by
+            # itself. A word you are actively learning (1-3) is a decision you made
+            # and stays; ignored (-1) and known (5) are left alone.
             conn.execute(
                 """
                 INSERT INTO lemma_status (user_id, lang, lemma, pos, status)
@@ -349,7 +350,7 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
                 WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
                 ON CONFLICT(user_id, lang, lemma, pos) DO UPDATE
                     SET status = 5, updated_at = datetime('now')
-                    WHERE lemma_status.status = 0
+                    WHERE lemma_status.status IN (0, 4)
                 """,
                 (USER_ID, lang, lesson_id, lo, hi),
             )

@@ -18,7 +18,7 @@ const KEYS: Array<[string, string]> = [
   ['1', "I'm learning this"],
   ['k', 'I know this'],
   ['i', 'ignore it — names, numbers'],
-  ['⇧ K', 'everything still blue on this page → known, and stay here'],
+  ['⇧ K', 'everything unresolved on this page → known, and stay here'],
   ['j  ↓  ↑', 'move one sentence'],
   ['Enter', 'write your own note'],
   ['Esc', 'back to the text'],
@@ -30,7 +30,7 @@ const KEYS: Array<[string, string]> = [
 const BUTTONS: Array<[string, string]> = [
   ['English', 'put a translation under each sentence'],
   ['click = learning', 'while on, clicking a blue word marks it — good for a fast pass'],
-  ['Mark page known', 'everything still blue here → known; you stay on the page'],
+  ['Mark page known', 'clears the blue and answers the underlined; you stay on the page'],
   ['Next page', 'turn the page and record what you met'],
   ['undo', 'appears after a bulk change; takes it back'],
   ["something's wrong", 'tell me about it — bottom right, on every page'],

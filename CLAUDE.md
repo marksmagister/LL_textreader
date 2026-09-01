@@ -93,7 +93,9 @@ from exposure, never self-rated — see `docs/decisions/0008-learning-levels.md`
    streams stale; you need to know which lessons to reprocess.
 7. **Low-confidence analysis falls back to surface-form behaviour.** Guessing is worse
    than not lemmatising, because the failures are rare enough to be confusing.
-8. **"Mark rest of page known" is a required feature, not a nicety.** It is the pressure
+8. **"Mark rest of page known" is a required feature, not a nicety.** It clears the
+   never-judged words *and* answers the ones the app has been asking about (status 4),
+   but never touches a word you are actively learning (1-3). It is the pressure
    valve that stops the reader being unusably tedious. Design for it early.
 
 ## Layout
