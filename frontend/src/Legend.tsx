@@ -68,8 +68,8 @@ export default function Legend({ onBack }: { onBack: () => void }) {
 
       <p className="muted">
         Blue always means the word wants something from you. Filled in, you have never
-        judged it. Underlined, you know the word but not this shape. Outlined, you have
-        met it often enough to decide.
+        judged it. Dashed, you know the word but not this shape of it. Underlined, you
+        have met it often enough that it is time you decided.
       </p>
 
       <h1>The loop</h1>

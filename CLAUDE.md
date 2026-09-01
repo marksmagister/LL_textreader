@@ -53,14 +53,14 @@ The lemma carries the status; the form table records which inflections have actu
 been met. Rendering follows from the join of those two against a lesson's token stream:
 
 - lemma new -> **solid blue**
-- a form of it you have not met -> **a blue band under the word**
+- a form of it you have not met -> **a dashed blue outline**
 - lemma learning, form met -> **yellow**
-- lemma met on four pages -> **hollow blue, dashed** — the app stops guessing and asks
+- lemma met on four pages -> **a blue rule under the word** — time you decided
 - lemma known, form met -> **plain**
 
 Blue means "this wants something from you", in three weights: solid you have never
-judged, banded you know the word but not this shape, hollow you have met it often
-enough to decide. Yellow is the one state that is actively yours. The weights differ
+judged, dashed you know the word but not this shape, underlined you have met it often
+enough that it is time you decided. Yellow is the one state that is actively yours. The weights differ
 by *shape*, not just shade — two blue fills of different darkness do not separate at
 reading speed.
 

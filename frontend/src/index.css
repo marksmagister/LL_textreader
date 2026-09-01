@@ -80,24 +80,21 @@ h1 { font-size: 1.3rem; font-weight: normal; }
 .tok { border-radius: 3px; padding: 2px 0; cursor: pointer; }
 .tok--new { background: var(--tok-new); }
 .tok--learning { background: var(--tok-learning); }
-/* A shape of a word you have not met. Blue, because it wants something from
-   you — but a band under the word rather than a fill, because two blue fills of
-   different darkness do not separate at reading speed. Drawn as a gradient so
-   nothing reflows when the state changes. */
+/* A shape of a word you have not met. Dashed and unfilled, because that reads as
+   partly new -- which is exactly what it is: the word is yours, this form is not. */
 .tok--novel-form {
-  background: linear-gradient(to top, var(--tok-novel-form) 0.18em, transparent 0.18em);
-}
-/* Met often enough that the app should stop guessing and ask. Back to blue,
-   because the question is "do you actually know this?" — but dashed and unfilled,
-   because it is a question rather than a verdict. Drawn with outline, not border,
-   so switching states never reflows the paragraph. */
-.tok--review {
-  /* Hollow, not a second shade of blue: filled means never decided, outlined
-     means decided once and due again. The difference has to be legible at
-     reading speed, and two similar fills are not. */
-  background: transparent;
-  outline: 1px dashed var(--tok-review);
+  /* Lightly filled as well as dashed: the outline says "not quite yours", the
+     wash says "and it is blue" — together they read faster than either alone.
+     Mixed from the new colour rather than picked separately, so the two stay
+     related in both themes. */
+  background: color-mix(in srgb, var(--tok-new) 45%, transparent);
+  outline: 1px dashed var(--tok-novel-form);
   outline-offset: 1px;
+}
+/* Met often enough that the app should stop guessing and ask. A solid rule under
+   the word: not a shade of new, but a different kind of thing being asked of you. */
+.tok--review {
+  background: linear-gradient(to top, var(--tok-review) 0.16em, transparent 0.16em);
 }
 .tok--known { background: var(--tok-known); cursor: default; }
 
