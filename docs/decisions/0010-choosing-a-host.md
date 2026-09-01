@@ -25,7 +25,20 @@ is smaller than a photograph.
 
 All three are enough. The differences are not about whether it runs.
 
-## Decision: Hetzner CX22
+## Decision: netcup VPS 500 G12
+
+2 vCPU, 4 GB DDR5 ECC, 128 GB NVMe, €5.91/month. Rented September 2026.
+
+### What was recommended, and why it was wrong
+
+Hetzner CX22 was recommended first, on tooling and hourly billing. It is on Hetzner's
+deprecated list and cannot be ordered — a mistake from trusting pricing articles over
+the vendor's own deprecation page. Check availability at the source, not in reviews.
+
+The reasoning below still holds for anyone choosing again; the tooling gap is real and
+netcup's API is the weaker one. It is not worth re-litigating for a single box.
+
+### Why Hetzner was preferred, for the record
 
 Three reasons, in order of weight:
 
@@ -40,12 +53,9 @@ Backups: Hetzner snapshots exist, and automated backups cost 20% extra. Neither 
 copying the database off the machine — see 0006. The disk is the single point of failure
 and it lives in the same building as the server.
 
-## Why not netcup, and why VPS *Lite* is the right netcup line
+## On Lite versus regular, now academic
 
-netcup is a serious, long-established German provider and would be a fine choice. It
-loses on API quality, which is the thing that matters here, not on trust.
-
-But if netcup: **take VPS Lite, not the regular VPS.** The Lite line's stated
+**VPS Lite would have been enough.** The Lite line's stated
 compromises are SSD instead of NVMe and reduced bandwidth and interface speed. This app
 serves a few kilobytes of JSON per page turn to one reader, and opens a page in 0.08s
 against a 26 MB database. NVMe and DDR5 ECC are real advantages in areas this workload

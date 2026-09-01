@@ -1,0 +1,38 @@
+# Install to /etc/systemd/system/ll-textreader.service
+#
+# Deployment is `git pull` and a restart, per CLAUDE.md. No image build, no
+# registry, no daemon in between.
+
+[Unit]
+Description=LL_textreader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=llt
+Group=llt
+WorkingDirectory=/opt/ll-textreader
+EnvironmentFile=/opt/ll-textreader/.env
+
+# Binds to localhost only: Caddy is the thing that faces the internet.
+ExecStart=/home/llt/.local/bin/uv run uvicorn ll_textreader.main:app \
+    --app-dir backend --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=3
+
+# The lexicon is the asset. Everything else on the box is replaceable.
+StateDirectory=ll-textreader
+ReadWritePaths=/var/lib/ll-textreader
+
+# It serves one reader some text; it has no business doing anything else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

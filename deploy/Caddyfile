@@ -1,0 +1,25 @@
+# Install to /etc/caddy/Caddyfile, then `systemctl reload caddy`.
+#
+# Caddy gets and renews the certificate on its own. The app has no login of its
+# own beyond one shared password, so this is the only other door.
+
+read.example.com {
+	reverse_proxy 127.0.0.1:8000
+
+	encode zstd gzip
+
+	# The built frontend is fingerprinted by Vite, so it can be cached hard.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	log {
+		output file /var/log/caddy/ll-textreader.log
+		# Reading history is not access-log material.
+		format filter {
+			request>uri query {
+				delete q
+				delete lemma
+			}
+		}
+	}
+}

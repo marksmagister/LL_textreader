@@ -27,66 +27,52 @@ connects locally, so nothing else needs to listen on the network.
 There are no accounts. Whoever has the URL and password reads *your* lexicon and sees
 what you have read. That is what makes it a demo rather than a product.
 
-## Later: a real host
+## The real host
 
-`git pull` + `docker compose up -d --build`. Keep it that way.
+A netcup VPS 500 G12 (2 vCPU, 4 GB, 128 GB NVMe, hourly-billed). Ubuntu 24.04.
+Deployment is `git pull` and a restart — no image build, no registry, no daemon in
+between. See `decisions/0010-choosing-a-host.md` for why this box.
 
-One container serves the API and the built frontend on one port; Caddy sits in front
-for TLS and a password. Decision 0005 explains why this is a web app and not a Mac app.
-
-## First time
-
-```bash
-cp Caddyfile Caddyfile.local   # edit the hostname and password hashes
-docker compose up -d --build
-```
-
-Password hashes:
+### Once, to build the machine
 
 ```bash
-docker run --rm caddy:2-alpine caddy hash-password --plaintext 'your-password'
+adduser --disabled-password --gecos '' llt
+apt update && apt install -y git curl caddy nodejs npm python3.12-venv
+su - llt -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+
+git clone https://github.com/marksmagister/LL_textreader /opt/ll-textreader
+chown -R llt:llt /opt/ll-textreader
+mkdir -p /var/lib/ll-textreader && chown llt:llt /var/lib/ll-textreader
+
+# The password, and where the database lives. Never in the repo.
+cat >> /opt/ll-textreader/.env <<'ENV'
+LL_TEXTREADER_DB_PATH=/var/lib/ll-textreader/ll_textreader.db
+LL_TEXTREADER_DATA_DIR=/var/lib/ll-textreader
+LL_TEXTREADER_PASSWORD=<something long>
+ENV
+
+su - llt -c 'cd /opt/ll-textreader && uv sync --extra nlp --extra translate --no-dev'
+su - llt -c 'cd /opt/ll-textreader && ./scripts/setup-models.sh fr'
+su - llt -c 'cd /opt/ll-textreader && ./scripts/setup-dictionary.sh fr'
+
+cp deploy/ll-textreader.service /etc/systemd/system/
+systemctl enable --now ll-textreader
+
+cp deploy/Caddyfile /etc/caddy/Caddyfile   # edit the hostname first
+systemctl reload caddy
 ```
 
-The dictionary is not in the image — it is 573MB of download that leaves 12MB of
-glosses. Load it once, into the running container:
+### Every time after that
 
 ```bash
-docker compose exec reader ./scripts/setup-dictionary.sh fr
+ssh llt@the-box '/opt/ll-textreader/scripts/deploy.sh'
 ```
 
-## Sharing it
+### What still needs a human
 
-The app is **single-user by design**: `USER_ID = 1`, one lexicon, one library. Anyone
-with the URL reads with your vocabulary and sees your words. For showing a friend the
-pilot, that is the point. It is not a login system and must never be treated as one.
-
-To give someone a lexicon of their own, copy the `reader` service in
-`docker-compose.yml` under a new name with its own volume, and add a host to the
-Caddyfile. Two containers, no auth code. Real multi-user is deliberately out of v1.
-
-## Backups
-
-```bash
-./scripts/backup.sh
-```
-
-Uses `sqlite3 .backup`, which is safe against a live WAL database — plain `cp` can
-capture a torn state. Back up the *lexicon*: the lessons are replaceable, but
-`lemma_status` and `form_seen` are months of reading.
-
-## After a model or rule change
-
-`pipeline_id` records which pipeline produced each token stream. When it moves:
-
-```bash
-docker compose exec reader uv run python -m ll_textreader.importers.plain_text --dry-run
-docker compose exec reader uv run python -m ll_textreader.importers.plain_text
-```
-
-The body is never touched and the lexicon is keyed on lemma, so nothing is lost;
-saved reading positions are carried across by character offset.
-
-## Untested
-
-The image build has not been run — Docker was not available on the machine these
-files were written on. The single-port serving they rely on **was** verified.
+- **A domain name.** Caddy gets a certificate automatically, but only for a name that
+  resolves to the box. Without one you are on `https://<ip>` with a self-signed
+  certificate and a browser warning, which is not something to hand a friend.
+- **Backups off the machine.** `scripts/backup.sh` on a cron, and the result copied
+  somewhere that is not this disk. The lexicon is the one thing here that cannot be
+  rebuilt, and it sits on a single volume in a single building.
