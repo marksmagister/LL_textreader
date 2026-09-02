@@ -1,4 +1,4 @@
-# 0018 — Fetching a URL is a request from inside the server
+# 0019 — Fetching a URL is a request from inside the server
 
 **Status: accepted and implemented.**
 

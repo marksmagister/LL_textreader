@@ -37,5 +37,5 @@ FastAPI serves the live schema at `/docs` if you'd rather read it there.
 - **A password locks all of it**, including `/api/health`, when
   `LL_TEXTREADER_PASSWORD` is set. Empty means no door.
 - **`POST /api/lessons/fetch` makes the server fetch a URL**, so it validates the
-  address *and every redirect it leads to* — see `decisions/0018`. Anything that
+  address *and every redirect it leads to* — see `decisions/0019`. Anything that
   changes that path needs to keep the redirect guard.

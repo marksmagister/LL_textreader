@@ -96,13 +96,14 @@ without losing anyone's place. Position never moves backwards.
 4. **Accounts**, by invite first — `decisions/0013`. Roughly two days to an invite-only
    beta; open sign-up is then a flag, and password reset can wait behind invites.
 
-On the order of 1 and 2: there is a case for Russian first. Hosting is a known
-quantity — three steps in `deploying.md` — and proves nothing about the product.
-Russian is the thing that could still invalidate the lemma-keyed model, and French
-inflection is too mild to settle it: the novel-form state is the reason this schema
-exists and the pilot language barely exercises it. Finding out after strangers have
-libraries is the expensive way round. Left as it stands because the box is already
-rented and paid for; noted so the trade is a choice rather than an accident.
+On the order of 1 and 2: what is left of the hosting is confirmation and a backup
+destination — an hour, and it has to happen because an unbacked-up lexicon is the one
+loss that cannot be undone. After that, there is a case for Russian ahead of anything
+else. Russian is the thing that could still invalidate the lemma-keyed model, and
+French inflection is too mild to settle it: the novel-form state is the reason this
+schema exists and the pilot language barely exercises it. Finding out after strangers
+have libraries is the expensive way round. Noted so the trade is a choice rather than
+an accident.
 
 Alongside all of it: read with the thing. Every real bug so far came from using it, not
 from the tests — the Finish button that did nothing, "mark known" eating learning
@@ -153,7 +154,7 @@ Written down so the next session doesn't rediscover them and think they are news
   is unchanged. The fix, when it is worth doing, is the same one decision 0016 used
   for the library: derive the boundaries once and keep them, invalidated by
   `pipeline_id`. Not now: 31ms is not felt, and it only bites on whole books.
-- **DNS rebinding on URL import.** `decisions/0018` says why it is left open and
+- **DNS rebinding on URL import.** `decisions/0019` says why it is left open and
   what changes that: accounts.
 - **URL import introduces itself honestly**, as `Mozilla/5.0 (compatible;
   LL_textreader)`, and some sites answer a non-browser agent with a 403. If a paper
