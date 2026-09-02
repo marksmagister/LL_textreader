@@ -129,9 +129,10 @@ without losing anyone's place. Position never moves backwards.
      two-line hardening; it stays a human's job because getting it wrong locks
      you out, and it wants a second terminal open.
 
-2. **The bug reports.** Seventeen filed from real use, all still flagged open in
-   `bug_report` (`./scripts/reports.sh`) — the `done` column has never been set,
-   so the flag is not the truth. Checked against the code on 2 September:
+2. **The bug reports.** Seventeen filed from real use. Fourteen are now closed
+   (`./scripts/reports.sh`); **10, 11 and 17 are the ones still open.** Until
+   2 September the `done` column had never been set on anything, so if it looks
+   untouched again, suspect that before suspecting the list. What each one was:
 
    - **#1 title as vocabulary — already fixed.** `with_title()` puts the title in
      the body, so it is tokenised like everything else.
@@ -180,9 +181,14 @@ without losing anyone's place. Position never moves backwards.
    - **#16 tense names in French — done, minus the switch.** `morph.ts` has a
      table per locale and `LOCALE = 'fr'`; the settings screen that flips it
      comes with the Russian and Italian work (`0012`).
-   - **#17 the first translation looked stuck — fixed 2 September.** It was the
-     model loading. It now says so instead of sitting silent.
-   - **#10 and #11**: on the timeline below, decision files first.
+   - **#17 the first translation took ~20s — still open**, deliberately. It is
+     the model loading on first use, and all that changed is that the app now
+     says so instead of sitting silent. That makes the wait explicable, not
+     shorter, so the report stays open: the real fix is warming the translator
+     at startup, which costs a slow boot and a 300MB download on a box that may
+     never translate anything.
+   - **#10 and #11 — open**, on the timeline below. Both want a decision file
+     before any code.
 
    **#14 and #15 change stored token streams**, so the pipeline stamp went from
    `+tense1` to `+rules2` and every lesson needed reprocessing (rule 6). One cost
