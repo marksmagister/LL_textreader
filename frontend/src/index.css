@@ -120,6 +120,24 @@ h1 { font-size: 1.3rem; font-weight: normal; }
    line when it was long, so the thing you were about to click moved. */
 .bar-actions { display: flex; gap: 0.6rem; align-items: center; flex-basis: 100%; }
 
+/* The language you are reading, in the header. One group with a hairline round
+   it, so three languages read as one control rather than three more buttons in
+   a row that already has four. */
+.langs { display: inline-flex; gap: 0.3rem; padding: 0.15rem;
+         border: 1px solid currentColor; border-radius: 5px; opacity: 0.8; }
+.langs button { border: none; padding: 0.15rem 0.5rem; }
+/* The chosen one is filled rather than outlined: the border trick the other
+   toggles use is invisible inside a group that already has a border. */
+.langs button.on { opacity: 1; border-radius: 3px; color: var(--bg); background: var(--fg); }
+
+/* The offer of something to read, shown only while there is something you have
+   not already got. */
+.starters { margin: 0.6rem 0 1.4rem; }
+
+.setting { margin: 0 0 2.2rem; }
+.setting h2 { font-size: 0.95rem; font-weight: normal; margin: 0 0 0.5rem; }
+.setting .muted { margin: 0.5rem 0 0; max-width: 46rem; }
+
 /* The legend shows real tokens so it cannot drift from the reader, but there is
    nothing behind them to click, and .tok offers a pointer. */
 .legend-demo .tok, .legend .tok { cursor: default; }

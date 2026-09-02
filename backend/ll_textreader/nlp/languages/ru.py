@@ -5,8 +5,11 @@ Runs at import, never at render (CLAUDE.md rule 1).
 Measured before it was trusted, the way French was — sixteen sentences of A2-B1
 Russian, in `tests/test_russian.py`, and the numbers are in
 `docs/decisions/0021-russian-and-italian-measured.md`. The prediction in 0012 was
-that aspect would be the risk; it scored 11/11 and case 12/12. The two things
+that aspect would be the risk; it scored 11/11 and case 12/12. The three things
 that were actually wrong are the rules below.
+
+The third of them, ё, the table did not catch: it was found by opening a starter
+text and pressing Tab, which is the ratio `docs/status.md` keeps noting.
 """
 
 from functools import cached_property
@@ -16,8 +19,9 @@ from ...models import AnalysedToken
 MODEL = "ru_core_news_md"
 
 # Bumped when the rules below change, so pipeline_id tells you which stored token
-# streams are stale and need reprocessing (CLAUDE.md rule 6).
-RULES = 1
+# streams are stale and need reprocessing (CLAUDE.md rule 6). 2 added the ё rule,
+# which the sixteen-sentence table had missed and one page of real reading found.
+RULES = 2
 
 # ------------------------------------------------------------------ person
 #
@@ -64,6 +68,28 @@ PRONOUNS_BY_NUMBER = {
 }
 
 
+# -------------------------------------------------------------------- ё
+#
+# Russian is normally written with ё spelled е, and the model was trained that
+# way, so a word that *does* carry its ё can fall out of vocabulary altogether:
+#
+#     живёт -> живёт  VERB   Tense=Past        живет -> жить  VERB  Tense=Pres
+#     пьёт  -> пьёт   NOUN                     пьет  -> пить  VERB  Tense=Pres
+#
+# Five of eight common verbs failed this way, and the failure takes the part of
+# speech with it — which matters more than the tense, because POS is part of the
+# key (CLAUDE.md rule 3).
+#
+# 0012 decided **not to fold ё into е**, because that would merge всё with все,
+# and it is right: `norm` is untouched here, so those stay two entries and the
+# text keeps every ё exactly as written. What this does instead is read the
+# de-ёed word a second time, and take that reading **only if it comes back a
+# verb** — the same shape, and the same safety argument, as the French rule for
+# a capitalised word opening a sentence. `всё`, `ещё` and `её` are not verbs in
+# any reading, so they are never touched.
+YO = str.maketrans("ёЁ", "еЕ")
+
+
 def refine_morph(morph: str) -> str:
     """Person=Third -> Person=3, and nothing else. The rest measured clean."""
     if "Person=" not in morph:
@@ -86,6 +112,9 @@ def pronoun_lemma(norm: str, morph: str) -> str | None:
 class RussianAdapter:
     lang = "ru"
 
+    def __init__(self) -> None:
+        self._yo_cache: dict[str, tuple[str, str, str] | None] = {}
+
     @cached_property
     def _nlp(self):
         import spacy
@@ -95,6 +124,21 @@ class RussianAdapter:
     @property
     def pipeline_id(self) -> str:
         return f"spacy/{MODEL}@{self._nlp.meta['version']}+rules{RULES}"
+
+    def _without_yo(self, word: str) -> tuple[str, str, str] | None:
+        """Read the word again with ё spelled е. A verb reading here beats a
+        word the lemmatiser could not place; anything else is left alone.
+
+        Cached, because a page has a handful of these and the same ones recur.
+        """
+        if word in self._yo_cache:
+            return self._yo_cache[word]
+        doc = self._nlp(word.translate(YO))
+        got = None
+        if len(doc) == 1 and doc[0].pos_ in ("VERB", "AUX"):
+            got = (doc[0].lemma_.casefold(), doc[0].pos_, refine_morph(str(doc[0].morph)))
+        self._yo_cache[word] = got
+        return got
 
     def analyse(self, text: str) -> list[AnalysedToken]:
         doc = self._nlp(text)
@@ -118,6 +162,10 @@ class RussianAdapter:
                 # is the only honest signal there is.
                 if pos == "X":
                     lemma, pos = norm, "X"
+                # A lemma identical to the word is this lemmatiser saying it has
+                # nothing to offer; with a ё in the word, that is usually why.
+                elif "ё" in norm and lemma == norm and (second := self._without_yo(norm)):
+                    lemma, pos, morph = second
                 elif pos == "PRON":
                     lemma = pronoun_lemma(norm, morph) or lemma
             out.append(

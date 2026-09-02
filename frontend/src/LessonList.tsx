@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { setCollection } from './api'
+import { t } from './i18n'
 import type { LessonSummary } from './types'
 
 /** Sorted and searched here rather than on the server: the whole library is one
@@ -8,14 +9,18 @@ import type { LessonSummary } from './types'
  *
  *  Each is written in its natural direction; pressing it again reverses it, so
  *  "easiest" and "hardest" are one button rather than two words. */
-const SORTS: Array<[string, string, (a: LessonSummary, b: LessonSummary) => number]> = [
+const SORTS: Array<
+  [string, () => string, (a: LessonSummary, b: LessonSummary) => number]
+> = [
   // "Last read" means the last time you did anything here — judging a word
   // counts, not only turning a page. Never touched at all falls back to when it
   // arrived, so the order stays meaningful all the way down.
-  ['recent', 'last read', (a, b) => when(b).localeCompare(when(a))],
-  ['title', 'title', (a, b) => a.title.localeCompare(b.title)],
-  ['known', 'you know', (a, b) => share(b) - share(a)],
-  ['length', 'length', (a, b) => b.n_words - a.n_words],
+  ['recent', () => t('list.sortRecent'), (a, b) => when(b).localeCompare(when(a))],
+  // Sorted the way the interface language sorts: ä belongs with a in German and
+  // after z in Swedish, and localeCompare is the only thing that knows that.
+  ['title', () => t('list.sortTitle'), (a, b) => a.title.localeCompare(b.title)],
+  ['known', () => t('list.sortKnown'), (a, b) => share(b) - share(a)],
+  ['length', () => t('list.sortLength'), (a, b) => b.n_words - a.n_words],
 ]
 
 /** Last read, or failing that when it arrived. */
@@ -27,9 +32,9 @@ function when(l: LessonSummary) {
  *  SQLite's "2026-09-02 10:06:12" needs the T to be portably parseable. */
 function ago(when: string) {
   const days = Math.floor((Date.now() - Date.parse(when.replace(' ', 'T') + 'Z')) / 86_400_000)
-  if (days < 1) return 'today'
-  if (days === 1) return 'yesterday'
-  return `${days} days ago`
+  if (days < 1) return t('time.today')
+  if (days === 1) return t('time.yesterday')
+  return t('time.daysAgo')(days)
 }
 
 /** What the bar is made of, on hover.
@@ -42,24 +47,25 @@ function Detail({ lesson: l }: { lesson: LessonSummary }) {
   const pct = (n: number) => (l.n_words ? Math.round((n / l.n_words) * 100) : 0)
   return (
     <span className="detail">
-      <strong>{l.n_words} words</strong>
+      <strong>{t('list.words')(l.n_words)}</strong>
       <span className="detail-row">
-        <i className="tok--known" /> {l.n_known} you know <em>{pct(l.n_known)}%</em>
+        <i className="tok--known" /> {t('list.known')(l.n_known)} <em>{pct(l.n_known)}%</em>
       </span>
       <span className="detail-row">
-        <i className="tok--learning" /> {l.n_learning} learning <em>{pct(l.n_learning)}%</em>
+        <i className="tok--learning" /> {t('list.learning')(l.n_learning)}{' '}
+        <em>{pct(l.n_learning)}%</em>
       </span>
       <span className="detail-row">
-        <i className="tok--new" /> {l.n_new} never seen <em>{pct(l.n_new)}%</em>
+        <i className="tok--new" /> {t('list.new')(l.n_new)} <em>{pct(l.n_new)}%</em>
       </span>
       <span className="detail-foot">
         {l.completed
-          ? 'finished'
+          ? t('list.finished')
           : l.last_token
-            ? `${progress(l)} of the way through`
-            : 'not started'}
+            ? t('list.through')(progress(l))
+            : t('list.notStarted')}
         {' · '}
-        {l.last_read ? `used ${ago(l.last_read)}` : 'never opened'}
+        {l.last_read ? t('list.usedAgo')(ago(l.last_read)) : t('list.neverOpened')}
       </span>
     </span>
   )
@@ -78,7 +84,7 @@ function share(l: LessonSummary) {
 }
 
 function progress(l: LessonSummary) {
-  if (l.completed) return 'done'
+  if (l.completed) return t('list.done')
   if (!l.last_token || !l.n_tokens) return '—'
   return `${Math.round((l.last_token / l.n_tokens) * 100)}%`
 }
@@ -121,7 +127,7 @@ function Row({
             className="grow"
             list="collection-names"
             value={name}
-            placeholder="collection name — blank to take it out"
+            placeholder={t('list.collectionPlaceholder')}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -167,14 +173,18 @@ function Row({
               setAct('')
             }}
           >
-            delete?
+            {t('list.deleteConfirm')}
           </button>
         ) : (
           <>
-            <button className="act" title="put in a collection" onClick={() => setAct('move')}>
+            <button
+              className="act"
+              title={t('list.putInCollection')}
+              onClick={() => setAct('move')}
+            >
               ⊞
             </button>
-            <button className="act" title="remove" onClick={() => setAct('delete')}>
+            <button className="act" title={t('list.remove')} onClick={() => setAct('delete')}>
               ×
             </button>
           </>
@@ -186,11 +196,14 @@ function Row({
 
 export default function LessonList({
   lessons,
+  language,
   onOpen,
   onDelete,
   onChanged,
 }: {
   lessons: LessonSummary[]
+  /** Named in the empty message, so "nothing here" says nothing *in what*. */
+  language: string
   onOpen: (id: number) => void
   onDelete: (id: number) => void
   onChanged: () => void
@@ -247,17 +260,20 @@ export default function LessonList({
     [lessons],
   )
 
-  if (!lessons.length) return <p className="muted">Nothing here yet. Import something above.</p>
+  if (!lessons.length)
+    return <p className="muted">{t('list.emptyLang')(language)}</p>
 
   return (
     <>
       {continuing && (
         <p className="bar continue-line">
-          <span className="meta">Continue</span>
+          <span className="meta">{t('list.continue')}</span>
           <button className="link" onClick={() => onOpen(continuing.id)}>
             {continuing.title}
           </button>
-          <span className="meta">{progress(continuing)} read</span>
+          <span className="meta">
+            {progress(continuing)} {t('list.readShare')}
+          </span>
         </p>
       )}
 
@@ -265,7 +281,7 @@ export default function LessonList({
         <input
           className="grow"
           value={q}
-          placeholder="search titles…"
+          placeholder={t('list.search')}
           onChange={(e) => setQ(e.target.value)}
         />
         {SORTS.map(([key, label]) => (
@@ -275,7 +291,7 @@ export default function LessonList({
             // Pressing the one already chosen turns it around.
             onClick={() => (key === sort ? setFlipped(!flipped) : (setSort(key), setFlipped(false)))}
           >
-            {label}
+            {label()}
             {key === sort && <span className="arrow">{flipped ? '↑' : '↓'}</span>}
           </button>
         ))}
@@ -283,9 +299,9 @@ export default function LessonList({
 
       <div className="lrow heads">
         <span />
-        <span>title</span>
-        <span className="right">read</span>
-        <span className="right">you know</span>
+        <span>{t('list.title')}</span>
+        <span className="right">{t('list.readShare')}</span>
+        <span className="right">{t('list.youKnow')}</span>
         <span />
       </div>
 
@@ -311,9 +327,11 @@ export default function LessonList({
             >
               <span className="caret">{open.has(name) ? '▾' : '▸'}</span>
               <span className="name group-name">
-                {name} <span className="meta">{rows.length} parts</span>
+                {name} <span className="meta">{t('list.parts')(rows.length)}</span>
               </span>
-              <span className="pos">{rows.filter((r) => r.completed).length} read</span>
+              <span className="pos">
+                {t('list.partsRead')(rows.filter((r) => r.completed).length)}
+              </span>
               <span className="diff">
                 <span className="shape-bar">
                   <span className="tok--known" style={{ width: `${aggregate(rows) * 100}%` }} />
@@ -329,7 +347,7 @@ export default function LessonList({
         ),
       )}
 
-      {!shown.length && <p className="muted">Nothing matches “{q}”.</p>}
+      {!shown.length && <p className="muted">{t('list.noMatch')(q)}</p>}
     </>
   )
 }

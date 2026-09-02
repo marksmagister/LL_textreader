@@ -3,8 +3,11 @@
 0012 said to measure the morphology before trusting it, the way French was
 measured, and to expect case to be reasonable and aspect to be the risk. The
 opposite happened — aspect 11/11, case 12/12 — and what was actually broken was
-person and the oblique pronouns. Both now have rules; this is what keeps them
-honest when the model is next upgraded.
+person, the oblique pronouns, and words spelled with ё. All three now have
+rules; this is what keeps them honest when the model is next upgraded.
+
+The ё one is not in the table below, because the table did not find it: it came
+out of opening a starter text and pressing Tab.
 
 The scores below are floors, not targets. A model upgrade that raises them is
 welcome and should raise the floor with it; one that lowers them is a decision
@@ -18,7 +21,7 @@ from ll_textreader.nlp.languages import get_adapter
 from ll_textreader.nlp.languages.ru import pronoun_lemma, refine_morph
 
 # ---------------------------------------------------------------- pure rules
-# No model needed: these are the two things the measurement found wrong.
+# No model needed: person, and the pronoun table.
 
 
 @pytest.mark.parametrize(
@@ -129,12 +132,49 @@ def test_yo_and_ye_are_not_folded():
     """всё and все are different words; folding them would merge them (0012)."""
     got = get_adapter("ru").analyse("Все пришли. Всё хорошо.")
     assert by_surface(got, "Все").norm != by_surface(got, "Всё").norm
+    assert by_surface(got, "Все").lemma != by_surface(got, "Всё").lemma
+
+
+@pytest.mark.parametrize(
+    "sentence,surface,lemma",
+    [
+        # The model is trained on text that spells ё as е, so a word carrying its
+        # ё falls out of vocabulary: живёт came back as its own lemma, in the past
+        # tense, and пьёт came back a noun. Five of eight common verbs failed.
+        ("Антон живёт в Петербурге.", "живёт", "жить"),
+        ("Он пьёт кофе.", "пьёт", "пить"),
+        ("Она поёт песню.", "поёт", "петь"),
+        ("Он берёт книгу.", "берёт", "брать"),
+    ],
+)
+def test_a_verb_spelled_with_yo_is_still_lemmatised(sentence, surface, lemma):
+    assert by_surface(get_adapter("ru").analyse(sentence), surface).lemma == lemma
+
+
+def test_the_yo_rule_fixes_the_part_of_speech_too():
+    """пьёт came back NOUN, and POS is part of the key (CLAUDE.md rule 3)."""
+    got = get_adapter("ru").analyse("Он пьёт кофе.")
+    assert by_surface(got, "пьёт").pos == "VERB"
+
+
+def test_the_yo_rule_gets_the_tense_right_as_well():
+    got = get_adapter("ru").analyse("Антон живёт в Петербурге.")
+    assert "Tense=Pres" in by_surface(got, "живёт").morph
+
+
+@pytest.mark.parametrize(
+    "sentence,surface", [("Всё было хорошо.", "Всё"), ("Ещё один день.", "Ещё")]
+)
+def test_the_yo_rule_leaves_everything_that_is_not_a_verb_alone(sentence, surface):
+    """The second reading is taken only if it comes back a verb — so всё is not
+    quietly turned into все, which is the merge 0012 forbids."""
+    assert by_surface(get_adapter("ru").analyse(sentence), surface).lemma == surface.casefold()
 
 
 # --------------------------------------------------------------- the table
 #
 # Sixteen sentences of A2-B1 Russian with the lemma, POS and features they
-# actually are. Scored rather than asserted one by one, because three of them the
+# actually are. Scored rather than asserted one by one, because two of them the
 # model gets wrong and pretending otherwise would be the lie this table exists to
 # prevent. What the failures are is in decision 0021.
 
