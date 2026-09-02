@@ -90,21 +90,24 @@ unlemmatised or read as the noun they are homographs of — `Abito a Roma` gives
 the noun *abito*, a suit; `Lavoro in banca` gives *lavoro*, work. And **future
 and conditional stems get invented**: `andremo` → `andre`, `verrei` → `velere`.
 
-**Correction, found while reading the starter text rather than the table.** The
-two faults are the same fault, and it is worse than "left unlemmatised": the
-invented stem happens to `-o` forms too, and it is *context-dependent*. `Mi chiamo
-Marco.` gives the lemma `chiamo`; `Mi chiamo Elena e ho ventidue anni.` gives
-`chare`, which is not a word. So one verb can land in the lexicon as two or three
-entries depending on the sentence it was met in — which is a worse failure for a
-lemma-keyed reader than a lemma that is merely absent, because there is nothing on
-the page to tell you it has happened. It is what `o` is for, and it is the first
-thing to check if Italian ever feels untrustworthy.
-
 Neither can be fixed from the form with certainty. French tense rules work
 because French endings are uniform and the future stem always ends in `-r`;
 Italian `parlo → parlare` but `finisco → finire` and `vado → andare`, which is a
 lexicon, not a rule. Where the lemmatiser gives up it already returns the surface
 form, which is the honest answer (rule 7), and the rest is what `o` is for.
+
+**Correction to the paragraph above**, found while reading the starter text rather
+than the table. The two faults are the same fault, and it is worse than "left
+unlemmatised": the invented stem happens to `-o` forms too, and it is
+*context-dependent*. `Mi chiamo
+Marco.` gives the lemma `chiamo`; `Mi chiamo Elena e ho ventidue anni.` gives
+`chare`, which is not a word. So one verb can land in the lexicon as two or three
+entries depending on the sentence it was met in — which is a worse failure for a
+lemma-keyed reader than a lemma that is merely absent, because there is nothing on
+the page to tell you it has happened. Still nothing a rule can fix, so the answer
+is unchanged — but it is the first thing to check if Italian ever feels
+untrustworthy, and the honest version of "returns the surface form" is "returns
+the surface form, or something that looks like one".
 
 Worth saying because it was tempting: the starter texts were **not** written
 around this. `Mi chiamo` is the first sentence anyone learns in Italian and it is
