@@ -4,30 +4,30 @@ import { describe } from './morph'
 group('reading UD features back as grammar', () => {
   test('Imp means different things under Tense and Mood', () => {
     // The trap this module exists to avoid: imperfect vs imperative.
-    expect(describe('Mood=Ind|Tense=Imp|Person=3|Number=Sing')).toContain('imperfect')
-    expect(describe('Mood=Imp|Person=2|Number=Sing')).toContain('imperative')
+    expect(describe('Mood=Ind|Tense=Imp|Person=3|Number=Sing')).toContain('imparfait')
+    expect(describe('Mood=Imp|Person=2|Number=Sing')).toContain('impératif')
   })
 
   test('person and number read as one phrase', () => {
     expect(describe('Mood=Ind|Tense=Imp|Person=3|Number=Sing')).toBe(
-      'indicative imperfect · 3rd person singular',
+      'indicatif imparfait · 3e personne du singulier',
     )
   })
 
   test('the conditional is not called "conditional present"', () => {
     expect(describe('Mood=Cnd|Tense=Pres|Person=1|Number=Sing')).toBe(
-      'conditional · 1st person singular',
+      'conditionnel · 1re personne du singulier',
     )
   })
 
   test('the subjunctive reads tense first', () => {
     expect(describe('Mood=Sub|Tense=Pres|Person=3|Number=Sing')).toBe(
-      'present subjunctive · 3rd person singular',
+      'présent subjonctif · 3e personne du singulier',
     )
   })
 
   test('nouns get gender and number', () => {
-    expect(describe('Gender=Fem|Number=Plur')).toBe('plural · feminine')
+    expect(describe('Gender=Fem|Number=Plur')).toBe('pluriel · féminin')
   })
 
   test('nothing to say stays silent rather than inventing', () => {
@@ -36,6 +36,6 @@ group('reading UD features back as grammar', () => {
   })
 
   test('unknown values are dropped, not printed raw', () => {
-    expect(describe('Tense=Fut|Mood=Zzz')).toBe('future')
+    expect(describe('Tense=Fut|Mood=Zzz')).toBe('futur')
   })
 })

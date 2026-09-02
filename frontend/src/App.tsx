@@ -15,7 +15,7 @@ export const UNDO_LINGERS = 60_000
 
 type View =
   | { at: 'library' }
-  | { at: 'reader'; id: number }
+  | { at: 'reader'; id: number; page?: number }
   | { at: 'vocab' }
   | { at: 'legend' }
 
@@ -269,6 +269,9 @@ export default function App() {
           lang={LANG}
           onBack={() => setView({ at: 'library' })}
           onBulk={setUndo}
+          // So "the colours are wrong here" arrives with a page number. The
+          // column has always existed; nothing ever filled it.
+          onPage={(page) => setView((v) => (v.at === 'reader' ? { ...v, page } : v))}
         />
       )}
       {view.at === 'vocab' && (
@@ -276,7 +279,10 @@ export default function App() {
       )}
       {view.at === 'legend' && <Legend onBack={() => setView({ at: 'library' })} />}
       {palette && <Palette commands={commands} onClose={() => setPalette(false)} />}
-      <Report lessonId={view.at === 'reader' ? view.id : undefined} />
+      <Report
+        lessonId={view.at === 'reader' ? view.id : undefined}
+        page={view.at === 'reader' ? view.page : undefined}
+      />
       <button className="theme-tab" onClick={flip} title="light or dark">
         {effective(theme) === 'dark' ? 'light mode' : 'dark mode'}
       </button>

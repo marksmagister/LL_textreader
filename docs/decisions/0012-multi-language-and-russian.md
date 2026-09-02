@@ -18,6 +18,14 @@ Three things the maintainer added:
   `sentence_gloss` already stores `target_lang`, and the models are per pair. German
   is one `MODELS` entry per source language plus somewhere to choose.
 
+**A settings screen comes with this work**, because three things now want one:
+interface language, translation target, and the language the *grammar* is named in
+(report #16 — "conditionnel · 1re personne du singulier", not "conditional · 1st
+person singular"). The third is already done and hardcoded: `morph.ts` holds a
+table per locale and a `LOCALE` constant set to `fr`, so the switch is one line to
+reach when the screen exists. Deliberately not a setting before then — there is
+nothing to switch between until a second language of study is real.
+
 The thing to notice is that *interface language* and *translation target* are two
 different settings and must not be welded together. A German speaker reading French
 may well want English glosses, or the reverse. Two settings, both the reader's.

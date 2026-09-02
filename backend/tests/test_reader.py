@@ -103,6 +103,25 @@ def test_mark_rest_known_leaves_learning_words_alone(client):
     assert states(client, lesson["id"])["long"] == "known"  # was blue, now cleared
 
 
+def test_mark_rest_known_does_not_swallow_an_unmet_shape_of_a_learning_word(client):
+    """Asked directly, and worth pinning: mark `marchait` as learning, `marchons`
+    goes dashed, then press the button — does the dashed one get swept up with
+    the blue? No. The sweep is decided on the lemma's status, and a lemma you are
+    learning is excluded whatever shape of it is on the page."""
+    lesson = make_lesson(client)
+    client.put(
+        "/api/terms",
+        json={"lang": "fr", "lemma": "marcher", "pos": "VERB", "status": 1, "surface": "marchait"},
+    )
+    assert states(client, lesson["id"])["marchons"] == "novel-form"
+
+    client.post(f"/api/lessons/{lesson['id']}/finish", json={"mark_rest_known": True})
+    marcher = next(
+        e for e in client.get("/api/vocab?lang=fr").json()["entries"] if e["lemma"] == "marcher"
+    )
+    assert 1 <= marcher["status"] <= 4, "still being learned, not marked known"
+
+
 def test_mark_rest_known_leaves_ignored_words_ignored(client):
     lesson = make_lesson(client)
     client.put("/api/terms", json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": -1})

@@ -51,11 +51,13 @@ export default function Reader({
   onBack,
   lang,
   onBulk,
+  onPage,
 }: {
   id: number
   onBack: () => void
   lang: string
   onBulk: (u: { id: number; n: number } | null) => void
+  onPage: (page: number) => void
 }) {
   const [lesson, setLesson] = useState<LessonDetail | null>(null)
   const [cursor, setCursor] = useState(-1)
@@ -72,12 +74,15 @@ export default function Reader({
   const text = useRef<HTMLDivElement>(null)
   const noteBox = useRef<HTMLInputElement>(null)
   const fixBox = useRef<HTMLInputElement>(null)
+  // Whether the translator has been woken yet, so the wait can be explained.
+  const firstTranslation = useRef(true)
 
   const load = (page?: number) =>
     readLesson(id, page).then((l) => {
       setLesson(l)
       setCursor(-1)
       setEnglish(null) // a new page has its own sentences
+      onPage(l.page) // so a bug report says which page you were looking at
       window.scrollTo(0, 0)
     })
 
@@ -292,9 +297,17 @@ export default function Reader({
           title="a translation under each sentence"
           onClick={async () => {
             if (english) return setEnglish(null)
-            setEnglishError('translating this page…')
+            // The first translation of a session loads a 300MB model, which
+            // takes far longer than the ones after it. Reported as "stuck",
+            // which is what silence looks like.
+            setEnglishError(
+              firstTranslation.current
+                ? 'starting the translator — the first page of a session takes a minute'
+                : 'translating this page…',
+            )
             try {
               setEnglish(await translation(id, lesson.page))
+              firstTranslation.current = false
               setEnglishError('')
             } catch {
               setEnglishError('translation not installed — uv sync --extra translate')

@@ -14,8 +14,9 @@ from ...models import AnalysedToken
 MODEL = "fr_core_news_md"
 
 # Bumped when the rules below change, so pipeline_id tells you which stored token
-# streams are stale and need reprocessing (CLAUDE.md rule 6).
-TENSE_RULES = 1
+# streams are stale and need reprocessing (CLAUDE.md rule 6). 2 added the pronoun
+# and sentence-initial rules below, which change lemmas rather than only morph.
+RULES = 2
 
 # --------------------------------------------------------------- verb tense
 #
@@ -79,6 +80,9 @@ def refine_morph(surface: str, lemma: str, morph: str) -> str:
 class FrenchAdapter:
     lang = "fr"
 
+    def __init__(self) -> None:
+        self._alone_cache: dict[str, tuple[str, str] | None] = {}
+
     @cached_property
     def _nlp(self):
         import spacy
@@ -87,12 +91,29 @@ class FrenchAdapter:
 
     @property
     def pipeline_id(self) -> str:
-        return f"spacy/{MODEL}@{self._nlp.meta['version']}+tense{TENSE_RULES}"
+        return f"spacy/{MODEL}@{self._nlp.meta['version']}+rules{RULES}"
+
+    def _alone(self, word: str) -> tuple[str, str] | None:
+        """Read one lowercase word out of context. A verb reading here beats
+        PROPN at the start of a sentence; anything else is left alone.
+
+        Cached: a page opens with a handful of these at most, and the same
+        openers recur.
+        """
+        if word in self._alone_cache:
+            return self._alone_cache[word]
+        doc = self._nlp(word)
+        got = None
+        if len(doc) == 1 and doc[0].pos_ in ("VERB", "AUX"):
+            got = (doc[0].lemma_.casefold(), doc[0].pos_)
+        self._alone_cache[word] = got
+        return got
 
     def analyse(self, text: str) -> list[AnalysedToken]:
         doc = self._nlp(text)
-        sent_of = {}
+        sent_of, sent_start = {}, {}
         for sent_id, sent in enumerate(doc.sents):
+            sent_start[sent_id] = sent.start
             for tok in sent:
                 sent_of[tok.i] = sent_id
 
@@ -114,6 +135,24 @@ class FrenchAdapter:
                 # than no lemma, because the failures are rare enough to confuse.
                 if pos == "X":
                     lemma, pos = norm, "X"
+                # UD collapses the third-person pronouns onto one lemma, so
+                # `Elle` comes back as `lui` — and `lui` itself comes back as
+                # `luire`, the verb, while still tagged PRON. Neither is usable
+                # as vocabulary. Pronouns are closed-class and the form is the
+                # thing you learn, so the form is the lemma.
+                elif pos == "PRON":
+                    lemma = norm
+                # A capitalised word opening a sentence gets read as a name:
+                # `Tenez, voici…` came back PROPN with the lemma `tenez`, while
+                # `vous tenez` in the same text gave `tenir`. Read the lowercase
+                # form on its own and take it only if it turns out to be a verb —
+                # a real name does not ("Marc" alone is still no verb), so this
+                # cannot quietly demote one.
+                elif pos == "PROPN" and tok.i == sent_start.get(sent_of.get(i, 0)):
+                    guess = self._alone(norm)
+                    if guess is not None:
+                        lemma, pos = guess
+                        morph = refine_morph(tok.text, lemma, "")
             out.append(
                 AnalysedToken(
                     idx=len(out),

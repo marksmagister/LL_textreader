@@ -153,7 +153,37 @@ without losing anyone's place. Position never moves backwards.
      back, so even a saved note looked lost. Tokens now carry `status` and `note`,
      the box opens with what you wrote, and clicking away saves it without
      touching the level.
-   - **#4 dictionary covers the text**, and everything from #10 on: not started.
+   - **#4 dictionary covers the text — was already fixed**, and I nearly fixed
+     it twice: `main.with-panel` already reserves `45vh + 3rem` under the page.
+     Check before adding a second mechanism.
+   - **#12 does "mark page known" swallow the dashed forms of a word you are
+     learning? No** — asked, checked, and now pinned by a test. The sweep is
+     decided on the lemma's status (`NULL`, 0 or 4), so a lemma at 1-3 is
+     excluded whatever shape of it happens to be on the page.
+   - **#13 reports had no page number — fixed 2 September.** The column always
+     existed; `App.tsx` never passed it. The reader now reports its page up.
+   - **#14 `Tenez` not matched to `tenir` — fixed 2 September.** It was
+     capitalisation: sentence-initial and capitalised, spaCy called it PROPN. A
+     capitalised opener now gets read again on its own and the second reading is
+     taken *only* if it comes back a verb, so `Marc descend…` and `Paris est…`
+     keep their proper nouns.
+   - **#15 `Elle` → `lui` — fixed 2 September**, and it was worse than reported:
+     `lui` itself came back as `luire`, the verb, while still tagged PRON. UD has
+     reasons for collapsing third-person pronouns; a learner does not care about
+     them. Pronouns are closed-class, so the form is now the lemma.
+   - **#16 tense names in French — done, minus the switch.** `morph.ts` has a
+     table per locale and `LOCALE = 'fr'`; the settings screen that flips it
+     comes with the Russian and Italian work (`0012`).
+   - **#17 the first translation looked stuck — fixed 2 September.** It was the
+     model loading. It now says so instead of sitting silent.
+   - **#10 and #11**: on the timeline below, decision files first.
+
+   **#14 and #15 change stored token streams**, so the pipeline stamp went from
+   `+tense1` to `+rules2` and every lesson needed reprocessing (rule 6). One cost
+   worth knowing: pronoun entries keyed on the old lemmas no longer match, so a
+   few very common words — `elle`, `celle` — come back blue once. The lexicon
+   also still holds `celer` and `luire` tagged PRON, which is what the old
+   lemmatiser left behind.
    The one that outranks everything after it: #2 and #3 both say a known
    lemma's unmet form renders as plain yellow learning. That is the novel-form
    state, the one distinction the schema exists for, and Russian is the
@@ -161,14 +191,28 @@ without losing anyone's place. Position never moves backwards.
    debugging both at once. Also core: #4, the dictionary covering text with no
    way to scroll, and #9, notes that do not save.
 
-   Two are ideas rather than bugs and are parked here so they are not lost:
-   **#10 multi-word units** — "du coup" means something "coup" does not, so
-   phrases need to be one clickable unit; the maintainer expects this to be
-   hard. **#11 LLM-generated lessons** — generating text at a level and on a
-   topic, and later reusing learned words in new contexts, "a true SRS within
-   context". Open questions attached to it: bring-your-own API token, whether
-   local models are good enough, and whether any of it belongs in the app at
-   all rather than being left to people themselves.
+   Two are ideas rather than bugs, and both are on the timeline rather than in
+   this list. Neither has a decision file yet and neither should be started
+   without one:
+
+   **#10 multi-word units.** "du coup" means something "coup" does not, so a
+   phrase needs to be one clickable, markable unit. The maintainer expects this
+   to be hard and is right — it touches the token stream, the key on every
+   lexicon table, and rendering. Their own suggested way in, which is a good
+   one because it needs no phrase dictionary: **let the reader select several
+   words in the text**, and on a button or after a second's pause, treat the
+   selection as one thing — translate it, or check it against known phrases.
+   That turns an unbounded NLP problem into a UI gesture, and the manual case
+   is the one that always works.
+
+   **#11 LLM-generated lessons.** Generate text at a level, in a style, on a
+   topic — the way these demo texts were written — and later reuse the words
+   you have learned in new contexts, which the maintainer describes as "a true
+   SRS within context". The open questions are theirs and are the real content
+   of the decision: bring-your-own API token, or connect your own model? Are
+   locally run models good enough? Is there a lean version? Or is this better
+   left to people themselves, outside the app? Worth noting against `0015`,
+   which already argued about what this project should and should not host.
 
 3. **Russian and Italian together, plus a German interface** — `decisions/0012`,
    updated 2 September. Italian is nearly free once the front end stops saying
