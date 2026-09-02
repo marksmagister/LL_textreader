@@ -19,13 +19,18 @@ difference between a useful word count and a fictional one.
 
 ## Status
 
-**French works.** Paste text or open a `.txt`, then read it keyboard-first: Tab to the
-next word that wants an answer, read the sentence, press `k` or `1`, Tab again.
-Wiktionary glosses, the grammar of the form in front of you, and a vocabulary page of
-every word you know with the inflections you've actually met.
+**French, Russian and Italian work.** Paste text or open a `.txt`, then read it
+keyboard-first: Tab to the next word that wants an answer, read the sentence, press `k`
+or `1`, Tab again. Wiktionary glosses, the grammar of the form in front of you, and a
+vocabulary page of every word you know with the inflections you've actually met.
 
-Russian is one adapter file away; Arabic is designed for but deliberately not built yet;
-Dutch comes last. Current state and roadmap: `docs/status.md`.
+Each new language ships a few short texts to start with, and the interface is English or
+German. Russian is where the design earns its keep: in a 126-word text, 19 of the words
+you already know turn up in a shape you have never met — against 4 in the Italian
+equivalent (`docs/decisions/0021`).
+
+Arabic is designed for but deliberately not built yet; Dutch comes last. Current state
+and roadmap: `docs/status.md`.
 
 ## Setup
 
@@ -35,10 +40,10 @@ Requires Python 3.12 and Node 20+.
 git clone git@github.com:marksmagister/LL_textreader.git
 cd LL_textreader
 uv sync --extra nlp              # backend deps, incl. spaCy
-./scripts/setup-models.sh fr     # ~45MB, not vendored — see NOTICE
+cp .env.example .env             # LL_TEXTREADER_LANGUAGES says which languages
+./scripts/setup-models.sh        # the models for those; ~50-90MB each, see NOTICE
 ./scripts/setup-dictionary.sh fr # 573MB download, leaves 12MB of glosses
 ./scripts/setup-font.sh          # optional: Literata, which has real Cyrillic
-cp .env.example .env
 ```
 
 Then two terminals:
@@ -51,8 +56,9 @@ uv run uvicorn ll_textreader.main:app --reload --app-dir backend
 cd frontend && npm install && npm run dev
 ```
 
-Open `http://localhost:5173`. Paste a few paragraphs of French, hit Import, and read.
-Everything is blue at first. Press `/` for commands, or just start pressing Tab.
+Open `http://localhost:5173`. Pick a language in the header, take the starter texts it
+offers, and read. Everything is blue at first. Press `/` for commands, or just start
+pressing Tab.
 
 ```
 Tab / Shift-Tab   next / previous word to answer   Enter  open the note field

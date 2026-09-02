@@ -1,6 +1,10 @@
 # 0012 — Multi-language, and Russian
 
-**Status: planned, not built.**
+**Status: built, September 2026 — see `0021-russian-and-italian-measured.md` for
+what the measurement actually found, which was not what this file predicted.**
+Russian and Italian both read; the interface is English or German; the language
+is a control in the header. What is *not* built is named at the end of 0021:
+German as a translation target, and the Wiktionary extracts for either language.
 
 **Update, 2 September 2026 — the scope grew, and it grew in a good direction.**
 Three things the maintainer added:
@@ -26,6 +30,12 @@ table per locale and a `LOCALE` constant set to `fr`, so the switch is one line 
 reach when the screen exists. Deliberately not a setting before then — there is
 nothing to switch between until a second language of study is real.
 
+*(The screen exists and carries two of the three. The grammar language is **not** a
+setting: it follows from the other two — the language you are reading when there
+is a table for it, else the interface language — and every combination that rule
+produces is the one a reader would have chosen. The screen explains it instead of
+asking. 0021.)*
+
 The thing to notice is that *interface language* and *translation target* are two
 different settings and must not be welded together. A German speaker reading French
 may well want English glosses, or the reverse. Two settings, both the reader's.
@@ -48,6 +58,12 @@ More than it looks:
 - Literata was chosen over a system stack **because it has real Cyrillic** (0004).
 
 What is genuinely missing is the front end: `const LANG = 'fr'` on line 11 of `App.tsx`.
+
+*(Built. It was also hiding a bug: the reader took its language from that
+constant, so once the library could be switched, opening a Russian text while the
+library was set to Italian would have looked words up in the wrong dictionary and
+written them to the wrong lexicon. The reader now takes the language from the
+lesson, which is the only correct source.)*
 
 ## The work, in order
 
@@ -78,6 +94,9 @@ is where language-specific knowledge already lives.
 
 Expect case to be reasonable and aspect to be the risk.
 
+*(Done, and the expectation was exactly backwards: aspect 11/11, case 12/12. What
+was broken was person, the oblique pronouns and ё. 0021 has the numbers.)*
+
 ### 4. `morph.ts` needs the features Russian is made of
 
 It handles VerbForm, Mood, Tense, Person, Number, Gender, Definite, Polarity, NumType,
@@ -101,6 +120,12 @@ Translation is one line: `("ru", "en"): "Helsinki-NLP/opus-mt-ru-en"` in `MODELS
 `norm` would merge **всё** and **все**, which are different words. The recommendation is
 **do not fold**, and accept that a text written without ё will lemmatise some words
 separately. Note it as a known limitation rather than fixing it wrongly.
+
+*(Upheld, and it turned out to matter in the other direction too: a word written
+**with** its ё falls out of the model's vocabulary — `живёт` came back in the past
+tense, `пьёт` came back a noun. `norm` is still not folded; instead a word the
+lemmatiser gave up on is read again de-ёed, and that reading is taken only if it
+comes back a verb, which leaves всё, ещё and её alone. 0021.)*
 
 **Aspect pairs.** читать and прочитать are different lemmas and should stay that way —
 they are different vocabulary items, the same argument as the Arabic root in rule 4.

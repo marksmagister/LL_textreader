@@ -8,11 +8,17 @@ change on a decision; this file changes on an event. Don't copy one into the oth
 
 ## Where things stand
 
-**Readable, keyboard-first, with definitions.** Paste French text, read it coloured by
-what you know, Tab between unknown words, and the page decolourises as you go.
+**Readable, keyboard-first, with definitions.** Paste French, Russian or Italian text,
+read it coloured by what you know, Tab between unknown words, and the page
+decolourises as you go.
 
 Working and verified against real text, in the browser:
 - French pipeline: spaCy `fr_core_news_md`, POS-tagged lemmas, run at import
+- Russian and Italian pipelines, measured before they were trusted (`decisions/0021`)
+- the language is a control in the header and a setting; it filters the library,
+  and the reader takes its language from the lesson rather than from that control
+- three starter texts per new language, written for the purpose, one press to add
+- the interface is English or German, and follows the browser until you choose
 - plain-text import (paste or `.txt`), pages, saved position, "mark page known"
 - all five render states, including known-lemma-novel-form
 - a legend page explaining them, reachable from the library and the palette
@@ -34,16 +40,18 @@ Working and verified against real text, in the browser:
 - undo for "mark page known"
 - the sentence you first met a word in, kept and shown
 - `--dry-run`-able reprocessing for stale token streams (rule 6)
-- 207 tests, ruff and tsc clean
+- 273 tests, ruff and tsc clean
 
 Numbers worth knowing: a 12,000-word chapter imports in 1.3s. Opening a page costs
 more the longer the lesson is, because the page boundaries are re-derived from every
 token each time: 5ms on a 2,000-word article, 10ms at 20,000, 31ms on a 100,000-word
 book. The dictionary is a 573MB download that leaves 12MB in the database.
 
-Not built: audio, EPUB import, Russian, sync, anything on a phone.
+Not built: audio, EPUB import, sync, anything on a phone. Russian and Italian read
+but have no Wiktionary glosses yet — that is a download (`setup-dictionary.sh ru`,
+`it`), not a decision — and translation only targets English.
 
-### Four rules the pilot decided by hand
+### Five rules the pilot decided by hand
 
 - **Confidence.** spaCy gives no per-token score, so the only honest signal is the
   tagger admitting defeat: POS `X` falls back to the surface form (rule 7). The
@@ -60,6 +68,9 @@ Not built: audio, EPUB import, Russian, sync, anything on a phone.
   always end in `-r`, so a form can be classified against its own lemma with certainty
   (`nlp/languages/fr.py`). Where the rules are silent and the tagger is not
   trustworthy, no tense is shown at all: 14 correct, 0 wrong, 4 silent.
+- **What a language adapter may correct.** Only what is certain from the form or
+  from a closed class — Russian gets three rules on that basis, Italian none,
+  because its faults need a lexicon rather than a rule (`decisions/0021`).
 
 ### Pages
 
@@ -226,20 +237,26 @@ without losing anyone's place. Position never moves backwards.
    left to people themselves, outside the app? Worth noting against `0015`,
    which already argued about what this project should and should not host.
 
-3. **Russian and Italian together, plus a German interface** — `decisions/0012`,
-   updated 2 September. Italian is nearly free once the front end stops saying
-   `fr`, and it is the control that tells you whether the novel-form state is
-   earning its keep. New work in there: the UI has no i18n at all, and the
-   reader needs to choose interface language and translation target
-   *separately* — a German speaker reading French may still want English
-   glosses. Translation itself is already keyed on `(source, target)`, so that
-   half is one model entry per pair. The step not to skip is still measuring
-   Russian morphology before trusting it, the way French was measured.
+3. **Russian and Italian — done, and what is left of it.** `decisions/0021` has
+   the measurements and the four surprises. Both languages read, the interface is
+   English or German, and each new language ships three starter texts. Left over,
+   all small and all named at the end of 0021:
 
-   One thing to re-examine here rather than assume: Tab now stops on novel forms
-   (report #6). `0004` originally refused to, predicting that in a heavily
-   inflected language it would make Tab useless. Nobody has tested that, and
-   Russian is the test.
+   - **The dictionaries.** `./scripts/setup-dictionary.sh ru` and `it` — ~940MB
+     and ~500MB to download, leaving ~15MB each. Until then a Russian word gives
+     grammar and a note field but no gloss.
+   - **German as a translation target.** One `MODELS` entry per pair, plus
+     somewhere to choose it. Not done because the network it was built on could
+     not reach Hugging Face to confirm the model names.
+   - **`ru→en` and `it→en` are added but unrun**, for the same reason. If a name
+     is wrong the symptom is a download error on the first press of the button.
+
+   The thing to actually watch, and the reason to read with it rather than reason
+   about it: **Tab now stops on novel forms** (report #6). `0004` originally
+   refused to, predicting that in a heavily inflected language that would make Tab
+   useless — and 0021 measured 19 unmet shapes in a 126-word Russian text against
+   4 in an Italian one, which is exactly the density `0004` was worried about.
+   Nobody has read a long Russian text this way yet. That is the test.
 
 4. **A phone edition** — at least decent compatibility, because several people
    the maintainer knows would use it mainly there. Not planned in detail yet,
@@ -265,10 +282,6 @@ available.
 
 ## Planned in detail, not started
 
-- **Multi-language: Russian and Italian, and a German interface** — `decisions/0012`.
-  Mostly front-end: `lang` is already a key everywhere and adapters load by module
-  name. What is genuinely new is UI localisation and letting the reader pick an
-  interface language and a translation target separately. Now item 3 above.
 - **Multi-user** — `decisions/0013`. The document still recommends an instance per
   reader until that becomes the annoying part; the maintainer's current leaning is
   Sign in with Google, which is item 5 above and not yet a decision.
@@ -287,9 +300,15 @@ had the attention.
 
 ## Testing
 
-207 tests: 184 backend (pytest), 23 frontend (vitest). `npm test` in `frontend/`.
-Seven of the backend ones need the real French model and skip without it, so
-`./scripts/setup-models.sh fr` is part of running the suite, not just the app.
+273 tests: 238 backend (pytest), 35 frontend (vitest). `npm test` in `frontend/`.
+Some backend tests need a real spaCy model and skip without it, so
+`./scripts/setup-models.sh` — no argument, meaning every configured language — is
+part of running the suite, not just the app.
+
+`test_russian.py` and `test_italian.py` hold the measurement tables from
+`decisions/0021` as **floors**, not exact expectations: the models get a few of
+them wrong, and a test that pretended otherwise would be the lie the table exists
+to prevent. An upgrade that scores better should raise the floor with it.
 
 The frontend tests cover `reading.ts` and `morph.ts` — pure functions, no DOM and no
 component framework, deliberately. What they pin is the logic that is easy to get
@@ -321,6 +340,16 @@ Written down so the next session doesn't rediscover them and think they are news
 - **`ago()` is written twice**, in `Vocab.tsx` and `LessonList.tsx`, with different
   wording on purpose. Both had the same timestamp-parsing bug. A third copy means
   it is time to merge them.
+- **The three language adapters share a twenty-five-line spaCy walk**, and it is
+  not extracted. Deliberate: pulling it out means touching `fr.py`, and any change
+  to its `pipeline_id` marks every French lesson on the box stale and forces a
+  reprocess. A fourth language, or the next change `fr.py` needs anyway, is when
+  to do it (`decisions/0021`).
+- **Reading `LL_TEXTREADER_LANGUAGES` out of `.env` is written twice**, in
+  `check.sh` and `setup-models.sh`, because neither may source `.env` safely. Same
+  rule as `ago()`: a third copy means merge them.
+- **Russian and Italian have no glosses until the extracts are downloaded.** The
+  word panel looks broken-but-working: grammar, no definition.
 
 ## Open questions
 
