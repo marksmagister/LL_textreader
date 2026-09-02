@@ -103,6 +103,18 @@ without losing anyone's place. Position never moves backwards.
      (five to ten euros) skips the wait and is the same domain `0013` needs for
      password-reset email.
 
+   **There is demo content on the box**, so a visitor sees the product rather
+   than an empty library: four short French texts written for the purpose (not
+   excerpts — the repo ships no third-party text), three of them in a collection
+   called "Une semaine à Lyon". They were read through the real endpoints, not
+   seeded into the database: one completed, two part-read, one never opened, and
+   twelve words left in learning. The point is the fourth text — never opened,
+   and already 66% readable, with `reviendront`, `sait`, `assis` and `arrivé`
+   showing as novel forms of lemmas the first three taught. That is the whole
+   argument for the lemma-keyed model, visible on a page nobody has touched.
+   It is demo data in a real lexicon: if the box becomes the maintainer's own
+   reader, this is the thing to clear first.
+
    Left undone, deliberately, both decided on 2 September:
 
    - **Backups still have nowhere to go.** The timer runs daily and `backup.sh`
