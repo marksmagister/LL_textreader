@@ -1,5 +1,7 @@
 """Fetching a URL, and refusing to be used as a proxy into the network."""
 
+from urllib.parse import urlparse
+
 import pytest
 
 from ll_textreader.importers import from_url
@@ -91,3 +93,88 @@ def test_a_page_of_only_furniture_is_refused_too(client, monkeypatch):
     monkeypatch.setattr(from_url, "fetch", lambda url: ("   \n  ", "Cookie notice"))
     r = client.post("/api/lessons/fetch", json={"url": "https://example.com/a"})
     assert r.status_code == 400
+
+
+# ---------------------------------------------------------------- redirects
+#
+# `check` used to run on the address you typed and nothing else, while
+# trafilatura followed redirects itself. A public page is free to answer "302,
+# now go and read 169.254.169.254", so checking only the first hop checked
+# nothing. These drive the real download path.
+
+
+def serve(handler_body):
+    """A throwaway HTTP server on loopback. Returns its base URL."""
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            handler_body(self)
+
+        def log_message(self, *a):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return f"http://127.0.0.1:{server.server_port}"
+
+
+@pytest.fixture
+def loopback_is_public(monkeypatch):
+    """Treat 127.0.0.1 as a public address, and check everything else for real.
+
+    The test cannot reach the internet, so the local server stands in for the
+    page you asked for; what is under test is what happens to the hops after it.
+    Returns the list of addresses checked.
+    """
+    real = check
+    calls = []
+
+    def checked(url):
+        calls.append(url)
+        return url if urlparse(url).hostname == "127.0.0.1" else real(url)
+
+    monkeypatch.setattr(from_url, "check", checked)
+    return calls
+
+
+def test_a_redirect_into_the_private_network_is_refused(loopback_is_public):
+    def redirect(handler):
+        handler.send_response(302)
+        handler.send_header("Location", "http://169.254.169.254/latest/meta-data/")
+        handler.end_headers()
+
+    with pytest.raises(BadUrl, match="non-public"):
+        from_url.fetch(serve(redirect) + "/article")
+    assert len(loopback_is_public) == 2  # the typed address, then the redirect
+
+
+def test_a_redirect_to_another_public_page_is_followed(loopback_is_public):
+    """The guard must not simply ban redirects — plenty of news URLs are one."""
+
+    def article(handler):
+        if handler.path == "/article":
+            handler.send_response(302)
+            handler.send_header("Location", "/real")
+            handler.end_headers()
+            return
+        body = b"<html><body><article><p>Le chat dort sur le quai. </p></article></body></html>"
+        handler.send_response(200)
+        handler.send_header("Content-Type", "text/html; charset=utf-8")
+        handler.end_headers()
+        handler.wfile.write(body)
+
+    text, _ = from_url.fetch(serve(article) + "/article")
+    assert "chat" in text
+
+
+def test_a_page_too_big_to_import_is_refused(loopback_is_public):
+    def huge(handler):
+        handler.send_response(200)
+        handler.send_header("Content-Type", "text/html")
+        handler.end_headers()
+        handler.wfile.write(b"x" * (from_url.MAX_BYTES + 1024))
+
+    with pytest.raises(BadUrl, match="too big"):
+        from_url.fetch(serve(huge) + "/article")

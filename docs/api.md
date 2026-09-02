@@ -1,6 +1,6 @@
 # The API
 
-Fifteen endpoints. Everything the frontend does goes through one of them, and
+Seventeen endpoints. Everything the frontend does goes through one of them, and
 FastAPI serves the live schema at `/docs` if you'd rather read it there.
 
 | | | |
@@ -32,7 +32,10 @@ FastAPI serves the live schema at `/docs` if you'd rather read it there.
   subtracts. Don't rebuild text from tokens; slice the body.
 - **`undo_id` is only set** on a response to `finish` with `mark_rest_known`, and
   only when something actually changed.
-- **Everything is one user.** `USER_ID = 1` in `db.py`, threaded through 28 call
+- **Everything is one user.** `USER_ID = 1` in `db.py`, threaded through 44 call
   sites. The schema is ready for more; the API is not.
 - **A password locks all of it**, including `/api/health`, when
   `LL_TEXTREADER_PASSWORD` is set. Empty means no door.
+- **`POST /api/lessons/fetch` makes the server fetch a URL**, so it validates the
+  address *and every redirect it leads to* — see `decisions/0018`. Anything that
+  changes that path needs to keep the redirect guard.
