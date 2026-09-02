@@ -106,7 +106,7 @@ function Library({
     setBusy(t('starters.adding'))
     try {
       const made = await addStarters(lang)
-      setBusy(made.length ? t('import.added')(made[0].title) : '')
+      setBusy(made.length ? t('starters.added')(made.length) : '')
       setOffered(0)
       load()
     } catch (e) {

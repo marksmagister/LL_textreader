@@ -66,6 +66,7 @@ const en = {
   'starters.add': (n: number) => `add ${n} texts to start with`,
   'starters.hint': 'short texts written for this reader, so there is something to read',
   'starters.adding': 'adding…',
+  'starters.added': (n: number) => `added ${n} texts — they are in the list below`,
 
   // ------------------------------------------------------------------- library
   'list.empty': 'Nothing here yet. Import something above.',
@@ -275,6 +276,7 @@ const de: Strings = {
   'starters.add': (n) => `${n} Texte zum Anfangen hinzufügen`,
   'starters.hint': 'kurze Texte für diesen Reader geschrieben, damit es etwas zu lesen gibt',
   'starters.adding': 'wird hinzugefügt…',
+  'starters.added': (n) => `${n} Texte hinzugefügt — sie stehen unten in der Liste`,
 
   'list.empty': 'Noch nichts da. Importiere oben etwas.',
   'list.emptyLang': (language) => `Noch nichts auf ${language}. Importiere oben etwas.`,
