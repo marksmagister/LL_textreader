@@ -63,9 +63,14 @@ without losing anyone's place. Position never moves backwards.
 
 ## Next
 
-1. **Finish the hosting.** The box is rented but not provisioned; `deploying.md` has the
-   three steps and the deploy key. Until then `./scripts/serve.sh --share` puts it on a
-   Cloudflare tunnel from the laptop, which is enough to show someone.
+1. **Finish the hosting.** The box exists — netcup, Vienna, Debian 13, at
+   `v2202609408983511171.ultrasrv.de` — and `scripts/provision.sh` builds it in one
+   command. What is left needs a human at a keyboard: rotate the root password netcup
+   emailed in plaintext, run the script, paste the deploy key it prints into GitHub
+   (the repo is private), run it again. Then TLS is automatic — netcup's hostname
+   already resolves to the box, so there is no DNS to buy or configure.
+   See `deploying.md` and `decisions/0018`. Until it is done, `./scripts/serve.sh
+   --share` puts it on a Cloudflare tunnel from the laptop.
 2. **Russian** — `decisions/0012`. Before accounts, deliberately: Russian is the thing
    that proves the lemma-keyed model was worth building, and it is better to find that
    out before strangers arrive. Mostly front-end work; the step not to skip is measuring

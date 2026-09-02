@@ -16,7 +16,12 @@ WorkingDirectory=/opt/ll-textreader
 EnvironmentFile=/opt/ll-textreader/.env
 
 # Binds to localhost only: Caddy is the thing that faces the internet.
-ExecStart=/home/llt/.local/bin/uv run uvicorn ll_textreader.main:app \
+#
+# The venv's uvicorn, not `uv run`: uv would want its cache under /home/llt at
+# every start, and ProtectHome below makes that read-only. --app-dir is
+# load-bearing — it puts backend/ ahead of site-packages, so config.py finds the
+# repo root and the built frontend beside it.
+ExecStart=/opt/ll-textreader/.venv/bin/uvicorn ll_textreader.main:app \
     --app-dir backend --host 127.0.0.1 --port 8000
 Restart=on-failure
 RestartSec=3

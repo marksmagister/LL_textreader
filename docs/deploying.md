@@ -29,84 +29,100 @@ what you have read. That is what makes it a demo rather than a product.
 
 ## The real host
 
-A netcup VPS 500 G12 (2 vCPU, 4 GB, 128 GB NVMe, hourly-billed). Ubuntu 24.04.
+A netcup VPS 500 G12 (2 vCPU, 4 GB ECC, 128 GB NVMe, hourly-billed) in Vienna,
+running **Debian 13 (trixie), minimal**. Provisioned September 2026.
 
-### Where this stands, and what it is waiting for
+```
+159.195.244.92            v2202609408983511171.ultrasrv.de
+2a0a:4cc0:61:1b76:587f:fdff:fec3:d30c
+```
 
-Rented September 2026, hourly-billed, no minimum term. **Not yet provisioned.** Three
-things have to happen, in order, and the first two need a human:
+Why Debian and not the Ubuntu 24.04 this file used to specify: see
+`decisions/0018-provisioning-the-box.md`. Short version — trixie ships the Node
+that Vite 8 requires and Ubuntu 24.04 does not, and Python comes from `uv` either
+way, so there is nothing to gain by reinstalling.
 
-1. Install Ubuntu 24.04 from netcup's server control panel, giving it this key:
-
-   ```
-   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK12YUpwWHoOAp8sEczaZfG6qRyzRJcy2UauY5eNF60 ll-textreader deploy
-   ```
-
-   The matching private key is at `~/.ssh/ll_textreader_deploy` on the maintainer's
-   laptop and has never left it. Regenerate with `ssh-keygen -t ed25519` if lost — the
-   server-side half is replaceable.
-
-2. **A hostname.** DuckDNS was chosen for now: free, and Caddy can get a certificate
-   for a `*.duckdns.org` subdomain. Put it in the `Caddyfile` in place of
-   `read.example.com`.
-
-   Note the limit: SPF and DKIM are DNS records on a domain *you own*, so a DuckDNS
-   subdomain can never send email. If password reset by email is ever wanted
-   (`decisions/0013`), that needs a real domain — five to ten euros a year, and a
-   better URL to post anyway.
-
-3. Then the build steps below, and `scripts/deploy.sh` from then on.
-
-Until it is up, `./scripts/serve.sh --share` on the laptop is what exists.
-Deployment is `git pull` and a restart — no image build, no registry, no daemon in
-between. See `decisions/0017-choosing-a-host.md` for why this box.
-
-### Once, to build the machine
+### Building it
 
 ```bash
-adduser --disabled-password --gecos '' llt
-apt update && apt install -y git curl caddy nodejs npm python3.12-venv
-su - llt -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
-
-git clone https://github.com/marksmagister/LL_textreader /opt/ll-textreader
-chown -R llt:llt /opt/ll-textreader
-mkdir -p /var/lib/ll-textreader && chown llt:llt /var/lib/ll-textreader
-
-# The password, and where the database lives. Never in the repo.
-cat >> /opt/ll-textreader/.env <<'ENV'
-LL_TEXTREADER_DB_PATH=/var/lib/ll-textreader/ll_textreader.db
-LL_TEXTREADER_DATA_DIR=/var/lib/ll-textreader
-LL_TEXTREADER_PASSWORD=<something long>
-ENV
-
-su - llt -c 'cd /opt/ll-textreader && uv sync --extra nlp --extra translate --no-dev'
-su - llt -c 'cd /opt/ll-textreader && ./scripts/setup-models.sh fr'
-su - llt -c 'cd /opt/ll-textreader && ./scripts/setup-dictionary.sh fr'
-
-cp deploy/ll-textreader.service /etc/systemd/system/
-systemctl enable --now ll-textreader
-
-cp deploy/Caddyfile /etc/caddy/Caddyfile   # edit the hostname first
-systemctl reload caddy
+ssh root@159.195.244.92 'bash -s' < scripts/provision.sh
 ```
+
+That is the whole thing. It installs the packages, adds Caddy's repo, creates the
+`llt` user, gets Python 3.12 through `uv`, clones, builds, and starts the service
+and the backup timer behind TLS.
+
+**It needs two passes.** The repo is private, so the box cannot clone it until it
+has a key of its own. The first pass stops and prints one; add it at
+[Settings → Deploy keys](https://github.com/marksmagister/LL_textreader/settings/keys/new)
+(read-only — it never pushes), then run the same command again. The script is
+idempotent: it checks before every step, so re-running it is also how you resume
+after a failed download.
+
+It writes `/opt/ll-textreader/.env` once, with a generated password, and prints
+that password exactly once. It will not overwrite it on a later run — regenerating
+it would lock you out of your own lexicon.
+
+### First, rotate the root password
+
+netcup emailed it in plaintext, so treat it as public and change it before
+anything else. The box has a routable IPv4 address and will be finding out about
+SSH brute-forcers within the hour.
+
+```bash
+ssh root@159.195.244.92     # the password from netcup's email
+passwd                      # pick a new one
+```
+
+`provision.sh` installs the maintainer's public key for both `llt` and `root`, so
+after it has run you can reach the box without a password at all. Once
+`ssh llt@159.195.244.92` works, close the front door:
+
+```bash
+printf 'PermitRootLogin prohibit-password\nPasswordAuthentication no\n' \
+  > /etc/ssh/sshd_config.d/harden.conf
+systemctl restart ssh
+```
+
+Do that in a second terminal while the first stays logged in, so a typo is
+recoverable rather than a trip to netcup's web console.
 
 ### Every time after that
 
 ```bash
-ssh llt@the-box '/opt/ll-textreader/scripts/deploy.sh'
+ssh llt@159.195.244.92 '/opt/ll-textreader/scripts/deploy.sh'
+```
+
+Pull, sync, rebuild, restart, health-check. `provision.sh` gives `llt` exactly one
+root privilege — restarting this one service — which is all `deploy.sh` needs.
+
+### The certificate, and the name
+
+Caddy gets a real Let's Encrypt certificate on the first request, because
+`v2202609408983511171.ultrasrv.de` is a name netcup already points at the box.
+No DuckDNS, no self-signed warning, nothing to buy. That is enough for the pilot.
+
+It is still not a name you would put on a poster, and it is not a domain *you*
+own, so it can never carry SPF or DKIM — password reset by email
+(`decisions/0013`) needs a real domain, five to ten euros a year. When you buy
+one, point it at the box and re-run:
+
+```bash
+ssh root@159.195.244.92 'LL_TEXTREADER_FQDN=read.example.org bash -s' \
+  < scripts/provision.sh
 ```
 
 ### What still needs a human
 
-- **A domain name.** Caddy gets a certificate automatically, but only for a name that
-  resolves to the box. Without one you are on `https://<ip>` with a self-signed
-  certificate and a browser warning, which is not something to hand a friend.
-- **Somewhere to put the backups.** The timer and the script exist; what is missing is
-  a destination. Set `LL_TEXTREADER_BACKUP_TO` to an rsync target that is not this
-  machine — the script says so loudly when it is unset, because a backup on the same
-  disk as the database is not a backup.
+- **Somewhere to put the backups.** The timer runs daily and the script exists;
+  what is missing is a destination. Set `LL_TEXTREADER_BACKUP_TO` in `.env` to an
+  rsync target that is not this machine — the script says so loudly when it is
+  unset, because a backup on the same disk as the database is not a backup.
+- **A domain**, if email ever matters. See above.
 
-```bash
-cp deploy/ll-textreader-backup.{service,timer} /etc/systemd/system/
-systemctl enable --now ll-textreader-backup.timer
-```
+### Deliberately not done
+
+No `ufw`/`nftables` rules. Three things listen: SSH, and Caddy on 80 and 443. The
+app itself binds `127.0.0.1` and cannot be reached from outside at all. A firewall
+here would be a rule that says "allow the three ports that are open". netcup's own
+panel firewall is there if that stops being true.
