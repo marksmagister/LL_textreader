@@ -13,7 +13,15 @@ read.example.com {
 	# A domain of your own never reaches the second line.
 	tls {
 		issuer acme
-		issuer internal
+		issuer internal {
+			# Deliberately short. Caddy walks this chain again whenever the
+			# certificate it is serving needs renewing, so a one-hour stand-in
+			# means it asks Let's Encrypt roughly every forty minutes until one
+			# of those asks lands. Only the *first* real certificate is hard to
+			# get: renewals are ARI-coordinated and exempt from the limit that
+			# is blocking us, so winning once wins for good.
+			lifetime 1h
+		}
 	}
 
 	reverse_proxy 127.0.0.1:8000

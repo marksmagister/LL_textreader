@@ -32,17 +32,36 @@ only broken thing was the quota, and it is not ours to fix.
 
 ## What we did
 
-`tls internal` in the Caddyfile: Caddy runs its own CA, issues its own certificate,
-and serves HTTPS with a browser warning. One reader who clicks through once per
-browser, in exchange for encryption today.
+An issuer chain, `acme` then `internal`, with the internal certificate given a
+one-hour lifetime. Caddy asks Let's Encrypt first, falls back to its own CA when the
+answer is 429, and — because it walks the chain again whenever the certificate it is
+serving needs renewing — asks again roughly every forty minutes. The site is up the
+whole time, with a browser warning, and the warning disappears on its own the first
+time an ask lands. Nothing to run, nothing to remember.
+
+**Correction, same day.** The first version of this file said `tls internal` and
+argued that waiting was a bad trade because "the certificate expires in sixty days,
+so it is a lottery you re-enter six times a year". That is wrong, and it is the whole
+reason the decision changed. Let's Encrypt's own documentation exempts renewals from
+this limit: an order with an identical set of identifiers is exempt from New
+Certificates per Registered Domain, and an ARI-coordinated renewal — which is what
+Caddy does, the logs show it fetching renewal info — is "exempt from all rate
+limits". So the lottery is entered **once**. After the first certificate, this
+hostname renews like any other. That makes persistent retrying the right answer and
+giving up permanently the wrong one.
+
+One thing deliberately not claimed here: how contested the bucket actually is.
+Certificate Transparency was the obvious way to measure it, but two crt.sh queries
+for `%.ultrasrv.de` returned different, truncated result sets — one implying no new
+hostname had been certified since 2020, which cannot be true alongside a 429 saying
+fifty were issued this week. A number that disagrees with itself does not go in a
+decision file.
 
 ## Why not the alternatives
 
-- **Wait for a slot.** Caddy retries with backoff for thirty days and might well
-  succeed — the 429 names a time when the window rolls. But it is a lottery against
-  every other netcup customer, and the certificate expires in sixty days, so it is a
-  lottery you re-enter six times a year. Losing means the app is unreachable rather
-  than ugly, which is worse.
+- **Give up on a real certificate.** What the first version of this decision did.
+  Wrong for the reason corrected above: the cost of waiting is one browser warning,
+  not a recurring outage, and the reward is permanent.
 - **A free subdomain** (DuckDNS and friends). Rejected in `deploying.md` already; it
   trades one domain you do not control for another, and adds an account.
 - **A different CA.** ZeroSSL and Google Trust Services have their own limits and
@@ -58,10 +77,9 @@ ssh root@159.195.244.92 'LL_TEXTREADER_FQDN=read.example.org bash -s' \
   < scripts/provision.sh
 ```
 
-`provision.sh` deletes the `tls internal` line for any name that is not
-`*.ultrasrv.de`, so a real certificate issues on the first request with nothing else
-to remember. That is deliberate: leaving the browser warning in place after buying a
-domain is exactly the sort of thing that costs an hour to diagnose.
+No special case in `provision.sh` for that: one Caddyfile is correct for both names,
+because a domain of your own gets its certificate from the first issuer and never
+reaches the second.
 
 A domain was already on the list for a second reason — `0013`'s password reset needs
 SPF and DKIM, and you cannot publish either on a name you do not own. This makes it

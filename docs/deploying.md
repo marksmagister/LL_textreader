@@ -98,12 +98,14 @@ root privilege — restarting this one service — which is all `deploy.sh` need
 
 ### The certificate, and the name
 
-**The browser will warn you, and that is expected.** Caddy serves a certificate
-from its own CA, because `v2202609408983511171.ultrasrv.de` cannot have a public
-one: Let's Encrypt counts certificates per *registered domain*, and every netcup
-customer on `ultrasrv.de` shares one bucket of fifty a week, which is empty.
-The full story, and why waiting for a free slot is a bad trade, is in
-`decisions/0020`. Click through the warning once per browser.
+**The browser will warn you, for now.** Caddy is serving a certificate from its
+own CA because `v2202609408983511171.ultrasrv.de` could not get a public one on
+the day it was set up: Let's Encrypt counts per *registered domain*, and every
+netcup customer on `ultrasrv.de` shares one bucket of fifty a week. Caddy keeps
+asking — roughly every forty minutes, by design — and the warning will disappear
+by itself the first time an ask lands, with nothing for you to run. Only the
+first certificate is hard; renewals are exempt from that limit. `decisions/0020`
+has the evidence. Until then, click through the warning.
 
 So a domain of your own now buys two things rather than one: a certificate
 without a warning, and the SPF and DKIM that password reset by email
