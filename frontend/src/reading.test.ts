@@ -1,5 +1,5 @@
 import { describe as group, expect, test } from 'vitest'
-import { nextSentence, nextUnknown, segments, sentenceBounds } from './reading'
+import { nextAsking, nextSentence, segments, sentenceBounds } from './reading'
 import type { LessonDetail, Token, TokenState } from './types'
 
 const BODY = "Il marchait le long du quai. Nous marchons."
@@ -82,26 +82,37 @@ group('finding the next word to stop at', () => {
     tokens().map((t, i) => ({ ...t, state: states[i] ?? ('known' as TokenState) }))
 
   test('Tab goes forward to the next new word', () => {
-    expect(nextUnknown(known({ 3: 'new', 5: 'new' }), 0, 1)).toBe(3)
-    expect(nextUnknown(known({ 3: 'new', 5: 'new' }), 3, 1)).toBe(5)
+    expect(nextAsking(known({ 3: 'new', 5: 'new' }), 0, 1)).toBe(3)
+    expect(nextAsking(known({ 3: 'new', 5: 'new' }), 3, 1)).toBe(5)
   })
 
   test('Shift-Tab goes back', () => {
-    expect(nextUnknown(known({ 3: 'new', 5: 'new' }), 5, -1)).toBe(3)
+    expect(nextAsking(known({ 3: 'new', 5: 'new' }), 5, -1)).toBe(3)
   })
 
   test('it wraps, so the end of a page is not a dead end', () => {
-    expect(nextUnknown(known({ 1: 'new' }), 5, 1)).toBe(1)
-    expect(nextUnknown(known({ 8: 'new' }), 2, -1)).toBe(8)
+    expect(nextAsking(known({ 1: 'new' }), 5, 1)).toBe(1)
+    expect(nextAsking(known({ 8: 'new' }), 2, -1)).toBe(8)
   })
 
   test('from no cursor it starts at the beginning', () => {
-    expect(nextUnknown(known({ 4: 'new' }), -1, 1)).toBe(4)
+    expect(nextAsking(known({ 4: 'new' }), -1, 1)).toBe(4)
   })
 
   test('a page with nothing blue left returns -1 rather than looping', () => {
-    expect(nextUnknown(known({}), 0, 1)).toBe(-1)
-    expect(nextUnknown([], -1, 1)).toBe(-1)
+    expect(nextAsking(known({}), 0, 1)).toBe(-1)
+    expect(nextAsking([], -1, 1)).toBe(-1)
+  })
+
+  test('it stops on a word the app is asking about, not only on a new one', () => {
+    // Decision 0008's whole point: at level 4 the word asks to be decided. It
+    // used to be reachable only by spotting the rule under it and clicking.
+    expect(nextAsking(known({ 5: 'review' }), 0, 1)).toBe(5)
+    expect(nextAsking(known({ 3: 'review', 5: 'new' }), 0, 1)).toBe(3)
+  })
+
+  test('it does not stop on a novel form, which asks nothing of you', () => {
+    expect(nextAsking(known({ 3: 'novel-form' }), 0, 1)).toBe(-1)
   })
 })
 

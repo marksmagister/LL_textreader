@@ -20,9 +20,9 @@ difference between a useful word count and a fictional one.
 ## Status
 
 **French works.** Paste text or open a `.txt`, then read it keyboard-first: Tab to the
-next unknown word, read the sentence, press `k` or `1`, Tab again. Wiktionary glosses,
-the grammar of the form in front of you, and a vocabulary page of every word you know
-with the inflections you've actually met.
+next word that wants an answer, read the sentence, press `k` or `1`, Tab again.
+Wiktionary glosses, the grammar of the form in front of you, and a vocabulary page of
+every word you know with the inflections you've actually met.
 
 Russian is one adapter file away; Arabic is designed for but deliberately not built yet;
 Dutch comes last. Current state and roadmap: `docs/status.md`.
@@ -55,7 +55,7 @@ Open `http://localhost:5173`. Paste a few paragraphs of French, hit Import, and 
 Everything is blue at first. Press `/` for commands, or just start pressing Tab.
 
 ```
-Tab / Shift-Tab   next / previous unknown word     Enter  open the note field
+Tab / Shift-Tab   next / previous word to answer   Enter  open the note field
 1                 learning                          Esc    back to the text
 k                 known                             o      the lemmatiser is wrong
 i                 ignore (names, numbers)           /      command palette

@@ -9,7 +9,7 @@ import {
   translation,
 } from './api'
 import { describe } from './morph'
-import { nextSentence, nextUnknown, segments, sentenceBounds } from './reading'
+import { nextAsking, nextSentence, segments, sentenceBounds } from './reading'
 import { speak, stop } from './speak'
 import type { Gloss, LessonDetail, Token } from './types'
 
@@ -131,7 +131,7 @@ export default function Reader({
   const toText = () => text.current?.focus()
 
   /** Tab's whole job: never hunt for blue words. Wraps around the page. */
-  const seek = (dir: 1 | -1) => setCursor(nextUnknown(lesson.tokens, cursor, dir))
+  const seek = (dir: 1 | -1) => setCursor(nextAsking(lesson.tokens, cursor, dir))
 
   const seekSentence = (dir: 1 | -1) => {
     const found = nextSentence(lesson.tokens, cursor, dir)
@@ -151,7 +151,7 @@ export default function Reader({
 
   const save = async (status: number, at = cursor) => {
     const token = at >= 0 ? lesson.tokens[at] : null
-    if (!token?.lemma) return
+    if (!token?.lemma) return null
     await setTerm({
       lang,
       lemma: token.lemma,
@@ -166,14 +166,19 @@ export default function Reader({
     const l = await readLesson(id, lesson.page)
     setLesson(l)
     setCursor(at)
+    return l
   }
 
   /** Set a status, then jump straight to the next blue word. The core loop.
-   *  Clicking a word rates that word rather than wherever the cursor was. */
+   *  Clicking a word rates that word rather than wherever the cursor was.
+   *
+   *  Seeks against the lesson the save handed back, not the one this closure
+   *  captured: the word just rated usually appears again on the page, and the
+   *  stale copy still had it blue, so Tab stopped on it a second time. */
   const rate = async (status: number, at = cursor) => {
-    await save(status, at)
+    const fresh = await save(status, at)
     if (at === cursor) {
-      seek(1)
+      setCursor(nextAsking((fresh ?? lesson).tokens, at, 1))
       toText()
     }
   }

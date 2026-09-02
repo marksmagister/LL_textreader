@@ -4,7 +4,7 @@
  * the original text without losing a character of it, finding the next word
  * worth stopping at, and grouping tokens into sentences.
  */
-import type { LessonDetail, Token } from './types'
+import type { LessonDetail, Token, TokenState } from './types'
 
 export interface Segment {
   text: string
@@ -38,17 +38,24 @@ export function segments(lesson: LessonDetail, from = 0, to = Infinity): Segment
   return out
 }
 
+/** The states Tab stops on: a word you have never judged, and one you have met
+ *  often enough that the app is asking (decision 0008). Both want an answer.
+ *
+ *  Not `novel-form`: that one is telling you something rather than asking, and
+ *  there is no key to press. Stopping there would make Tab useless in Russian. */
+const ASKING: TokenState[] = ['new', 'review']
+
 /**
- * The next word still marked new, wrapping around the page. -1 when there is
- * none left, which is what makes Tab stop rather than cycle forever.
+ * The next word that wants a decision, wrapping around the page. -1 when there
+ * is none left, which is what makes Tab stop rather than cycle forever.
  */
-export function nextUnknown(tokens: Token[], cursor: number, dir: 1 | -1): number {
+export function nextAsking(tokens: Token[], cursor: number, dir: 1 | -1): number {
   const n = tokens.length
   if (!n) return -1
   const from = cursor < 0 ? (dir === 1 ? -1 : n) : cursor
   for (let step = 1; step <= n; step++) {
     const i = (((from + dir * step) % n) + n) % n
-    if (tokens[i].state === 'new') return i
+    if (ASKING.includes(tokens[i].state)) return i
   }
   return -1
 }

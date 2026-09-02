@@ -13,7 +13,7 @@ const COLOURS: Array<[string, string, string]> = [
 ]
 
 const KEYS: Array<[string, string]> = [
-  ['Tab', 'jump to the next blue word'],
+  ['Tab', 'jump to the next word that wants an answer'],
   ['⇧ Tab', 'jump back'],
   ['1', "I'm learning this"],
   ['k', 'I know this'],
@@ -78,7 +78,8 @@ export default function Legend({ onBack }: { onBack: () => void }) {
         <kbd>Tab</kbd> → read the sentence → <kbd>k</kbd> or <kbd>1</kbd> → <kbd>Tab</kbd>
       </p>
       <p className="muted">
-        That is the whole thing. You never hunt for blue words; Tab finds the next one.
+        That is the whole thing. You never hunt for blue words; Tab finds the next
+        one, including the ones underlined because it is time you decided.
         Do not be shy with <kbd>⇧ K</kbd> — clearing a page you can mostly read is the
         point, not cheating.
       </p>

@@ -8,7 +8,7 @@ clicking.
 ## The bindings
 
 ```
-Tab / Shift-Tab   next / previous unknown word
+Tab / Shift-Tab   next / previous word that wants an answer
 1                 mark as learning
 k                 mark known
 i                 ignore (names, numbers)
@@ -22,6 +22,17 @@ Cmd-Enter         save note and advance to next unknown
 /                 command palette (import, jump to lesson, switch lang)
 o                 override this word's lemma
 ```
+
+## What Tab stops on
+
+A word you have never judged, and a word at level 4 — the one the app has met often
+enough to be asking about (0008). Both want an answer, and the second was originally
+unreachable: Tab walked past it, so the only way to reach the state 0008 exists to
+produce was to spot a thin rule under a word and click it.
+
+Not a novel form. That one is telling you something rather than asking, there is no
+key to press, and stopping on every one of them would make Tab useless in Russian —
+which is the language the novel-form state exists for.
 
 ## Superseded: the learning levels
 
