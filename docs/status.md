@@ -91,14 +91,17 @@ without losing anyone's place. Position never moves backwards.
      nothing at all on 443. Fixed: the probe is `sqlite3 -readonly`, and the
      state directory is chowned back to `llt` on every run, so re-running the
      provisioner repairs a box in that state.
-   - **The certificate is Caddy's own, not Let's Encrypt's.** The free netcup
-     hostname cannot have a public one: the 50-a-week limit counts per
-     *registered domain*, and every customer on `ultrasrv.de` shares it.
-     `decisions/0020` has the evidence and why waiting for a slot is a bad
-     trade. So the browser warns on first visit — click through once. A domain
-     of your own (five to ten euros) removes the warning and is the same domain
-     `0013` needs for password-reset email; `provision.sh` drops the
-     `tls internal` line automatically the moment you provision under one.
+   - **The certificate is Caddy's own for now, and fixes itself.** The free
+     netcup hostname could not get a public one on the day: the 50-a-week limit
+     counts per *registered domain*, and every customer on `ultrasrv.de` shares
+     it. So the browser warns — click through once. Caddy is configured to keep
+     asking Let's Encrypt roughly every forty minutes and to fall back to its
+     own CA meanwhile, so the warning ends by itself the first time an ask
+     lands, with nothing to run. Only the first certificate is hard; renewals
+     are exempt from that limit, which is the correction in `decisions/0020`
+     and the reason this is a wait rather than a dead end. A domain of your own
+     (five to ten euros) skips the wait and is the same domain `0013` needs for
+     password-reset email.
 
    Left undone, deliberately, both decided on 2 September:
 
