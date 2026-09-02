@@ -63,14 +63,23 @@ without losing anyone's place. Position never moves backwards.
 
 ## Next
 
-1. **Finish the hosting.** The box exists — netcup, Vienna, Debian 13, at
-   `v2202609408983511171.ultrasrv.de` — and `scripts/provision.sh` builds it in one
-   command. What is left needs a human at a keyboard: rotate the root password netcup
-   emailed in plaintext, run the script, paste the deploy key it prints into GitHub
-   (the repo is private), run it again. Then TLS is automatic — netcup's hostname
-   already resolves to the box, so there is no DNS to buy or configure.
-   See `deploying.md` and `decisions/0018`. Until it is done, `./scripts/serve.sh
-   --share` puts it on a Cloudflare tunnel from the laptop.
+1. **Confirm the hosting, then set a backup destination.** The box is provisioned:
+   netcup Vienna, Debian 13, `v2202609408983511171.ultrasrv.de`, built by
+   `scripts/provision.sh` (two passes, deploy key added, script ran to completion).
+   Deploys are now `ssh llt@159.195.244.92 '/opt/ll-textreader/scripts/deploy.sh'`.
+
+   Three things were never confirmed in-session and should be, first thing:
+   - `curl -sS -o /dev/null -w '%{http_code}\n' https://v2202609408983511171.ultrasrv.de/api/health`
+     — **401 is the pass**: valid certificate, backend up, password enforced.
+     502 means the backend is down, a TLS error means the certificate did not issue.
+   - The root password netcup emailed in plaintext — rotated, or still the emailed one?
+   - SSH still accepts passwords. `deploying.md` has the two-line hardening; it was
+     deliberately left for a human, because getting it wrong locks you out.
+
+   Then the one real gap: **the backups have nowhere to go.** The timer runs daily and
+   `backup.sh` works, but `LL_TEXTREADER_BACKUP_TO` is unset, so every copy lands on the
+   same disk as the database. `decisions/0006` is blunt about why that is not a backup.
+
 2. **Russian** — `decisions/0012`. Before accounts, deliberately: Russian is the thing
    that proves the lemma-keyed model was worth building, and it is better to find that
    out before strangers arrive. Mostly front-end work; the step not to skip is measuring
