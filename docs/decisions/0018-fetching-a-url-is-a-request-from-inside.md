@@ -35,6 +35,16 @@ While the fetch was being written by hand anyway, two things it lacked:
 - a 4MB cap, read as `read(MAX + 1)` — the body lands in memory before anything
   looks at it, and "the article" is never four megabytes.
 
+## The one thing this changes about behaviour
+
+Owning the request means owning how the app introduces itself: `Mozilla/5.0
+(compatible; LL_textreader)`. Some sites answer anything that isn't a browser with a
+403, so a page that imported before might now refuse. That is the first thing to
+check when a URL fails — `UA` in `importers/from_url.py`, one line.
+
+It stays honest rather than pretending to be Chrome. That is a choice about how this
+behaves on other people's servers, and it should be made on purpose if it is made.
+
 ## What is still open, deliberately
 
 **DNS rebinding.** `check()` resolves the name, then urllib resolves it again to

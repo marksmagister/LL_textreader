@@ -96,6 +96,14 @@ without losing anyone's place. Position never moves backwards.
 4. **Accounts**, by invite first — `decisions/0013`. Roughly two days to an invite-only
    beta; open sign-up is then a flag, and password reset can wait behind invites.
 
+On the order of 1 and 2: there is a case for Russian first. Hosting is a known
+quantity — three steps in `deploying.md` — and proves nothing about the product.
+Russian is the thing that could still invalidate the lemma-keyed model, and French
+inflection is too mild to settle it: the novel-form state is the reason this schema
+exists and the pilot language barely exercises it. Finding out after strangers have
+libraries is the expensive way round. Left as it stands because the box is already
+rented and paid for; noted so the trade is a choice rather than an accident.
+
 Alongside all of it: read with the thing. Every real bug so far came from using it, not
 from the tests — the Finish button that did nothing, "mark known" eating learning
 words, levels rising five times too fast. That is still the highest-yield activity
@@ -147,6 +155,11 @@ Written down so the next session doesn't rediscover them and think they are news
   `pipeline_id`. Not now: 31ms is not felt, and it only bites on whole books.
 - **DNS rebinding on URL import.** `decisions/0018` says why it is left open and
   what changes that: accounts.
+- **URL import introduces itself honestly**, as `Mozilla/5.0 (compatible;
+  LL_textreader)`, and some sites answer a non-browser agent with a 403. If a paper
+  you want to read refuses, that is the first thing to check — `UA` in
+  `importers/from_url.py`. Left honest on purpose; pretending to be Chrome is a
+  decision about how this thing behaves on the web, not a bug fix.
 - **`ago()` is written twice**, in `Vocab.tsx` and `LessonList.tsx`, with different
   wording on purpose. Both had the same timestamp-parsing bug. A third copy means
   it is time to merge them.
@@ -156,3 +169,11 @@ Written down so the next session doesn't rediscover them and think they are news
 - Levantine Arabic: MSA-trained analysers mis-handle بدي / عم بكتب / مش. Not a pilot
   problem — see `decisions/0002-arabic-pipeline.md`.
 - Does "turn the page" remain the right moment to record met forms, under real use?
+- **How often is the lemmatiser simply wrong, and does `o` cover it?** Spot-checking
+  `fr_core_news_md` in September 2026: `chanterait` is correctly a conditional, but
+  `chantera` came back tagged feminine singular and `marchions` was lemmatised to
+  `marchion`. The tense rules are measured (14 right, 0 wrong, 4 silent); the
+  lemmatiser underneath them is not. It matters because a wrong lemma is a wrong
+  *entry in your lexicon*, not just a wrong colour, and the only defence is noticing
+  it and pressing `o`. Worth counting against a page of real prose before Russian,
+  where the same question will be sharper.
