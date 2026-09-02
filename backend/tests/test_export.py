@@ -130,3 +130,46 @@ def test_the_file_downloads_rather_than_displaying(client):
 
 def test_an_unknown_format_is_refused(client):
     assert get(client, format="pdf").status_code == 400
+
+
+# ---------------------------------------------------------------- glosses
+#
+# Untested until the query that fetched them turned out to be invalid SQLite —
+# valid enough to pass on one version and take the whole export out on another.
+
+
+def hint(client, lemma, pos, gloss, rank=0):
+    from ll_textreader.db import connect
+
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO hint (lang, target_lang, lemma, pos, gloss, rank, source)"
+            " VALUES ('fr','en',?,?,?,?,'wiktionary')",
+            (lemma, pos, gloss, rank),
+        )
+
+
+def test_a_card_carries_dictionary_senses(client):
+    learn(client, "quai", pos="NOUN")
+    hint(client, "quai", "NOUN", "a quay")
+    back = get(client, format="anki").text.splitlines()[-1].split("\t")[1]
+    assert "a quay" in back
+
+
+def test_senses_matching_the_part_of_speech_come_first(client):
+    """POS is a preference, not a filter: showing the other reading beats
+    showing nothing when the tagger and Wiktionary disagree."""
+    learn(client, "porte", pos="NOUN")
+    hint(client, "porte", "VERB", "carries", rank=0)
+    hint(client, "porte", "NOUN", "a door", rank=0)
+    entries = json.loads(get(client, format="json").text)["entries"]
+    assert entries[0]["glosses"] == ["a door", "carries"]
+
+
+def test_a_card_is_not_the_whole_dictionary(client):
+    """Wiktionary lists twenty senses for `faire`; a card is a reading aid."""
+    learn(client, "faire", pos="VERB")
+    for i in range(8):
+        hint(client, "faire", "VERB", f"sense {i}", rank=i)
+    entries = json.loads(get(client, format="json").text)["entries"]
+    assert entries[0]["glosses"] == ["sense 0", "sense 1", "sense 2"]

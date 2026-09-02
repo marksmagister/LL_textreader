@@ -17,7 +17,6 @@ from html import escape
 
 from .models import IGNORED, KNOWN, NEW, REVIEW
 
-SEP = "\x1f"
 GLOSSES_PER_CARD = 3
 
 # Anki 2.1.55+ reads these, so a file imports with the right note type, deck and
@@ -31,14 +30,9 @@ ANKI_HEADER = [
     "#tags column:3",
 ]
 
-_ROWS = f"""
+_ROWS = """
 SELECT s.lemma, s.pos, s.status, s.note, s.context, s.created_at, s.updated_at,
-       group_concat(DISTINCT f.surface) AS forms,
-       (SELECT group_concat(h.gloss, '{SEP}') FROM (
-            SELECT gloss FROM hint
-            WHERE lang = s.lang AND lemma = s.lemma
-            ORDER BY (pos = s.pos) DESC, rank LIMIT {GLOSSES_PER_CARD}
-        ) h) AS glosses
+       group_concat(DISTINCT f.surface) AS forms
 FROM lemma_status s
 LEFT JOIN form_seen f
        ON f.user_id = s.user_id AND f.lang = s.lang
@@ -47,6 +41,31 @@ WHERE s.user_id = ? AND s.lang = ?
 GROUP BY s.lemma, s.pos
 ORDER BY s.lemma, s.pos
 """
+
+# Glosses come as their own query and are cut down in Python.
+#
+# They used to be a scalar subquery over a nested SELECT ... LIMIT, correlated on
+# the outer row's lemma and pos. SQLite does not allow a FROM-clause subquery to
+# see the outer query, so that raised "no such column: s.pos" — but only on some
+# SQLite versions, which meant it passed locally and took the whole export out on
+# the deployment box. One join and a loop cannot do that.
+_GLOSSES = """
+SELECT s.lemma, s.pos, h.gloss
+FROM lemma_status s
+JOIN hint h ON h.lang = s.lang AND h.lemma = s.lemma
+WHERE s.user_id = ? AND s.lang = ?
+ORDER BY s.lemma, s.pos, (h.pos = s.pos) DESC, h.rank
+"""
+
+
+def _glosses(conn: sqlite3.Connection, user_id: int, lang: str) -> dict[tuple[str, str], list[str]]:
+    """Up to GLOSSES_PER_CARD senses per word, the ones matching its POS first."""
+    out: dict[tuple[str, str], list[str]] = {}
+    for r in conn.execute(_GLOSSES, (user_id, lang)):
+        got = out.setdefault((r["lemma"], r["pos"]), [])
+        if len(got) < GLOSSES_PER_CARD:
+            got.append(r["gloss"])
+    return out
 
 
 def bucket(status: int) -> str:
@@ -68,6 +87,7 @@ def collect(
     keys: set[str] | None = None,
 ) -> list[dict]:
     """The lexicon, filtered. `keys` are "lemma:pos" pairs picked in the UI."""
+    glosses = _glosses(conn, user_id, lang)
     out = []
     for r in conn.execute(_ROWS, (user_id, lang)):
         entry = {
@@ -78,7 +98,7 @@ def collect(
             "note": r["note"],
             "context": r["context"],
             "forms": sorted(set((r["forms"] or "").split(",")) - {""}),
-            "glosses": [g for g in (r["glosses"] or "").split(SEP) if g],
+            "glosses": glosses.get((r["lemma"], r["pos"]), []),
             "created_at": r["created_at"],
             "updated_at": r["updated_at"],
         }
