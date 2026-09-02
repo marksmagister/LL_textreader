@@ -69,31 +69,50 @@ without losing anyone's place. Position never moves backwards.
 
 ## Next
 
-1. **Finish the hosting, then set a backup destination.** The box exists —
-   netcup Vienna, Debian 13, `v2202609408983511171.ultrasrv.de` — but the
-   provisioning run **did not** finish, contrary to what this file said on 2 Sep.
-   It stopped at the dictionary step, and the reason was the script's own doing:
-   the probe that asks whether the glosses are loaded ran as root and *created*
-   the database before the loader could, leaving a root-owned empty file that the
-   loader could not write. Everything after that step — the frontend, both
-   systemd units, the Caddy site — never ran, so the box was answering on port 80
-   with Caddy's stock welcome page and nothing at all on 443.
-   Fixed in `scripts/provision.sh`: the probe is `sqlite3 -readonly`, and the
-   state directory is chowned back to `llt` on every run, which repairs the box
-   as it stands. Re-running the provisioner is the whole fix.
-   Deploys are now `ssh llt@159.195.244.92 '/opt/ll-textreader/scripts/deploy.sh'`.
+1. **It is live, with two things left undone on purpose.** The box serves the
+   reader at `https://v2202609408983511171.ultrasrv.de` — netcup Vienna, Debian
+   13, app under systemd on `127.0.0.1:8000`, Caddy in front, database in
+   `/var/lib/ll-textreader/`. Deploys are
+   `ssh llt@159.195.244.92 '/opt/ll-textreader/scripts/deploy.sh'`.
 
-   Three things were never confirmed in-session and should be, first thing:
-   - `curl -sS -o /dev/null -w '%{http_code}\n' https://v2202609408983511171.ultrasrv.de/api/health`
-     — **401 is the pass**: valid certificate, backend up, password enforced.
-     502 means the backend is down, a TLS error means the certificate did not issue.
-   - The root password netcup emailed in plaintext — rotated, or still the emailed one?
-   - SSH still accepts passwords. `deploying.md` has the two-line hardening; it was
-     deliberately left for a human, because getting it wrong locks you out.
+   Verified on 2 September, through the public URL and not just on the box:
+   401 without the password and 200 with it, the frontend and the font served,
+   an import running spaCy on the box (`dort` → `dormir`, morphology attached),
+   `porte` → "door" out of the 126,214 glosses, and a delete putting the library
+   back to empty.
 
-   Then the one real gap: **the backups have nowhere to go.** The timer runs daily and
-   `backup.sh` works, but `LL_TEXTREADER_BACKUP_TO` is unset, so every copy lands on the
-   same disk as the database. `decisions/0006` is blunt about why that is not a backup.
+   Getting there took two corrections to what this file claimed:
+
+   - **The first provisioning run had not finished.** It died at the dictionary
+     step, because the probe asking whether the glosses were loaded ran as root
+     and *created* the database before the loader could — leaving a root-owned
+     empty file the loader could not write. Everything after that step never
+     ran, so the box was answering with Caddy's stock welcome page on 80 and
+     nothing at all on 443. Fixed: the probe is `sqlite3 -readonly`, and the
+     state directory is chowned back to `llt` on every run, so re-running the
+     provisioner repairs a box in that state.
+   - **The certificate is Caddy's own, not Let's Encrypt's.** The free netcup
+     hostname cannot have a public one: the 50-a-week limit counts per
+     *registered domain*, and every customer on `ultrasrv.de` shares it.
+     `decisions/0020` has the evidence and why waiting for a slot is a bad
+     trade. So the browser warns on first visit — click through once. A domain
+     of your own (five to ten euros) removes the warning and is the same domain
+     `0013` needs for password-reset email; `provision.sh` drops the
+     `tls internal` line automatically the moment you provision under one.
+
+   Left undone, deliberately, both decided on 2 September:
+
+   - **Backups still have nowhere to go.** The timer runs daily and `backup.sh`
+     works, but `LL_TEXTREADER_BACKUP_TO` is unset, so every copy lands on the
+     same disk as the database, which `decisions/0006` is blunt about not being
+     a backup. Skipped for now with the risk understood: one disk failure takes
+     the lexicon, and the lexicon is the months of reading that cannot be
+     regenerated. Setting it is an hour whenever it stops being acceptable.
+   - **SSH still accepts passwords** — the box advertises `publickey,password`,
+     so the root password netcup emailed in plaintext is still a live door, and
+     it is not known whether it was ever rotated. `deploying.md` has the
+     two-line hardening; it stays a human's job because getting it wrong locks
+     you out, and it wants a second terminal open.
 
 2. **Russian** — `decisions/0012`. Before accounts, deliberately: Russian is the thing
    that proves the lemma-keyed model was worth building, and it is better to find that

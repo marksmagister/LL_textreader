@@ -4,12 +4,17 @@
 # own beyond one shared password, so this is the only other door.
 
 read.example.com {
-	# Caddy's own CA, not Let's Encrypt: netcup's free hostname cannot get a
-	# public certificate, because the 50-a-week limit is counted per registered
-	# domain and every customer on ultrasrv.de shares one. See decisions/0020.
-	# provision.sh removes this line when it runs under a domain of your own,
-	# which is the moment a real certificate becomes possible.
-	tls internal
+	# Take the best certificate on offer. Let's Encrypt counts per *registered
+	# domain*, and every netcup customer on a default v….ultrasrv.de name shares
+	# one quota of fifty a week, so a real certificate here is a lottery —
+	# decisions/0020. Caddy tries the issuers in order and falls back, so the
+	# site is up either way, and because it walks the chain again at every
+	# renewal, the warning disappears by itself the first time a slot is free.
+	# A domain of your own never reaches the second line.
+	tls {
+		issuer acme
+		issuer internal
+	}
 
 	reverse_proxy 127.0.0.1:8000
 
