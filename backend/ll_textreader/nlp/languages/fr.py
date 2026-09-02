@@ -16,7 +16,10 @@ MODEL = "fr_core_news_md"
 # Bumped when the rules below change, so pipeline_id tells you which stored token
 # streams are stale and need reprocessing (CLAUDE.md rule 6). 2 added the pronoun
 # and sentence-initial rules below, which change lemmas rather than only morph.
-RULES = 2
+# 3 fixed the second of those: it tested the first *token* of the sentence, and
+# French dialogue opens on an em dash, so it missed every line of speech — which
+# is exactly where imperatives live.
+RULES = 3
 
 # --------------------------------------------------------------- verb tense
 #
@@ -111,11 +114,16 @@ class FrenchAdapter:
 
     def analyse(self, text: str) -> list[AnalysedToken]:
         doc = self._nlp(text)
-        sent_of, sent_start = {}, {}
+        # The first *word* of each sentence, not the first token: French dialogue
+        # opens "— Tenez, voilà…", so the dash is the token and the capitalised
+        # verb after it is what needs re-reading.
+        sent_of, openers = {}, set()
         for sent_id, sent in enumerate(doc.sents):
-            sent_start[sent_id] = sent.start
             for tok in sent:
                 sent_of[tok.i] = sent_id
+            first = next((t for t in sent if any(c.isalpha() for c in t.text)), None)
+            if first is not None:
+                openers.add(first.i)
 
         out: list[AnalysedToken] = []
         for i, tok in enumerate(doc):
@@ -148,7 +156,7 @@ class FrenchAdapter:
                 # form on its own and take it only if it turns out to be a verb —
                 # a real name does not ("Marc" alone is still no verb), so this
                 # cannot quietly demote one.
-                elif pos == "PROPN" and tok.i == sent_start.get(sent_of.get(i, 0)):
+                elif pos == "PROPN" and tok.i in openers:
                     guess = self._alone(norm)
                     if guess is not None:
                         lemma, pos = guess

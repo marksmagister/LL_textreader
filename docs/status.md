@@ -162,11 +162,17 @@ without losing anyone's place. Position never moves backwards.
      excluded whatever shape of it happens to be on the page.
    - **#13 reports had no page number — fixed 2 September.** The column always
      existed; `App.tsx` never passed it. The reader now reports its page up.
-   - **#14 `Tenez` not matched to `tenir` — fixed 2 September.** It was
-     capitalisation: sentence-initial and capitalised, spaCy called it PROPN. A
-     capitalised opener now gets read again on its own and the second reading is
-     taken *only* if it comes back a verb, so `Marc descend…` and `Paris est…`
-     keep their proper nouns.
+   - **#14 `Tenez` not matched to `tenir` — fixed 2 September**, on the second
+     try. It was capitalisation: capitalised at the start of a sentence, spaCy
+     called it PROPN. Such an opener now gets read again on its own and the
+     second reading is taken *only* if it comes back a verb, so `Marc descend…`
+     and `Paris est…` keep their proper nouns. The first attempt tested the
+     first *token* of the sentence and so missed the actual report, because the
+     line was `— Tenez, voilà Karim.` and French dialogue opens on an em dash —
+     which is precisely where imperatives live. It now tests the first *word*.
+     Still missed: `« Regardez ! »`, where the tag is NOUN rather than PROPN.
+     Widening the rule to NOUN would misread a sentence opening on a real noun
+     (`Porte fermée.` → `porter`), so that one stays a job for the override.
    - **#15 `Elle` → `lui` — fixed 2 September**, and it was worse than reported:
      `lui` itself came back as `luire`, the verb, while still tagged PRON. UD has
      reasons for collapsing third-person pronouns; a learner does not care about
