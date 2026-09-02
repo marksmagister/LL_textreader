@@ -117,12 +117,16 @@ without losing anyone's place. Position never moves backwards.
 
    Left undone, deliberately, both decided on 2 September:
 
-   - **Backups still have nowhere to go.** The timer runs daily and `backup.sh`
-     works, but `LL_TEXTREADER_BACKUP_TO` is unset, so every copy lands on the
-     same disk as the database, which `decisions/0006` is blunt about not being
-     a backup. Skipped for now with the risk understood: one disk failure takes
-     the lexicon, and the lexicon is the months of reading that cannot be
-     regenerated. Setting it is an hour whenever it stops being acceptable.
+   - **Backups still have nowhere to go — and this is a launch blocker.** The
+     timer runs daily and `backup.sh` works, but `LL_TEXTREADER_BACKUP_TO` is
+     unset, so every copy lands on the same disk as the database, which
+     `decisions/0006` is blunt about not being a backup. Left running that way
+     on 3 September with the risk understood, because a same-disk copy is still
+     worth having: it does not survive a dead disk, but it does survive a bad
+     migration or a page marked known by mistake, which are likelier. What it
+     must not do is survive until launch. **Before anyone but the maintainer
+     has a lexicon on this box, an off-machine destination is required** — an
+     hour's work, and the only loss here that cannot be undone.
    - **SSH still accepts passwords** — the box advertises `publickey,password`,
      so the root password netcup emailed in plaintext is still a live door, and
      it is not known whether it was ever rotated. `deploying.md` has the
