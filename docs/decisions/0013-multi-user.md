@@ -13,6 +13,13 @@ rewritten around it, but three things to check before it becomes one:
 - It moves the domain requirement rather than removing it. Google wants an https
   redirect URI, which the netcup hostname satisfies, but a public consent screen
   wants a homepage and a privacy policy on a name you own.
+- **The box cannot send email at all as it stands.** netcup applies a default
+  firewall policy, "netcup Mail block", that drops *outgoing* traffic on 25, 465
+  and 587 — seen in their panel on 3 September. So password reset by email is
+  blocked at the provider before any of this repo's decisions apply: it needs
+  that policy deleted, or an API-based sender on 443 (which is what the costing
+  in this document assumed anyway), on top of the domain. One more reason the
+  Google route is attractive: it needs no outbound mail.
 - It makes Google the single point of failure for every account. Anyone without a
   Google account, or who loses theirs, is locked out with nothing this project can do.
   A second method later is the usual answer, and "later" tends to mean never.
