@@ -98,19 +98,25 @@ root privilege — restarting this one service — which is all `deploy.sh` need
 
 ### The certificate, and the name
 
-Caddy gets a real Let's Encrypt certificate on the first request, because
-`v2202609408983511171.ultrasrv.de` is a name netcup already points at the box.
-No DuckDNS, no self-signed warning, nothing to buy. That is enough for the pilot.
+**The browser will warn you, and that is expected.** Caddy serves a certificate
+from its own CA, because `v2202609408983511171.ultrasrv.de` cannot have a public
+one: Let's Encrypt counts certificates per *registered domain*, and every netcup
+customer on `ultrasrv.de` shares one bucket of fifty a week, which is empty.
+The full story, and why waiting for a free slot is a bad trade, is in
+`decisions/0020`. Click through the warning once per browser.
 
-It is still not a name you would put on a poster, and it is not a domain *you*
-own, so it can never carry SPF or DKIM — password reset by email
-(`decisions/0013`) needs a real domain, five to ten euros a year. When you buy
-one, point it at the box and re-run:
+So a domain of your own now buys two things rather than one: a certificate
+without a warning, and the SPF and DKIM that password reset by email
+(`decisions/0013`) needs. Five to ten euros a year. When you buy one, point an A
+record at 159.195.244.92 and re-run:
 
 ```bash
 ssh root@159.195.244.92 'LL_TEXTREADER_FQDN=read.example.org bash -s' \
   < scripts/provision.sh
 ```
+
+That run drops the `tls internal` line from the Caddyfile on its own, so the real
+certificate issues on the first request with nothing else to remember.
 
 ### What still needs a human
 
@@ -118,7 +124,11 @@ ssh root@159.195.244.92 'LL_TEXTREADER_FQDN=read.example.org bash -s' \
   what is missing is a destination. Set `LL_TEXTREADER_BACKUP_TO` in `.env` to an
   rsync target that is not this machine — the script says so loudly when it is
   unset, because a backup on the same disk as the database is not a backup.
-- **A domain**, if email ever matters. See above.
+  **Deliberately deferred on 2 September 2026**, with the risk understood: until
+  it is set, one disk failure takes the lexicon with it.
+- **A domain**, for a certificate without a warning and for email. See above.
+- **Rotating the root password and turning off password logins.** Both left for
+  a human on purpose; the two lines are above.
 
 ### Deliberately not done
 

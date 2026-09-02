@@ -151,6 +151,14 @@ systemctl enable --now ll-textreader-backup.timer
 
 step "Caddy site"
 sed "s/read\.example\.com/$fqdn/" "$app/deploy/Caddyfile" > /etc/caddy/Caddyfile
+# The template ships with Caddy's own CA, because that is all netcup's shared
+# hostname can have (decisions/0020). Any other name can have a real one, so
+# take the line out again — otherwise buying a domain would silently keep the
+# browser warning, which is the kind of thing you debug for an hour.
+case "$fqdn" in
+  *.ultrasrv.de) ;;
+  *) sed -i '/tls internal/d' /etc/caddy/Caddyfile ;;
+esac
 install -d -o caddy -g caddy /var/log/caddy
 systemctl enable caddy
 systemctl reload caddy || systemctl restart caddy

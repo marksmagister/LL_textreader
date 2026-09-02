@@ -4,6 +4,13 @@
 # own beyond one shared password, so this is the only other door.
 
 read.example.com {
+	# Caddy's own CA, not Let's Encrypt: netcup's free hostname cannot get a
+	# public certificate, because the 50-a-week limit is counted per registered
+	# domain and every customer on ultrasrv.de shares one. See decisions/0020.
+	# provision.sh removes this line when it runs under a domain of your own,
+	# which is the moment a real certificate becomes possible.
+	tls internal
+
 	reverse_proxy 127.0.0.1:8000
 
 	encode zstd gzip
