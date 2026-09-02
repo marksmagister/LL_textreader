@@ -11,7 +11,17 @@ reading the French.
 import sqlite3
 from functools import cached_property
 
-MODELS = {("fr", "en"): "Helsinki-NLP/opus-mt-fr-en"}
+# One entry per (source, target) pair; the model is downloaded on first use.
+# Only the French pair has actually been run. The other two follow the same
+# naming scheme and 0012 names the Russian one, but the network where they were
+# added could not reach Hugging Face to confirm they exist — if one turns out to
+# be wrong the failure is a download error on first press, and the fix is the
+# name here.
+MODELS = {
+    ("fr", "en"): "Helsinki-NLP/opus-mt-fr-en",
+    ("ru", "en"): "Helsinki-NLP/opus-mt-ru-en",
+    ("it", "en"): "Helsinki-NLP/opus-mt-it-en",
+}
 
 # Marian is small; batching is what makes a page fast rather than a sentence at a time.
 BATCH = 16

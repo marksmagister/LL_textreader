@@ -12,7 +12,10 @@ class Settings(BaseSettings):
     data_dir: Path = REPO_ROOT / "data"
     host: str = "127.0.0.1"
     port: int = 8000
-    languages: str = "fr"
+    # What the language menu offers. A model is loaded on first use of its
+    # language and not before, so an entry here costs nothing until someone
+    # reads in it — but each one that *is* used costs 200-500MB resident.
+    languages: str = "fr,ru,it"
 
     # Set this and every request needs it. Empty means no password, which is fine
     # on localhost and never fine behind a tunnel — scripts/serve.sh enforces that.

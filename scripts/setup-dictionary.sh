@@ -4,8 +4,9 @@
 # CC BY-SA — deliberately NOT vendored, so the repo's licence story stays simple.
 # See NOTICE.
 #
-# The extract is big (French ~570MB) and there is no smaller one on offer, but
-# almost all of it is etymology, pronunciation and translations we don't store.
+# The extract is big (French ~570MB, Russian ~940MB) and there is no smaller one
+# on offer, but almost all of it is etymology, pronunciation and translations we
+# don't store.
 # So it is downloaded resumably, parsed, and then deleted: what stays on disk is
 # the ~20MB of glosses. Pass --keep to hold on to the raw file.
 set -euo pipefail
@@ -18,6 +19,7 @@ raw="$dest/$lang-raw.jsonl"
 case "$lang" in
   fr) name="French" ;;
   ru) name="Russian" ;;
+  it) name="Italian" ;;
   nl) name="Dutch" ;;
   *)  echo "unknown language: $lang" >&2; exit 1 ;;
 esac
