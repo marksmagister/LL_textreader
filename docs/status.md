@@ -69,9 +69,18 @@ without losing anyone's place. Position never moves backwards.
 
 ## Next
 
-1. **Confirm the hosting, then set a backup destination.** The box is provisioned:
-   netcup Vienna, Debian 13, `v2202609408983511171.ultrasrv.de`, built by
-   `scripts/provision.sh` (two passes, deploy key added, script ran to completion).
+1. **Finish the hosting, then set a backup destination.** The box exists —
+   netcup Vienna, Debian 13, `v2202609408983511171.ultrasrv.de` — but the
+   provisioning run **did not** finish, contrary to what this file said on 2 Sep.
+   It stopped at the dictionary step, and the reason was the script's own doing:
+   the probe that asks whether the glosses are loaded ran as root and *created*
+   the database before the loader could, leaving a root-owned empty file that the
+   loader could not write. Everything after that step — the frontend, both
+   systemd units, the Caddy site — never ran, so the box was answering on port 80
+   with Caddy's stock welcome page and nothing at all on 443.
+   Fixed in `scripts/provision.sh`: the probe is `sqlite3 -readonly`, and the
+   state directory is chowned back to `llt` on every run, which repairs the box
+   as it stands. Re-running the provisioner is the whole fix.
    Deploys are now `ssh llt@159.195.244.92 '/opt/ll-textreader/scripts/deploy.sh'`.
 
    Three things were never confirmed in-session and should be, first thing:

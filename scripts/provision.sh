@@ -48,6 +48,10 @@ caddy version
 step "User and directories"
 id "$u" >/dev/null 2>&1 || adduser --disabled-password --gecos '' "$u"
 install -d -o "$u" -g "$u" -m 755 "$state"
+# The first version of this script probed the database as root before it existed,
+# which left a root-owned empty file the app could not write to. Repairing it is
+# one line, and the state directory is llt's in any case.
+chown -R "$u:$u" "$state"
 install -d -o "$u" -g "$u" -m 700 "/home/$u/.ssh"
 touch "/home/$u/.ssh/authorized_keys"
 grep -qF "$admin_key" "/home/$u/.ssh/authorized_keys" \
@@ -118,12 +122,18 @@ as_llt "cd $app && ~/.local/bin/uv sync --extra nlp --extra translate --no-dev"
 as_llt "cd $app && ~/.local/bin/uv run python -c 'import fr_core_news_md' 2>/dev/null" \
   || as_llt "cd $app && ./scripts/setup-models.sh fr"
 # 573MB down the wire to leave 12MB of glosses behind, so only once.
-glosses=$(sqlite3 "$state/ll_textreader.db" 'SELECT COUNT(*) FROM hint' 2>/dev/null || echo 0)
+# -readonly is load-bearing: without it this probe *creates* the database, as
+# root, and then the loader below cannot write to it. That is what stopped the
+# first provisioning run dead.
+glosses=$(sqlite3 -readonly "$state/ll_textreader.db" 'SELECT COUNT(*) FROM hint' 2>/dev/null || echo 0)
 if [ "${glosses:-0}" -lt 1 ]; then
   as_llt "cd $app && ./scripts/setup-dictionary.sh fr"
 fi
 
 step "Frontend"
+# The font is optional and the CSS falls back to Georgia, but it has to be in
+# place before the build: Vite copies public/ into dist/ and no later.
+[ -f "$app/frontend/public/fonts/literata.ttf" ] || as_llt "cd $app && ./scripts/setup-font.sh"
 as_llt "cd $app && npm --prefix frontend ci --silent && npm --prefix frontend run build"
 
 step "Services"
