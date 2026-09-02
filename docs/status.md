@@ -253,14 +253,30 @@ without losing anyone's place. Position never moves backwards.
    needs an answer for a device with no keyboard, and that answer deserves its
    own decision file before anyone starts.
 
-5. **Accounts** — `decisions/0013`, updated 2 September. Leaning to Sign in
-   with Google rather than passwords, to avoid storing passwords and building
-   reset. Invite-first still holds; invites are about who gets in, which is a
-   different question from how they prove who they are.
+5. **Accounts — decided and started, 3 September.** Sign in with Google, no
+   passwords, invite-first. `decisions/0021` carries the decision, the eight
+   phases and the four things only a human can do; `0013` still holds for what
+   ownership means and what publishing costs. Being built on the branch
+   `accounts` rather than straight to `main` — it touches 41 call
+   sites and the failure mode is one reader seeing another's vocabulary, so it
+   wants to land as one reviewed piece.
 
-6. **Export the lessons, and account deletion** — `decisions/0013`. Moved to
-   the back of the queue on 2 September. An afternoon each, and still what
-   "your data is yours" actually means, but no longer blocking anything.
+   Two corrections came out of planning it, both worth knowing before reading
+   `0013`:
+
+   - **Google's 100-user cap was the wrong thing to plan around.** It applies
+     to *Testing* mode, which also expires every reader's consent after seven
+     days — weekly re-logins in an app you open daily. Our scopes (`openid`,
+     `email`, `profile`) are non-sensitive, so publishing to production needs
+     no verification at all. Press "Publish app" on day one; the cap and the
+     re-consent both disappear and nothing is queued for review.
+   - **`0019`'s DNS rebinding becomes must-fix**, as `0019` itself predicted,
+     and it is not in `0013`'s costing. Phase 8.
+
+6. **Export the lessons, and account deletion** — `decisions/0013`. No longer
+   at the back of the queue: they are phase 1 of the accounts work, because
+   `0013` is right that they are what makes losing an account survivable, and
+   because Google sign-in has no recovery story of its own.
 
 Alongside all of it: read with the thing. Every real bug so far came from using it, not
 from the tests — the Finish button that did nothing, "mark known" eating learning
