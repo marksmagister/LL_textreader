@@ -22,6 +22,8 @@ function tokens(): Token[] {
       sent_id: sent,
       morph: '',
       overridden: false,
+      status: null,
+      note: null,
       state: 'new',
     })
     if (surface === '.') sent++
@@ -104,6 +106,18 @@ group('finding the next word to stop at', () => {
     expect(nextAsking([], -1, 1)).toBe(-1)
   })
 
+  test('it stops on every word that is not plain', () => {
+    // Reported from real use: yellow words and unmet shapes were reachable only
+    // with the mouse, and those are exactly the ones worth going back to.
+    expect(nextAsking(known({ 3: 'learning' }), 0, 1)).toBe(3)
+    expect(nextAsking(known({ 3: 'novel-form' }), 0, 1)).toBe(3)
+    expect(nextAsking(known({ 2: 'learning', 5: 'new' }), 0, 1)).toBe(2)
+  })
+
+  test('it still refuses to stop on a word you know', () => {
+    expect(nextAsking(known({}), 0, 1)).toBe(-1)
+  })
+
   test('it stops on a word the app is asking about, not only on a new one', () => {
     // Decision 0008's whole point: at level 4 the word asks to be decided. It
     // used to be reachable only by spotting the rule under it and clicking.
@@ -111,8 +125,13 @@ group('finding the next word to stop at', () => {
     expect(nextAsking(known({ 3: 'review', 5: 'new' }), 0, 1)).toBe(3)
   })
 
-  test('it does not stop on a novel form, which asks nothing of you', () => {
-    expect(nextAsking(known({ 3: 'novel-form' }), 0, 1)).toBe(-1)
+  test('it now does stop on a novel form, which it used to skip', () => {
+    // This test asserted the opposite until 2 September, and the old reasoning
+    // was defensible: a novel form asks nothing, you already know the word. Real
+    // use disagreed — an unmet shape is precisely what you want to look at, and
+    // reaching it only with the mouse broke the keyboard loop. Kept rather than
+    // deleted so the reversal is visible.
+    expect(nextAsking(known({ 3: 'novel-form' }), 0, 1)).toBe(3)
   })
 })
 

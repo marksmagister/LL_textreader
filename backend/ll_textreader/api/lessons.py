@@ -85,7 +85,7 @@ _TOKENS = """
 SELECT t.idx, t.surface, t.char_start, t.char_end, t.sent_id, t.morph,
        COALESCE(o.to_lemma, t.lemma) AS lemma,
        COALESCE(o.to_pos, t.pos)     AS pos,
-       s.status,
+       s.status, s.note,
        f.surface IS NOT NULL         AS form_seen,
        o.surface IS NOT NULL         AS overridden
 FROM token t
@@ -189,6 +189,8 @@ def read_lesson(lesson_id: int, page: int | None = None) -> LessonDetail:
                 sent_id=t["sent_id"],
                 morph=t["morph"],
                 overridden=bool(t["overridden"]),
+                status=t["status"],
+                note=t["note"],
                 state=state_for(t["lemma"], t["status"], bool(t["form_seen"])),
             )
             for t in tokens

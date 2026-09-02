@@ -92,7 +92,10 @@ export default function Reader({
   // focus stays in the text until you ask for it with Enter.
   useEffect(() => {
     if (!token?.lemma) return setGlosses([])
-    setNote('')
+    // The note you already wrote, not an empty box. It was being cleared here,
+    // so a saved note was invisible the next time you opened the word and the
+    // feature looked like it did nothing.
+    setNote(token.note ?? '')
     setFixing(false)
     setFix('')
     let live = true
@@ -167,6 +170,15 @@ export default function Reader({
     setLesson(l)
     setCursor(at)
     return l
+  }
+
+  /** Keep a note without touching the level. Writing a note about a word you
+   *  have never judged means you are learning it; writing one about a word you
+   *  have already rated should leave that rating alone. */
+  const saveNote = async () => {
+    if (!token?.lemma) return
+    if (note.trim() === (token.note ?? '').trim()) return
+    await save(token.status ?? 1)
   }
 
   /** Set a status, then jump straight to the next blue word. The core loop.
@@ -265,13 +277,19 @@ export default function Reader({
         <span>
           page {lesson.page + 1} of {lesson.n_pages} · {unknown} new of {words.length} words
         </span>
-        <button disabled={lesson.page === 0} onClick={() => load(lesson.page - 1)}>
+        <span className="bar-actions">
+        <button
+          disabled={lesson.page === 0}
+          title="the previous page"
+          onClick={() => load(lesson.page - 1)}
+        >
           ‹ back
         </button>
         {/* Off unless asked for: a translation always on hand means you stop
             reading the French. */}
         <button
           className={english ? 'on' : ''}
+          title="a translation under each sentence"
           onClick={async () => {
             if (english) return setEnglish(null)
             setEnglishError('translating this page…')
@@ -288,13 +306,18 @@ export default function Reader({
         </button>
         <button
           className={markOnClick ? 'on' : ''}
-          title="clicking a blue word marks it as learning"
+          title="while on, clicking a blue word marks it as learning"
           onClick={() => setMarkOnClick(!markOnClick)}
         >
           click = learning
         </button>
-        <button onClick={() => turn(true, true)}>Mark page known</button>
-        <button onClick={() => turn(false)}>{last ? 'Finish' : 'Next page ›'}</button>
+        <button title="⇧ K — clears the blue and answers the underlined" onClick={() => turn(true, true)}>
+          Mark page known
+        </button>
+        <button title="turn the page and record what you met" onClick={() => turn(false)}>
+          {last ? 'Finish' : 'Next page ›'}
+        </button>
+        </span>
       </p>
 
 
@@ -380,8 +403,9 @@ export default function Reader({
           <input
             ref={noteBox}
             value={note}
-            placeholder="your own note (⌘↵ to save as learning)"
+            placeholder="your own note — saved when you click away, ⌘↵ saves as learning"
             onChange={(e) => setNote(e.target.value)}
+            onBlur={saveNote}
             onKeyDown={onKey}
           />
           <p className="keys">

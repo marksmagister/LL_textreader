@@ -43,7 +43,10 @@ export function segments(lesson: LessonDetail, from = 0, to = Infinity): Segment
  *
  *  Not `novel-form`: that one is telling you something rather than asking, and
  *  there is no key to press. Stopping there would make Tab useless in Russian. */
-const ASKING: TokenState[] = ['new', 'review']
+// Everything that is not plain. Tab used to stop only at blue and at the words
+// due a decision, which meant the yellow ones and the novel forms could only be
+// reached with the mouse — and those are exactly the words you want to revisit.
+const ASKING: TokenState[] = ['new', 'review', 'novel-form', 'learning']
 
 /**
  * The next word that wants a decision, wrapping around the page. -1 when there

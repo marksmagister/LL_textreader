@@ -39,6 +39,11 @@ class ReaderToken(BaseModel):
     sent_id: int  # for sentence-at-a-time keyboard navigation
     morph: str  # why this form looks different from the lemma
     overridden: bool  # the user has corrected the lemmatiser on this form
+    # Your own status and note for this word. The state below is derived from the
+    # status; the raw number is here so the panel can edit a note without having
+    # to guess what level the word is at and re-rate it by accident.
+    status: int | None
+    note: str | None
     state: TokenState
 
 

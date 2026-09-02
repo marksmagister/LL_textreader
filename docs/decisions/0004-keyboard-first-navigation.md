@@ -34,6 +34,20 @@ Not a novel form. That one is telling you something rather than asking, there is
 key to press, and stopping on every one of them would make Tab useless in Russian —
 which is the language the novel-form state exists for.
 
+**Reversed, 2 September 2026, on the maintainer's instruction after using it.**
+Tab now stops on everything that is not plain: blue, yellow, dashed and underlined.
+The report was blunt — "tab switching between words, should work for all coloured
+ones, not just blue" — and the argument from use beats the argument from theory: an
+unmet shape is exactly the thing you want to look at, and reaching it only with the
+mouse broke the very loop this document is about.
+
+The Russian objection above is **not** withdrawn, because it has not been tested yet.
+It predicts that in a heavily inflected language novel forms are so common that a Tab
+stopping on each becomes noise. If that turns out to be true, the fix is probably a
+per-language answer or a modifier key rather than reverting to skipping them
+everywhere — but find out first. This is on the list as something to re-examine when
+Russian lands, not something to assume was settled here.
+
 ## Superseded: the learning levels
 
 `2`, `3` and `4` are gone. Levels are no longer set by hand — they are counted from

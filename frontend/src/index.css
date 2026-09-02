@@ -115,6 +115,15 @@ h1 { font-size: 1.3rem; font-weight: normal; }
 .bar { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;
        font-size: 0.8rem; line-height: 1.4; }
 
+/* The buttons take a row of their own whatever the title does. They used to sit
+   on the end of the title's line when the title was short and jump to the next
+   line when it was long, so the thing you were about to click moved. */
+.bar-actions { display: flex; gap: 0.6rem; align-items: center; flex-basis: 100%; }
+
+/* The legend shows real tokens so it cannot drift from the reader, but there is
+   nothing behind them to click, and .tok offers a pointer. */
+.legend-demo .tok, .legend .tok { cursor: default; }
+
 button { font: inherit; font-size: 0.8rem; padding: 0.25rem 0.6rem; cursor: pointer;
          border: 1px solid currentColor; border-radius: 4px;
          background: transparent; color: inherit; opacity: 0.75; }

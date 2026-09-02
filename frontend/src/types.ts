@@ -13,6 +13,10 @@ export interface Token {
   morph: string
   /** You have corrected the lemmatiser on this form. */
   overridden: boolean
+  /** Your level for the lemma, 0-5, or null if you have never judged it. */
+  status: number | null
+  /** Your own note on the lemma. */
+  note: string | null
   state: TokenState
 }
 

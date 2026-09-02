@@ -129,9 +129,31 @@ without losing anyone's place. Position never moves backwards.
      two-line hardening; it stays a human's job because getting it wrong locks
      you out, and it wants a second terminal open.
 
-2. **The bug reports.** Eleven filed from real use, all open in `bug_report`
-   (`./scripts/reports.sh`). Some are already fixed and not yet marked done —
-   the maintainer will say which, so do not assume the list is the backlog.
+2. **The bug reports.** Seventeen filed from real use, all still flagged open in
+   `bug_report` (`./scripts/reports.sh`) — the `done` column has never been set,
+   so the flag is not the truth. Checked against the code on 2 September:
+
+   - **#1 title as vocabulary — already fixed.** `with_title()` puts the title in
+     the body, so it is tokenised like everything else.
+   - **#2 and #3 novel form shown as plain learning — already fixed.**
+     `state_for()` returns `novel-form` before it splits learning from known, so
+     marking `perçu` leaves `perçoit` dashed. This is the rule `CLAUDE.md` calls
+     the point of the design, and it now matches.
+   - **#5 legend words look clickable — fixed 2 September.** The legend shows real
+     `.tok` spans so it cannot drift from the reader, and `.tok` carries
+     `cursor: pointer`. Scoped it away in the legend rather than dropping the
+     shared class.
+   - **#6 Tab should reach every coloured word — fixed 2 September**, reversing
+     `0004`. See the caveat under Russian below.
+   - **#7 hover shows the shortcut — fixed 2 September**, `title` on each button.
+   - **#8 the button row jumped — fixed 2 September.** The actions are their own
+     flex row now, so they hold position whatever the title does.
+   - **#9 notes did not save — fixed 2 September**, and it was two bugs. The note
+     was only written as a side effect of rating a word, and it was never read
+     back, so even a saved note looked lost. Tokens now carry `status` and `note`,
+     the box opens with what you wrote, and clicking away saves it without
+     touching the level.
+   - **#4 dictionary covers the text**, and everything from #10 on: not started.
    The one that outranks everything after it: #2 and #3 both say a known
    lemma's unmet form renders as plain yellow learning. That is the novel-form
    state, the one distinction the schema exists for, and Russian is the
@@ -157,6 +179,11 @@ without losing anyone's place. Position never moves backwards.
    glosses. Translation itself is already keyed on `(source, target)`, so that
    half is one model entry per pair. The step not to skip is still measuring
    Russian morphology before trusting it, the way French was measured.
+
+   One thing to re-examine here rather than assume: Tab now stops on novel forms
+   (report #6). `0004` originally refused to, predicting that in a heavily
+   inflected language it would make Tab useless. Nobody has tested that, and
+   Russian is the test.
 
 4. **A phone edition** — at least decent compatibility, because several people
    the maintainer knows would use it mainly there. Not planned in detail yet,
