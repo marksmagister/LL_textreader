@@ -1,6 +1,12 @@
 # 0020 — The free hostname cannot have a certificate
 
-**Status: accepted. Caddy serves its own certificate; a real one waits on a domain.**
+**Status: resolved. The hostname has a real Let's Encrypt certificate.**
+
+Outcome first, because the title is now half wrong: it took four hours and three
+attempts, but `v2202609408983511171.ultrasrv.de` got a public certificate at
+18:58:52 UTC on 2 September 2026, valid to 1 December, and the chain validates
+with no `-k`. Persistence was the answer; the title stays as it was written so
+the reasoning below reads in the order it happened.
 
 `0018` provisioned the box and `deploying.md` promised that Caddy would get a real
 Let's Encrypt certificate on the first request, "because
@@ -49,6 +55,17 @@ Caddy does, the logs show it fetching renewal info — is "exempt from all rate
 limits". So the lottery is entered **once**. After the first certificate, this
 hostname renews like any other. That makes persistent retrying the right answer and
 giving up permanently the wrong one.
+
+**What actually happened.** The retry chain went in at 18:35 UTC. Caddy's
+existing stand-in certificate had another four hours to run, so the first retry
+did not fire until that certificate came up for renewal at 18:56 — and it won the
+slot immediately, at 18:58:52. One attempt. Which says the bucket was not as
+contested as the 429 made it feel: the window named in the error had rolled at
+12:30 UTC, and nobody had taken the freed slot in the six hours since. A poller
+beats a one-shot, and most netcup customers only ask once.
+
+That is a single observation, not a measurement. It says nothing about how long
+the next box would wait.
 
 One thing deliberately not claimed here: how contested the bucket actually is.
 Certificate Transparency was the obvious way to measure it, but two crt.sh queries

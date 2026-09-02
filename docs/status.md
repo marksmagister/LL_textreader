@@ -91,17 +91,17 @@ without losing anyone's place. Position never moves backwards.
      nothing at all on 443. Fixed: the probe is `sqlite3 -readonly`, and the
      state directory is chowned back to `llt` on every run, so re-running the
      provisioner repairs a box in that state.
-   - **The certificate is Caddy's own for now, and fixes itself.** The free
-     netcup hostname could not get a public one on the day: the 50-a-week limit
-     counts per *registered domain*, and every customer on `ultrasrv.de` shares
-     it. So the browser warns — click through once. Caddy is configured to keep
-     asking Let's Encrypt roughly every forty minutes and to fall back to its
-     own CA meanwhile, so the warning ends by itself the first time an ask
-     lands, with nothing to run. Only the first certificate is hard; renewals
-     are exempt from that limit, which is the correction in `decisions/0020`
-     and the reason this is a wait rather than a dead end. A domain of your own
-     (five to ten euros) skips the wait and is the same domain `0013` needs for
-     password-reset email.
+   - **The certificate is real, and took three attempts to get right.** Let's
+     Encrypt refused at first — the 50-a-week limit counts per *registered
+     domain*, and every netcup customer on `ultrasrv.de` shares it. Calling
+     that permanent and settling for `tls internal` was wrong: renewals are
+     exempt from that limit, so the name only had to win a slot once.
+     Configured to keep asking — `acme` then `internal`, with a one-hour
+     stand-in so Caddy retries every forty minutes — it won on the first retry,
+     18:58 UTC on 2 September. `curl` validates the full chain with no
+     `-k` and no warning. `decisions/0020` carries the reasoning and the
+     correction. A domain of your own is still worth five euros for the
+     password-reset email `0013` needs, but it is no longer needed for TLS.
 
    **There is demo content on the box**, so a visitor sees the product rather
    than an empty library: four short French texts written for the purpose (not

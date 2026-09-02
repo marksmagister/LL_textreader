@@ -98,14 +98,18 @@ root privilege — restarting this one service — which is all `deploy.sh` need
 
 ### The certificate, and the name
 
-**The browser will warn you, for now.** Caddy is serving a certificate from its
-own CA because `v2202609408983511171.ultrasrv.de` could not get a public one on
-the day it was set up: Let's Encrypt counts per *registered domain*, and every
-netcup customer on `ultrasrv.de` shares one bucket of fifty a week. Caddy keeps
-asking — roughly every forty minutes, by design — and the warning will disappear
-by itself the first time an ask lands, with nothing for you to run. Only the
-first certificate is hard; renewals are exempt from that limit. `decisions/0020`
-has the evidence. Until then, click through the warning.
+**Real Let's Encrypt certificate, no warning.** It took some getting: the free
+netcup hostname shares one quota of fifty new certificates a week with every
+other customer on `ultrasrv.de`, and that quota was full, so the box served
+Caddy's own CA for a few hours first. The fix was to keep asking — an
+`acme`-then-`internal` issuer chain with a one-hour stand-in certificate, so
+Caddy retries roughly every forty minutes and falls back meanwhile. It won a
+slot on the first retry, at 18:58 UTC on 2 September. `decisions/0020` has the
+whole story.
+
+Leave that chain in place. Renewals are exempt from the limit that blocked the
+first issue, so this should never recur — but if the certificate ever does lapse,
+the fallback means the site keeps serving rather than refusing every handshake.
 
 So a domain of your own now buys two things rather than one: a certificate
 without a warning, and the SPF and DKIM that password reset by email
