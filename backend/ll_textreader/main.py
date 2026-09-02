@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from secrets import compare_digest
 
 from fastapi import FastAPI, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
@@ -19,15 +18,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
+# No CORS middleware: nothing is ever cross-origin. Vite proxies /api in dev and
+# this app serves the built frontend in production, so the browser only ever
+# talks to one origin. It was also unreachable — with a password set, this
+# middleware answered the preflight with a 401 and no CORS headers at all.
 app = FastAPI(title="LL_textreader", version=__version__, lifespan=lifespan)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.middleware("http")

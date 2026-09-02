@@ -17,12 +17,6 @@ MODEL = "fr_core_news_md"
 # streams are stale and need reprocessing (CLAUDE.md rule 6).
 TENSE_RULES = 1
 
-# Below this, trust the surface form instead of the lemma (CLAUDE.md rule 7).
-# A wrong lemma is worse than no lemma, because the failures are rare enough to
-# be confusing. spaCy gives no per-token score, so the only honest signal is the
-# tagger admitting it doesn't know: POS "X".
-MIN_CONFIDENCE = 0.5
-
 # --------------------------------------------------------------- verb tense
 #
 # fr_core_news_md's morphologizer is good at gender and number and unreliable at
@@ -108,14 +102,18 @@ class FrenchAdapter:
                 continue
             norm = tok.text.casefold()
             lexical = any(c.isalpha() for c in tok.text)
-            lemma, pos, confidence, morph = None, None, 1.0, ""
+            lemma, pos, morph = None, None, ""
             if lexical:
                 lemma, pos = tok.lemma_.casefold(), tok.pos_
                 # e.g. "Mood=Ind|Number=Sing|Person=3|Tense=Imp" for marchait —
                 # already computed, and it is what explains the surface form.
                 morph = refine_morph(tok.text, lemma, str(tok.morph))
+                # Fall back to the surface form where the tagger admits defeat
+                # (CLAUDE.md rule 7). spaCy gives no per-token score, so POS "X"
+                # is the only honest signal there is; a wrong lemma is worse
+                # than no lemma, because the failures are rare enough to confuse.
                 if pos == "X":
-                    lemma, pos, confidence = norm, "X", 0.0
+                    lemma, pos = norm, "X"
             out.append(
                 AnalysedToken(
                     idx=len(out),
@@ -127,7 +125,6 @@ class FrenchAdapter:
                     char_end=tok.idx + len(tok.text),
                     sent_id=sent_of.get(i, 0),
                     morph=morph,
-                    confidence=confidence,
                 )
             )
         return out

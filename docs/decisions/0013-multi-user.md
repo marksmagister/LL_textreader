@@ -103,10 +103,11 @@ Not the sending. The sending is fifteen lines.
 
 ```python
 def send(to: str, subject: str, body: str) -> None:
-    httpx.post("https://api.resend.com/emails",
-               headers={"Authorization": f"Bearer {settings.email_key}"},
-               json={"from": settings.email_from, "to": to,
-                     "subject": subject, "text": body}).raise_for_status()
+    httpx.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {settings.email_key}"},
+        json={"from": settings.email_from, "to": to, "subject": subject, "text": body},
+    ).raise_for_status()
 ```
 
 Four things around it are the actual work:

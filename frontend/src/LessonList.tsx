@@ -23,9 +23,10 @@ function when(l: LessonSummary) {
   return l.last_read ?? l.imported_at ?? ''
 }
 
-/** "3 days ago", which is what you want to know about a lesson you half-read. */
+/** "3 days ago", which is what you want to know about a lesson you half-read.
+ *  SQLite's "2026-09-02 10:06:12" needs the T to be portably parseable. */
 function ago(when: string) {
-  const days = Math.floor((Date.now() - Date.parse(when + 'Z')) / 86_400_000)
+  const days = Math.floor((Date.now() - Date.parse(when.replace(' ', 'T') + 'Z')) / 86_400_000)
   if (days < 1) return 'today'
   if (days === 1) return 'yesterday'
   return `${days} days ago`

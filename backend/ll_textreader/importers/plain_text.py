@@ -66,8 +66,8 @@ def import_text(
 def _insert_tokens(conn: sqlite3.Connection, lesson_id: int, tokens: list[AnalysedToken]) -> None:
     conn.executemany(
         "INSERT INTO token (lesson_id, idx, surface, norm, lemma, pos,"
-        " char_start, char_end, sent_id, morph, confidence)"
-        " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        " char_start, char_end, sent_id, morph)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?)",
         [
             (
                 lesson_id,
@@ -80,7 +80,6 @@ def _insert_tokens(conn: sqlite3.Connection, lesson_id: int, tokens: list[Analys
                 t.char_end,
                 t.sent_id,
                 t.morph,
-                t.confidence,
             )
             for t in tokens
         ],

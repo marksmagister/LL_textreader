@@ -13,10 +13,13 @@ const SORTS = [
   ['forms', 'most forms'],
 ] as const
 
-/** "3 days ago" beats a timestamp when the question is "has this gone quiet?" */
+/** "3 days ago" beats a timestamp when the question is "has this gone quiet?"
+ *
+ *  SQLite writes "2026-09-02 10:06:12"; only "…T10:06:12Z" is a format every
+ *  browser must parse. Chrome takes the space, others are free not to. */
 function ago(when: string | null) {
   if (!when) return 'never met'
-  const days = Math.floor((Date.now() - Date.parse(when + 'Z')) / 86_400_000)
+  const days = Math.floor((Date.now() - Date.parse(when.replace(' ', 'T') + 'Z')) / 86_400_000)
   if (days < 1) return 'today'
   if (days === 1) return 'yesterday'
   return `${days}d ago`

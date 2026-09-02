@@ -62,11 +62,18 @@ CREATE TABLE IF NOT EXISTS token (
     -- computes these anyway; storing them lets the reader say *why* a form
     -- differs, not just which word it belongs to.
     morph       TEXT    NOT NULL DEFAULT '',
-    confidence  REAL    NOT NULL DEFAULT 1.0, -- < threshold => treat as surface form
     PRIMARY KEY (lesson_id, idx)
 );
 
 CREATE INDEX IF NOT EXISTS idx_token_lemma ON token(lemma, pos);
+
+-- Pages are derived on every read by grouping a lesson's tokens by sentence, so
+-- that grouping *is* the cost of opening a page. Covering it halves the work.
+-- On a 100,000-word book: page derivation 42.5ms -> 19.7ms, import 0.96s ->
+-- 1.59s. You import a book once and open eight hundred pages of it, and import
+-- already spends nine seconds in the tagger, so the trade is one-sided.
+-- Still linear in the length of the lesson — docs/status.md, "Known, not urgent".
+CREATE INDEX IF NOT EXISTS idx_token_sent ON token(lesson_id, sent_id, idx);
 
 -- ---------------------------------------------------------------- the lexicon
 -- The entire product is these two tables.

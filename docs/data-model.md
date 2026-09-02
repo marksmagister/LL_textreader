@@ -67,7 +67,14 @@ their place. Storing page numbers would have frozen the layout the day it was im
 ## Difficulty is not a property of a lesson
 
 Blue density in a text is a per-user score. Content filtering and recommendation derive
-from it, which means they must be computed against the reader, never stored on the lesson.
+from it, which means they belong to the reader, not to the text.
+
+They *are* stored on the lesson row all the same — `n_new`, `n_learning`, `n_known`,
+recomputed whenever a word crosses between buckets (`counts.py`, `decisions/0016`).
+That is safe only because a lesson belongs to exactly one user: `lesson.user_id` is
+part of the row, so the cached numbers are already per-reader. The day two people
+share a lesson, these columns are wrong and have to move to a table keyed on the
+reader as well.
 
 ## Migration note (for when it applies)
 

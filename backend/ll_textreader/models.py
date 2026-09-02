@@ -25,7 +25,6 @@ class AnalysedToken(BaseModel):
     char_end: int
     sent_id: int
     morph: str = ""  # UD features, e.g. "Number=Sing|Tense=Imp"
-    confidence: float = 1.0
 
 
 class ReaderToken(BaseModel):
