@@ -3,6 +3,11 @@
 set -euo pipefail
 cd /opt/ll-textreader
 
+# uv installs itself here, and `ssh box ./deploy.sh` runs a non-interactive shell
+# that never reads the profile which adds it. provision.sh spells the path out
+# every time; this is the same fix once, for everything below.
+PATH="$HOME/.local/bin:$PATH"
+
 echo "Backing up first — a deploy is exactly when you want yesterday's lexicon."
 ./scripts/backup.sh
 
