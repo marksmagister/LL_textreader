@@ -106,7 +106,7 @@ ORDER BY t.idx
 
 
 def _lesson_row(conn: sqlite3.Connection, lesson_id: int) -> sqlite3.Row:
-    row = conn.execute(f"{_SUMMARY} AND l.id = ? GROUP BY l.id", (USER_ID, lesson_id)).fetchone()
+    row = conn.execute(f"{_SUMMARY} AND l.id = ?", (USER_ID, lesson_id)).fetchone()
     if row is None or row["id"] is None:
         raise HTTPException(404, "no such lesson")
     return row
@@ -142,7 +142,7 @@ def create_lesson(req: ImportRequest) -> LessonSummary:
 def list_lessons() -> list[LessonSummary]:
     with connect() as conn:
         rows = conn.execute(
-            f"{_SUMMARY} GROUP BY l.id ORDER BY l.imported_at DESC, l.id DESC", (USER_ID,)
+            f"{_SUMMARY} ORDER BY l.imported_at DESC, l.id DESC", (USER_ID,)
         ).fetchall()
     return [LessonSummary(**{k: r[k] for k in DB_FIELDS}) for r in rows]
 
@@ -296,26 +296,36 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
         page = max(0, min(req.page, len(pages) - 1))
         lo, hi = pages[page]
 
+        # Every word on this page, as the *lexicon* sees it: an override wins over
+        # the pipeline (CLAUDE.md rule 5). Defined once and used by everything
+        # below — when only some of these statements resolved overrides, marking a
+        # page known wrote to the pipeline's lemma while the undo log recorded the
+        # override's, so undo deleted a row it had never created and left the word
+        # known for ever.
+        page_words = """
+            SELECT DISTINCT COALESCE(o.to_lemma, t.lemma) AS lemma,
+                            COALESCE(o.to_pos, t.pos)     AS pos
+            FROM token t
+            LEFT JOIN lemma_override o
+                   ON o.user_id = ? AND o.lang = ? AND o.surface = t.norm
+            WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
+        """
+        args = (USER_ID, lang, lesson_id, lo, hi)
+
         undo_id, doomed = None, []
         if req.mark_rest_known:
             # Record what the blue words were before, so a misclick is recoverable.
             # These are exactly the rows the statement below will change.
             doomed = conn.execute(
-                """
-                SELECT DISTINCT COALESCE(o.to_lemma, t.lemma) AS lemma,
-                                COALESCE(o.to_pos, t.pos)     AS pos,
-                                s.status
-                FROM token t
-                LEFT JOIN lemma_override o
-                       ON o.user_id = ? AND o.lang = ? AND o.surface = t.norm
+                f"""
+                SELECT w.lemma, w.pos, s.status
+                FROM ({page_words}) w
                 LEFT JOIN lemma_status s
                        ON s.user_id = ? AND s.lang = ?
-                      AND s.lemma = COALESCE(o.to_lemma, t.lemma)
-                      AND s.pos   = COALESCE(o.to_pos, t.pos)
-                WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
-                  AND (s.status IS NULL OR s.status IN (0, 4))
+                      AND s.lemma = w.lemma AND s.pos = w.pos
+                WHERE s.status IS NULL OR s.status IN (0, 4)
                 """,
-                (USER_ID, lang, USER_ID, lang, lesson_id, lo, hi),
+                (*args, USER_ID, lang),
             ).fetchall()
             if doomed:
                 undo_id = conn.execute(
@@ -335,30 +345,22 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
             # itself. A word you are actively learning (1-3) is a decision you made
             # and stays; ignored (-1) and known (5) are left alone.
             conn.execute(
-                """
+                f"""
                 INSERT INTO lemma_status (user_id, lang, lemma, pos, status)
-                SELECT DISTINCT ?, ?, t.lemma, t.pos, 5 FROM token t
-                WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
+                -- WHERE true so the parser reads ON CONFLICT as the upsert
+                -- clause rather than a join condition on the SELECT.
+                SELECT ?, ?, lemma, pos, 5 FROM ({page_words}) WHERE true
                 ON CONFLICT(user_id, lang, lemma, pos) DO UPDATE
                     SET status = 5, updated_at = datetime('now')
                     WHERE lemma_status.status IN (0, 4)
                 """,
-                (USER_ID, lang, lesson_id, lo, hi),
+                (USER_ID, lang, *args),
             )
         # A word you are learning rises one level for each page you finish that
         # contains it — an observation, not a self-assessment (decision 0008).
         # A page it has already been credited for does not count again: turning
         # the same page twice is not a second encounter, and neither is the page
         # you were on when you flagged the word.
-        page_words = """
-            SELECT DISTINCT COALESCE(o.to_lemma, t.lemma) AS lemma,
-                            COALESCE(o.to_pos, t.pos)     AS pos
-            FROM token t
-            LEFT JOIN lemma_override o
-                   ON o.user_id = ? AND o.lang = ? AND o.surface = t.norm
-            WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
-        """
-        args = (USER_ID, lang, lesson_id, lo, hi)
         conn.execute(
             f"""
             UPDATE lemma_status SET status = status + 1, updated_at = datetime('now')
@@ -379,21 +381,34 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
             """,
             (USER_ID, lang, lesson_id, page, *args),
         )
-        # Every form of a word you know that appeared on this page has now been met,
-        # so it stops being highlighted as novel next time.
+        # Every form of a word you have an opinion about has now been met, so it
+        # stops being highlighted as novel next time — and `form_seen.count` is
+        # what the vocabulary page shows as "seen 6×" (decision 0008).
+        #
+        # Any word you have judged, not only the known ones: a word you are
+        # learning is met on a page just as much, and counting only the known ones
+        # left that number frozen at however many times you had clicked it. Words
+        # you have *not* judged are still left out, because recording their forms
+        # here would erase the novel-form highlight before you had read them.
         conn.execute(
             """
             INSERT INTO form_seen (user_id, lang, lemma, pos, surface, "count")
-            SELECT ?, ?, t.lemma, t.pos, t.norm, COUNT(*)
-            FROM token t JOIN lemma_status s
-              ON s.user_id = ? AND s.lang = ? AND s.lemma = t.lemma AND s.pos = t.pos
+            SELECT ?, ?, COALESCE(o.to_lemma, t.lemma), COALESCE(o.to_pos, t.pos),
+                   t.norm, COUNT(*)
+            FROM token t
+            LEFT JOIN lemma_override o
+                   ON o.user_id = ? AND o.lang = ? AND o.surface = t.norm
+            JOIN lemma_status s
+              ON s.user_id = ? AND s.lang = ?
+             AND s.lemma = COALESCE(o.to_lemma, t.lemma)
+             AND s.pos   = COALESCE(o.to_pos, t.pos)
             WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ?
-              AND t.lemma IS NOT NULL AND s.status = 5
-            GROUP BY t.lemma, t.pos, t.norm
+              AND t.lemma IS NOT NULL AND s.status BETWEEN 1 AND 5
+            GROUP BY COALESCE(o.to_lemma, t.lemma), COALESCE(o.to_pos, t.pos), t.norm
             ON CONFLICT(user_id, lang, lemma, pos, surface) DO UPDATE
                 SET "count" = form_seen."count" + excluded."count"
             """,
-            (USER_ID, lang, USER_ID, lang, lesson_id, lo, hi),
+            (USER_ID, lang, USER_ID, lang, USER_ID, lang, lesson_id, lo, hi),
         )
         # Save the place. Never move it backwards: rereading an early page
         # shouldn't lose the fact that you'd got to chapter nine.

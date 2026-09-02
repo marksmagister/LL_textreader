@@ -40,8 +40,9 @@ finished. That is an observation, not a guess.
   page there is none. Turning the same page twice is not two encounters either, and
   neither is the page you were reading when you flagged the word — that meeting is
   what made you flag it. An `exposure` row per (word, page) enforces all three.
-- At 4 it stops, and is rendered with a dotted rule: met often enough that you should
-  decide. Promotion to known is always yours.
+- At 4 it stops, and is rendered with a rule under the word: met often enough that
+  you should decide. Promotion to known is always yours, and Tab stops there so the
+  question is actually put to you (0004).
 
 The number then means something checkable: *times met since you flagged it*. It cannot
 go stale, because it is derived from behaviour rather than opinion.
@@ -58,6 +59,18 @@ schema is unchanged, and the UI gets *simpler*, not more complex.
 `form_seen.count` counts *occurrences*; the level counts *pages*. The vocabulary page
 shows the first as "seen 6×" and the second as the status. They are deliberately
 different, and neither is a rating.
+
+**Correction, from the review of September 2026.** As built, the occurrence count was
+recorded on a finished page only for words already at *known*. For a word you were
+still learning — the words the number is actually about — "seen 6×" counted the times
+you had clicked it and nothing else, so it sat at 1 while the status climbed past it.
+Fixed: a finished page now records the forms of every word you have judged. Words you
+have not judged are still left out, because writing their forms down here would erase
+the novel-form highlight before you had read them.
+
+The count is one higher than the page count for the page you flagged the word on,
+since judging a word records its form too. That is a rounding error on a number
+meant to answer "have I been meeting this?", not an exact tally.
 
 ## What changes
 

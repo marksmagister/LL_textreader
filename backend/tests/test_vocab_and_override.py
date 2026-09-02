@@ -201,3 +201,38 @@ def test_sorting_does_not_change_what_is_counted(client):
         client.put("/api/terms", json={"lang": "fr", "lemma": lemma, "pos": "NOUN", "status": 1})
     for sort in ("recent", "stale", "alpha", "forms"):
         assert client.get(f"/api/vocab?lang=fr&sort={sort}").json()["total"] == 2
+
+
+# ---------------------------------------------------------------- override × bulk
+#
+# The override has to win in the statements that *write*, not only the ones that
+# read. It didn't: "mark page known" wrote to the pipeline's lemma while the undo
+# log recorded the override's, so the word stayed blue, undo deleted a row it had
+# never created, and the pipeline's lemma was left known for ever.
+
+
+def test_mark_page_known_follows_the_override(client):
+    lesson = make(client, "Les quais sont longs.")
+    client.put("/api/terms/override", json={"lang": "fr", "surface": "quais"})
+    client.post(f"/api/lessons/{lesson}/finish", json={"mark_rest_known": True})
+    assert states(client, lesson)["quais"] == "known"
+
+
+def test_undoing_it_leaves_no_word_behind(client):
+    lesson = make(client, "Les quais sont longs.")
+    client.put("/api/terms/override", json={"lang": "fr", "surface": "quais"})
+    done = client.post(f"/api/lessons/{lesson}/finish", json={"mark_rest_known": True}).json()
+    client.post(f"/api/lessons/undo/{done['undo_id']}")
+    assert client.get("/api/vocab?lang=fr").json()["total"] == 0
+    assert states(client, lesson)["quais"] == "new"
+
+
+def test_finishing_a_page_records_forms_for_an_overridden_word(client):
+    """Otherwise a word you know reads as a novel form for ever."""
+    lesson = make(client, "Les quais sont longs.")
+    client.put("/api/terms/override", json={"lang": "fr", "surface": "quais"})
+    client.put("/api/terms", json={"lang": "fr", "lemma": "quais", "pos": "X", "status": 5})
+    assert states(client, lesson)["quais"] == "novel-form"
+
+    client.post(f"/api/lessons/{lesson}/finish", json={"page": 0})
+    assert states(client, lesson)["quais"] == "known"

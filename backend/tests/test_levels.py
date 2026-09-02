@@ -27,6 +27,12 @@ def lesson(client, monkeypatch):
     return client.post("/api/lessons", json={"text": TEXT, "lang": "fr"}).json()["id"]
 
 
+def met(client, lemma):
+    return next(
+        e for e in client.get("/api/vocab?lang=fr").json()["entries"] if e["lemma"] == lemma
+    )["met"]
+
+
 def status_of(client, lemma="quai"):
     entry = next(
         (e for e in client.get("/api/vocab?lang=fr").json()["entries"] if e["lemma"] == lemma),
@@ -139,7 +145,17 @@ def test_seen_counts_occurrences_even_though_the_level_counts_pages(client, less
     )
     for page in range(3):
         finish(client, lesson, page)
-    entry = next(
-        e for e in client.get("/api/vocab?lang=fr").json()["entries"] if e["lemma"] == "quai"
+    assert met(client, "quai") > 1
+
+
+def test_seen_counts_pages_for_a_word_you_are_still_learning(client, lesson):
+    """The count used to be recorded only for known words, which left "seen 6×"
+    frozen at however many times you had clicked the word — on exactly the words
+    the number is meant to be about."""
+    client.put(
+        "/api/terms",
+        json={"lang": "fr", "lemma": "quai", "pos": "VERB", "status": 1, "surface": "quai"},
     )
-    assert entry["met"] > 1
+    before = met(client, "quai")
+    finish(client, lesson, 1)
+    assert met(client, "quai") > before
