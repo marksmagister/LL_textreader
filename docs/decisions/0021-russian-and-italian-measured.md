@@ -81,7 +81,7 @@ they are never touched.
 
 | | Italian | |
 |---|---|---|
-| lemma | 14/17 | `chiamo`, `andremo` → `andre`, `verrei` → `velere` |
+| lemma | 14/17 | `chiamo`, `andremo` → `andre`, `verrei` → `velere` — all invented or absent |
 | POS | 17/17 | |
 | person | 6/9 | |
 
@@ -89,6 +89,16 @@ Two real weaknesses. **First-person singular `-o` forms** are often left
 unlemmatised or read as the noun they are homographs of — `Abito a Roma` gives
 the noun *abito*, a suit; `Lavoro in banca` gives *lavoro*, work. And **future
 and conditional stems get invented**: `andremo` → `andre`, `verrei` → `velere`.
+
+**Correction, found while reading the starter text rather than the table.** The
+two faults are the same fault, and it is worse than "left unlemmatised": the
+invented stem happens to `-o` forms too, and it is *context-dependent*. `Mi chiamo
+Marco.` gives the lemma `chiamo`; `Mi chiamo Elena e ho ventidue anni.` gives
+`chare`, which is not a word. So one verb can land in the lexicon as two or three
+entries depending on the sentence it was met in — which is a worse failure for a
+lemma-keyed reader than a lemma that is merely absent, because there is nothing on
+the page to tell you it has happened. It is what `o` is for, and it is the first
+thing to check if Italian ever feels untrustworthy.
 
 Neither can be fixed from the form with certainty. French tense rules work
 because French endings are uniform and the future stem always ends in `-r`;

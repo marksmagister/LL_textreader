@@ -351,6 +351,10 @@ Written down so the next session doesn't rediscover them and think they are news
   rule as `ago()`: a third copy means merge them.
 - **Russian and Italian have no glosses until the extracts are downloaded.** The
   word panel looks broken-but-working: grammar, no definition.
+- **Italian invents lemmas for some first-person and future forms, and does it
+  inconsistently**: `chiamo` is `chiamo` in one sentence and `chare` — not a word
+  — in another, so one verb can become two lexicon entries depending on where you
+  met it. Measured in `decisions/0021`; the defence is `o`.
 
 ## Open questions
 
