@@ -120,15 +120,24 @@ h1 { font-size: 1.3rem; font-weight: normal; }
    line when it was long, so the thing you were about to click moved. */
 .bar-actions { display: flex; gap: 0.6rem; align-items: center; flex-basis: 100%; }
 
-/* The language you are reading, in the header. One group with a hairline round
-   it, so three languages read as one control rather than three more buttons in
-   a row that already has four. */
-.langs { display: inline-flex; gap: 0.3rem; padding: 0.15rem;
-         border: 1px solid currentColor; border-radius: 5px; opacity: 0.8; }
-.langs button { border: none; padding: 0.15rem 0.5rem; }
-/* The chosen one is filled rather than outlined: the border trick the other
-   toggles use is invisible inside a group that already has a border. */
-.langs button.on { opacity: 1; border-radius: 3px; color: var(--bg); background: var(--fg); }
+/* The language you are reading. A native select, so it scales past the three
+   languages there are today and costs no keyboard handling of its own — and its
+   two <optgroup>s are what keep "the ones I am learning" ahead of "everything
+   this server can read". */
+.lang-select { font: inherit; font-size: 0.8rem; padding: 0.2rem 0.4rem;
+               border: 1px solid currentColor; border-radius: 4px;
+               background: transparent; color: inherit; opacity: 0.75; }
+.lang-select:hover, .lang-select:focus { opacity: 1; }
+/* The dropdown itself is drawn by the browser, which does not inherit the
+   transparent background above — in dark mode that is white text on white. */
+.lang-select option, .lang-select optgroup { background: var(--bg); color: var(--fg); }
+
+/* Settings: your languages, one per row, actions on the right. */
+.langs-list { list-style: none; margin: 0 0 0.4rem; padding: 0;
+              display: flex; flex-direction: column; gap: 0.35rem; }
+.langs-list li { display: flex; gap: 0.6rem; align-items: baseline; }
+.lang-name { min-width: 8rem; }
+.lang-name.on { font-weight: 600; }
 
 /* The offer of something to read, shown only while there is something you have
    not already got. */

@@ -32,11 +32,14 @@ const en = {
   'cmd.library': 'library — import or open a text',
   'cmd.vocab': 'vocabulary — everything you know',
   'cmd.legend': 'legend — what the colours and keys mean',
-  'cmd.settings': 'settings — what you read, and in what interface',
+  'cmd.settings': 'settings — your languages, and the interface',
   'cmd.theme': 'dark / light — switch the theme',
   'cmd.system': 'follow the system theme',
 
   // ------------------------------------------------------------------- languages
+  'lang.yours': 'Your languages',
+  'lang.available': 'Also available',
+  'lang.pick': 'the language you are reading',
   'lang.fr': 'French',
   'lang.ru': 'Russian',
   'lang.it': 'Italian',
@@ -174,9 +177,17 @@ const en = {
 
   // ------------------------------------------------------------------ settings
   'settings.title': 'Settings',
-  'settings.study': 'What are you reading?',
+  'settings.study': 'Languages you are learning',
   'settings.studyHint':
-    'Sets what an import is read as, which words the vocabulary page shows, and what the library lists.',
+    'These are the ones in the header dropdown. The language you are reading sets what an import is read as, which words the vocabulary page shows, and what the library lists.',
+  'settings.reading': 'reading',
+  'settings.read': 'read this',
+  'settings.drop': 'not learning this',
+  'settings.take': 'start learning this',
+  'settings.available': 'Available on this server',
+  'settings.availableHint':
+    'Everything the server has a model for. Adding one puts it in your list; it is not a download.',
+  'settings.allYours': 'You have all of them.',
   'settings.interface': 'Interface language',
   'settings.interfaceHint':
     'The buttons and labels — not what you are reading, and not what you translate into.',
@@ -246,10 +257,13 @@ const de: Strings = {
   'cmd.library': 'Bibliothek — Text importieren oder öffnen',
   'cmd.vocab': 'Wortschatz — alles, was du kennst',
   'cmd.legend': 'Legende — was die Farben und Tasten bedeuten',
-  'cmd.settings': 'Einstellungen — was du liest, und in welcher Oberfläche',
+  'cmd.settings': 'Einstellungen — deine Sprachen und die Oberfläche',
   'cmd.theme': 'dunkel / hell — Darstellung wechseln',
   'cmd.system': 'der Systemeinstellung folgen',
 
+  'lang.yours': 'Deine Sprachen',
+  'lang.available': 'Ebenfalls verfügbar',
+  'lang.pick': 'die Sprache, die du liest',
   'lang.fr': 'Französisch',
   'lang.ru': 'Russisch',
   'lang.it': 'Italienisch',
@@ -379,9 +393,17 @@ const de: Strings = {
   'report.failed': 'konnte nicht gesendet werden',
 
   'settings.title': 'Einstellungen',
-  'settings.study': 'Was liest du?',
+  'settings.study': 'Sprachen, die du lernst',
   'settings.studyHint':
-    'Bestimmt, als was ein Import gelesen wird, welche Wörter im Wortschatz stehen und was die Bibliothek zeigt.',
+    'Diese stehen im Menü oben. Die Sprache, die du liest, bestimmt, als was ein Import gelesen wird, welche Wörter im Wortschatz stehen und was die Bibliothek zeigt.',
+  'settings.reading': 'wird gelesen',
+  'settings.read': 'diese lesen',
+  'settings.drop': 'lerne ich nicht mehr',
+  'settings.take': 'diese dazunehmen',
+  'settings.available': 'Auf diesem Server verfügbar',
+  'settings.availableHint':
+    'Alles, wofür der Server ein Modell hat. Etwas dazuzunehmen heißt nicht, etwas herunterzuladen.',
+  'settings.allYours': 'Du hast schon alle.',
   'settings.interface': 'Sprache der Oberfläche',
   'settings.interfaceHint':
     'Die Schaltflächen und Beschriftungen — nicht das, was du liest, und nicht das, wohin übersetzt wird.',

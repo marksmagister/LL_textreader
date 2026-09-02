@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Reader from './Reader'
 import Report from './Report'
 import { apply, effective, stored as storedTheme, type Theme } from './theme'
-import { remember as rememberLang, stored as storedLang } from './lang'
+import { mine as myLangs, remember as rememberLang, rememberMine, stored as storedLang } from './lang'
 import { languageName, setUiLocale, t, uiLocale } from './i18n'
 import Legend from './Legend'
 import LessonList from './LessonList'
@@ -32,7 +32,8 @@ type View =
 
 function Library({
   lang,
-  languages,
+  yours,
+  rest,
   onLang,
   onOpen,
   onVocab,
@@ -40,7 +41,10 @@ function Library({
   onSettings,
 }: {
   lang: string
-  languages: string[]
+  /** The languages you are learning; the dropdown's first group. */
+  yours: string[]
+  /** Everything else the server offers; the second group. */
+  rest: string[]
   onLang: (lang: string) => void
   onOpen: (id: number) => void
   onVocab: () => void
@@ -119,18 +123,33 @@ function Library({
       <p className="bar">
         <strong>LL_textreader</strong>
         {/* The language you are reading, where you can see it and change it
-            without going anywhere: it is the one setting that changes daily. */}
-        <span className="langs">
-          {languages.map((code) => (
-            <button
-              key={code}
-              className={code === lang ? 'on' : ''}
-              onClick={() => onLang(code)}
-            >
-              {languageName(code)}
-            </button>
-          ))}
-        </span>
+            without going anywhere: it is the one thing here that changes daily.
+            A dropdown rather than a row of buttons, because nobody learns every
+            language a server offers and a row stops being a control at about
+            four — so yours come first and the rest are one group further down. */}
+        <select
+          className="lang-select"
+          title={t('lang.pick')}
+          value={lang}
+          onChange={(e) => onLang(e.target.value)}
+        >
+          <optgroup label={t('lang.yours')}>
+            {yours.map((code) => (
+              <option key={code} value={code}>
+                {languageName(code)}
+              </option>
+            ))}
+          </optgroup>
+          {rest.length > 0 && (
+            <optgroup label={t('lang.available')}>
+              {rest.map((code) => (
+                <option key={code} value={code}>
+                  {languageName(code)}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </select>
         <button onClick={onVocab}>{t('nav.vocabulary')}</button>
         <button onClick={onLegend}>{t('nav.legend')}</button>
         <button onClick={onSettings}>{t('nav.settings')}</button>
@@ -258,6 +277,7 @@ export default function App() {
   // Held as state only so that changing it re-renders; `t` reads the module.
   const [ui, setUi] = useState(uiLocale)
   const [languages, setLanguages] = useState<string[]>([lang])
+  const [learning, setLearning] = useState<string[]>(myLangs)
 
   useEffect(() => {
     apply(theme)
@@ -271,9 +291,24 @@ export default function App() {
       .catch(() => undefined)
   }, [])
 
+  // What the dropdown shows, in two groups. Anything you are learning that this
+  // server cannot read is dropped rather than offered — and the language you are
+  // reading is always in the first group, even if it got there by being picked
+  // out of the second one a moment ago.
+  const yours = languages.filter((code) => learning.includes(code) || code === lang)
+  const rest = languages.filter((code) => !yours.includes(code))
+
   const chooseLang = (next: string) => {
     setLang(next)
     rememberLang(next)
+    // Reading something is how a language gets into your list. Picking one out
+    // of "also available" is the moment you started learning it.
+    if (!learning.includes(next)) keepLangs([...learning, next])
+  }
+
+  const keepLangs = (next: string[]) => {
+    setLearning(next)
+    rememberMine(next)
   }
 
   const chooseUi = (next: string) => {
@@ -317,8 +352,9 @@ export default function App() {
     [t('cmd.theme'), flip],
     [t('cmd.system'), () => setTheme('system')],
     // Switching language is a command too, so the core loop never needs the
-    // mouse — the same argument as 0004 makes for everything else.
-    ...languages.map(
+    // mouse — the same argument as 0004 makes for everything else. Only the ones
+    // you are learning: the palette is for what you do daily.
+    ...yours.map(
       (code): [string, () => void] => [languageName(code), () => chooseLang(code)],
     ),
   ]
@@ -348,7 +384,8 @@ export default function App() {
         <Library
           key={refresh}
           lang={lang}
-          languages={languages}
+          yours={yours}
+          rest={rest}
           onLang={chooseLang}
           onOpen={(id) => setView({ at: 'reader', id })}
           onVocab={() => setView({ at: 'vocab' })}
@@ -376,8 +413,10 @@ export default function App() {
       {view.at === 'settings' && (
         <Settings
           languages={languages}
+          learning={yours}
           lang={lang}
           onLang={chooseLang}
+          onLearning={keepLangs}
           onUi={chooseUi}
           onBack={() => setView({ at: 'library' })}
         />

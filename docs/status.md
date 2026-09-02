@@ -15,8 +15,9 @@ decolourises as you go.
 Working and verified against real text, in the browser:
 - French pipeline: spaCy `fr_core_news_md`, POS-tagged lemmas, run at import
 - Russian and Italian pipelines, measured before they were trusted (`decisions/0021`)
-- the language is a control in the header and a setting; it filters the library,
-  and the reader takes its language from the lesson rather than from that control
+- a language dropdown in the header, in two groups — the ones you are learning,
+  then everything else the server can read — curated in settings; it filters the
+  library, and the reader takes its language from the lesson, not from the control
 - three starter texts per new language, written for the purpose, one press to add
 - the interface is English or German; English is the default and stays it, and
   German is chosen in settings, never guessed from the browser

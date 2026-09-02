@@ -144,6 +144,27 @@ Two decisions inside that:
   Mapping only `Pass` and `Anim` gets that for free, because an unmapped value is
   already dropped.
 
+## Choosing a language does not scale as buttons
+
+It was a row of buttons in the header first, one per language, and that was wrong
+the moment there were three: **nobody learns every language a server offers.** At
+four it is a wall of chrome in the bar you look at most, and at ten it is unusable
+— and the server's list is meant to grow.
+
+So the header holds a native `<select>` with two `<optgroup>`s: **your languages**,
+then **also available**. Yours are a short list you keep, in `localStorage` beside
+the theme; picking one out of the second group is the moment you started learning
+it, so it moves into the first. Settings is where the list is curated — take one
+on, drop one you have stopped — and the language you are currently reading has no
+"drop" control, because removing it would leave the library showing a language you
+are not in.
+
+A native select rather than a menu of our own: it takes the same space at three
+languages and at thirty, the keyboard already works, and there is no popup to
+write. The one thing it does need is `option { background: var(--bg) }`, because
+the browser draws the dropdown itself and does not inherit a transparent
+background — which in dark mode is white text on white.
+
 ## Which language the grammar is named in
 
 0012 expected a third setting here, next to interface language and translation
