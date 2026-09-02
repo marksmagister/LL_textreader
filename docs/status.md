@@ -18,7 +18,8 @@ Working and verified against real text, in the browser:
 - the language is a control in the header and a setting; it filters the library,
   and the reader takes its language from the lesson rather than from that control
 - three starter texts per new language, written for the purpose, one press to add
-- the interface is English or German, and follows the browser until you choose
+- the interface is English or German; English is the default and stays it, and
+  German is chosen in settings, never guessed from the browser
 - plain-text import (paste or `.txt`), pages, saved position, "mark page known"
 - all five render states, including known-lemma-novel-form
 - a legend page explaining them, reachable from the library and the palette

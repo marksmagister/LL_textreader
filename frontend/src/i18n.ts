@@ -13,6 +13,9 @@
  * The interface language is not the language you are reading (`lang.ts`) and not
  * the language you translate into. 0012 is emphatic about that: a German speaker
  * reading French may well want English glosses.
+ *
+ * **English is the default and stays the default**, on the maintainer's
+ * instruction. German is a choice, never an inference from the browser.
  */
 
 const en = {
@@ -440,9 +443,11 @@ function initial(): string {
   } catch {
     // private windows and blocked site data both throw
   }
-  // Nobody has chosen yet, so ask the browser: a German reader should not have
-  // to find the setting before the interface is in a language they read.
-  return navigator.language?.startsWith('de') ? 'de' : 'en'
+  // English until someone chooses otherwise, on the maintainer's instruction.
+  // It was briefly taken from `navigator.language`, which would have handed a
+  // German browser a German interface without being asked — convenient, and the
+  // wrong default for a project whose one interface language is English.
+  return 'en'
 }
 
 let current = initial()
