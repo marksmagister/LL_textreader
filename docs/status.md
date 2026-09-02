@@ -129,24 +129,51 @@ without losing anyone's place. Position never moves backwards.
      two-line hardening; it stays a human's job because getting it wrong locks
      you out, and it wants a second terminal open.
 
-2. **Russian** — `decisions/0012`. Before accounts, deliberately: Russian is the thing
-   that proves the lemma-keyed model was worth building, and it is better to find that
-   out before strangers arrive. Mostly front-end work; the step not to skip is measuring
-   Russian morphology before trusting it.
-3. **Export the lessons, and account deletion** — `decisions/0013`. An afternoon each,
-   and they are what "your data is yours" actually means. Worth having whether accounts
-   ever happen or not.
-4. **Accounts**, by invite first — `decisions/0013`. Roughly two days to an invite-only
-   beta; open sign-up is then a flag, and password reset can wait behind invites.
+2. **The bug reports.** Eleven filed from real use, all open in `bug_report`
+   (`./scripts/reports.sh`). Some are already fixed and not yet marked done —
+   the maintainer will say which, so do not assume the list is the backlog.
+   The one that outranks everything after it: #2 and #3 both say a known
+   lemma's unmet form renders as plain yellow learning. That is the novel-form
+   state, the one distinction the schema exists for, and Russian is the
+   language that stresses it hardest — shipping Russian on top of it means
+   debugging both at once. Also core: #4, the dictionary covering text with no
+   way to scroll, and #9, notes that do not save.
 
-On the order of 1 and 2: what is left of the hosting is confirmation and a backup
-destination — an hour, and it has to happen because an unbacked-up lexicon is the one
-loss that cannot be undone. After that, there is a case for Russian ahead of anything
-else. Russian is the thing that could still invalidate the lemma-keyed model, and
-French inflection is too mild to settle it: the novel-form state is the reason this
-schema exists and the pilot language barely exercises it. Finding out after strangers
-have libraries is the expensive way round. Noted so the trade is a choice rather than
-an accident.
+   Two are ideas rather than bugs and are parked here so they are not lost:
+   **#10 multi-word units** — "du coup" means something "coup" does not, so
+   phrases need to be one clickable unit; the maintainer expects this to be
+   hard. **#11 LLM-generated lessons** — generating text at a level and on a
+   topic, and later reusing learned words in new contexts, "a true SRS within
+   context". Open questions attached to it: bring-your-own API token, whether
+   local models are good enough, and whether any of it belongs in the app at
+   all rather than being left to people themselves.
+
+3. **Russian and Italian together, plus a German interface** — `decisions/0012`,
+   updated 2 September. Italian is nearly free once the front end stops saying
+   `fr`, and it is the control that tells you whether the novel-form state is
+   earning its keep. New work in there: the UI has no i18n at all, and the
+   reader needs to choose interface language and translation target
+   *separately* — a German speaker reading French may still want English
+   glosses. Translation itself is already keyed on `(source, target)`, so that
+   half is one model entry per pair. The step not to skip is still measuring
+   Russian morphology before trusting it, the way French was measured.
+
+4. **A phone edition** — at least decent compatibility, because several people
+   the maintainer knows would use it mainly there. Not planned in detail yet,
+   and it collides with something real: this reader is keyboard-first by
+   decision (`0004`), and Tab, `1`, `k`, `i` and the rest have no touch
+   equivalent. So "responsive CSS" is not the whole job — the interaction model
+   needs an answer for a device with no keyboard, and that answer deserves its
+   own decision file before anyone starts.
+
+5. **Accounts** — `decisions/0013`, updated 2 September. Leaning to Sign in
+   with Google rather than passwords, to avoid storing passwords and building
+   reset. Invite-first still holds; invites are about who gets in, which is a
+   different question from how they prove who they are.
+
+6. **Export the lessons, and account deletion** — `decisions/0013`. Moved to
+   the back of the queue on 2 September. An afternoon each, and still what
+   "your data is yours" actually means, but no longer blocking anything.
 
 Alongside all of it: read with the thing. Every real bug so far came from using it, not
 from the tests — the Finish button that did nothing, "mark known" eating learning
@@ -155,11 +182,13 @@ available.
 
 ## Planned in detail, not started
 
-- **Multi-language and Russian** — `decisions/0012`. Mostly front-end: `lang` is already
-  a key everywhere and adapters load by module name. The step not to skip is measuring
-  Russian morphology before trusting it, the way French was measured.
-- **Multi-user** — `decisions/0013`, with a recommendation to run an instance per reader
-  instead until that becomes the annoying part.
+- **Multi-language: Russian and Italian, and a German interface** — `decisions/0012`.
+  Mostly front-end: `lang` is already a key everywhere and adapters load by module
+  name. What is genuinely new is UI localisation and letting the reader pick an
+  interface language and a translation target separately. Now item 3 above.
+- **Multi-user** — `decisions/0013`. The document still recommends an instance per
+  reader until that becomes the annoying part; the maintainer's current leaning is
+  Sign in with Google, which is item 5 above and not yet a decision.
 - **Local-first** — `decisions/0014`. A direction rather than a plan, plus the four small
   things worth preserving now so it stays possible. `decisions/0015` answers a
   zero-cost-hosting proposal and names the fork it implies: going fully static means
@@ -167,9 +196,11 @@ available.
 
 ## Waiting, deliberately
 
-Russian · a phone client · audio · multi-user. None of these is blocked; they are
-held back so the desktop reader gets good first. Multi-user in particular stays out:
-a second reader is a second container (`docs/deploying.md`), not an auth system.
+**Audio**, and that is now the whole list. Russian, a phone client and multi-user
+were all held back here so the desktop reader could get good first; as of
+2 September all three are in the plan above instead. The line that stays true is
+why they waited: nothing here was blocked, and the reader got better for having
+had the attention.
 
 ## Testing
 

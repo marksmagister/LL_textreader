@@ -2,6 +2,26 @@
 
 **Status: planned, not built.**
 
+**Update, 2 September 2026 — the scope grew, and it grew in a good direction.**
+Three things the maintainer added:
+
+- **Italian ships alongside Russian**, not after it. Italian is nearly free once the
+  front end stops saying `fr` — a spaCy model, a kaikki extract, an adapter file — and
+  it is the useful control: if the novel-form state feels pointless in Italian and
+  essential in Russian, that is the model earning its keep, measured rather than
+  argued.
+- **The interface can be German**, not only English. This is new work: there is no
+  i18n anywhere today. The boring version is a dict of strings per locale and a
+  lookup, not a library — there is one screenful of UI text.
+- **Translation can target German** instead of English, switchable by the reader.
+  Cheaper than it sounds: `translate.py` is already keyed on `(source, target)`,
+  `sentence_gloss` already stores `target_lang`, and the models are per pair. German
+  is one `MODELS` entry per source language plus somewhere to choose.
+
+The thing to notice is that *interface language* and *translation target* are two
+different settings and must not be welded together. A German speaker reading French
+may well want English glosses, or the reverse. Two settings, both the reader's.
+
 Russian is the test of the whole data model. French barely needs lemma-keyed status —
 a verb has a few dozen forms and you can nearly get away with surface forms. Russian is
 where `(lemma, pos)` and the novel-form state stop being a nicety, so this is also the

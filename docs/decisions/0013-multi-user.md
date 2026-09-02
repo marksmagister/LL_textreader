@@ -3,6 +3,25 @@
 **Status: planned, not built.** Rewritten once the goal changed from "let a friend try
 it" to "publish it and let people sign up".
 
+**Update, 2 September 2026 — leaning to Sign in with Google, not passwords.** The
+maintainer's reasoning: it removes password storage, password reset, and the email
+infrastructure that reset needs. That is real — most of the cost this document
+attributes to "get back in" is the cost of *recovery*, and delegating identity
+deletes that section rather than solving it. Not yet a decision, so nothing here is
+rewritten around it, but three things to check before it becomes one:
+
+- It moves the domain requirement rather than removing it. Google wants an https
+  redirect URI, which the netcup hostname satisfies, but a public consent screen
+  wants a homepage and a privacy policy on a name you own.
+- It makes Google the single point of failure for every account. Anyone without a
+  Google account, or who loses theirs, is locked out with nothing this project can do.
+  A second method later is the usual answer, and "later" tends to mean never.
+- The order in this document does not change. Export and deletion are still what
+  makes an account survivable, whoever issues the identity.
+
+The invite-first plan below still holds: invites are about *who gets in*, which is a
+separate question from *how they prove who they are*.
+
 ## "Ownership" is three things, and only one of them is accounts
 
 The instinct — people should be able to get back into their stuff — is right, but it
