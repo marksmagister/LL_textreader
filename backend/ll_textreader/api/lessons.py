@@ -5,6 +5,7 @@ import sqlite3
 
 from fastapi import APIRouter, HTTPException
 
+from .. import starters
 from ..counts import refresh, refresh_for_words
 from ..db import USER_ID, connect
 from ..importers import from_url
@@ -18,6 +19,7 @@ from ..models import (
     LessonDetail,
     LessonSummary,
     ReaderToken,
+    StarterRequest,
     state_for,
 )
 from ..nlp.languages import UnknownLanguage
@@ -139,11 +141,47 @@ def create_lesson(req: ImportRequest) -> LessonSummary:
 
 
 @router.get("", response_model=list[LessonSummary])
-def list_lessons() -> list[LessonSummary]:
+def list_lessons(lang: str | None = None) -> list[LessonSummary]:
+    """The library. With `lang`, only what you are reading today.
+
+    A Russian lesson among French ones is noise, so the language selector filters
+    here rather than in the browser: it is one WHERE clause, and it keeps the
+    request proportional to what is shown.
+    """
+    where = " AND l.lang = ?" if lang else ""
+    args = (USER_ID, lang) if lang else (USER_ID,)
     with connect() as conn:
         rows = conn.execute(
-            f"{_SUMMARY} ORDER BY l.imported_at DESC, l.id DESC", (USER_ID,)
+            f"{_SUMMARY}{where} ORDER BY l.imported_at DESC, l.id DESC", args
         ).fetchall()
+    return [LessonSummary(**{k: r[k] for k in DB_FIELDS}) for r in rows]
+
+
+# Declared before /{lesson_id}: routes match in order, and "starters" is not an
+# integer, so the other way round this is a 422 rather than a listing.
+@router.get("/starters")
+def list_starters(lang: str) -> list[dict[str, str | bool]]:
+    """What this language starts with, and whether you already have it."""
+    with connect() as conn:
+        outstanding = {title for _, title, _ in starters.missing(conn, USER_ID, lang)}
+    return [
+        {"collection": collection, "title": title, "imported": title not in outstanding}
+        for collection, title, _ in starters.available(lang)
+    ]
+
+
+@router.post("/starters", response_model=list[LessonSummary], status_code=201)
+def add_starters(req: StarterRequest) -> list[LessonSummary]:
+    """Put the ones you don't have into the library. Pressing twice is a no-op."""
+    with connect() as conn:
+        try:
+            ids = starters.install(conn, USER_ID, req.lang)
+        except UnknownLanguage:
+            raise HTTPException(400, f"no adapter for language {req.lang!r}") from None
+        except OSError as exc:  # spaCy model not downloaded
+            raise HTTPException(503, f"language model unavailable: {exc}") from None
+        refresh(conn, ids)
+        rows = [_lesson_row(conn, lesson_id) for lesson_id in ids]
     return [LessonSummary(**{k: r[k] for k in DB_FIELDS}) for r in rows]
 
 

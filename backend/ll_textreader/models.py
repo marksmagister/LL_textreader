@@ -98,6 +98,12 @@ class ImportRequest(BaseModel):
     source: str | None = None
 
 
+class StarterRequest(BaseModel):
+    """Put a language's starter texts in the library."""
+
+    lang: str
+
+
 class TermUpdate(BaseModel):
     lang: str
     lemma: str

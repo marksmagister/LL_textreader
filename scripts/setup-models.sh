@@ -6,7 +6,14 @@
 # does not use. Lemmas and POS tags are the same.
 set -euo pipefail
 
-langs="${*:-fr}"
+# No arguments: every language the app is configured to offer. Read out of .env
+# rather than sourcing it, so a value with a space in it cannot break the script.
+if [ "$#" -gt 0 ]; then
+  langs="$*"
+else
+  langs=$(sed -n 's/^LL_TEXTREADER_LANGUAGES=//p' .env 2>/dev/null | tail -1 | tr -d '"'"'"'')
+  langs=$(echo "${LL_TEXTREADER_LANGUAGES:-${langs:-fr}}" | tr ',' ' ')
+fi
 
 # Re-run this after any `uv sync`: the model is installed as a wheel that is not
 # in the lockfile, so syncing prunes it.
