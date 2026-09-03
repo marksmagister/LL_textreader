@@ -366,6 +366,14 @@ main.signin { max-width: 32rem; padding-top: 4.5rem; }
                  gap: 0.9rem; align-items: baseline; }
 .signin-key .tok { cursor: default; justify-self: start; }
 
+/* The argument, after the demonstration. Headings are quiet — this is a page
+   about reading, and a landing page shouting at a reader is the wrong register. */
+.pitch { margin: 2.2rem 0; }
+.pitch h2 { font-size: 0.95rem; font-weight: normal; font-style: italic;
+            margin: 0 0 0.5rem; }
+.pitch p { line-height: 1.75; margin: 0 0 0.7rem; }
+.pitch i { font-style: italic; }
+
 .signin-go { border-top: 1px solid var(--line); padding-top: 1.6rem;
              margin-top: 2rem; }
 .signin-go .bar { margin-bottom: 1rem; }

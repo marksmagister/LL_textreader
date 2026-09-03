@@ -52,8 +52,8 @@ export default function SignIn({ me, error }: { me: Me; error?: string }) {
     <main className="signin">
       <h1>LL_textreader</h1>
       <p className="lede">
-        Read whatever you actually want to read, in a language you are learning. Every word
-        is coloured by whether <em>you</em> know it.
+        Read whatever you actually want to read. Every word is coloured by whether{' '}
+        <em>you</em> know it, and the page decolourises as you go.
       </p>
 
       <Sample />
@@ -71,11 +71,39 @@ export default function SignIn({ me, error }: { me: Me; error?: string }) {
         </li>
       </ul>
 
-      <p className="lede">
-        Click a word, read the definition, and it changes colour. There is no deck to
-        grind: you meet the word again in the next thing you read. As you read more, the
-        page decolourises.
-      </p>
+      <section className="pitch">
+        <h2>It knows that marcherons is marcher</h2>
+        <p>
+          A part-of-speech tagger reads every text as it is imported, so a word is tracked
+          once rather than once per spelling. <i>Court</i> and <i>courraient</i> are one
+          entry. <i>Porte</i> the door is not <i>porte</i> the verb. Your word count means
+          something.
+        </p>
+        <p>
+          And when a word you know turns up in a shape you have never met, it says so
+          instead of pretending you are fine. That is a nicety in French and the whole game
+          in Russian.
+        </p>
+      </section>
+
+      <section className="pitch">
+        <h2>No deck to grind</h2>
+        <p>
+          Click a word, read the definition, carry on. Review happens by meeting the word
+          again in the next thing you read — which is how you learned most of the words you
+          already know.
+        </p>
+      </section>
+
+      <section className="pitch">
+        <h2>Open source, and yours to take</h2>
+        <p>
+          AGPL-3.0: read the code, run your own copy, keep it running if this one stops.
+          Nothing you import is shared with other readers, and one click gives you a zip of
+          every text and every word you have learned — in formats that outlive this
+          project.
+        </p>
+      </section>
 
       {error && <p className="warn">{REASONS[error] ?? 'Something went wrong signing in.'}</p>}
 
@@ -107,10 +135,9 @@ export default function SignIn({ me, error }: { me: Me; error?: string }) {
           <a className="button primary" href={`/api/auth/google/start?lang=${lang}`}>
             Sign in with Google
           </a>
+          {/* Only what the sections above have not already said. */}
           <p className="meta">
-            You start with a couple of short texts to read. Everything you import after that
-            is private to your account — it is never shared with other readers, and you can
-            take all of it with you or delete it at any time.
+            You start with a couple of short texts, then import your own.
           </p>
         </div>
       )}
