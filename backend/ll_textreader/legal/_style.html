@@ -1,0 +1,17 @@
+<style>
+  :root { color-scheme: light dark; --fg:#1a1a1a; --bg:#fdfdfb; --line:#d8d5cc; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#e8e6e1; --bg:#16181a; --line:#333; } }
+  body { margin:0; background:var(--bg); color:var(--fg); line-height:1.7;
+         font-family: Georgia, 'Iowan Old Style', serif; }
+  main { max-width: 38rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+  h1 { font-size: 1.4rem; font-weight: normal; }
+  h2 { font-size: 1rem; font-weight: normal; text-transform: uppercase;
+       letter-spacing: 0.06em; opacity: 0.6; margin-top: 2.5rem; }
+  a { color: inherit; }
+  .draft { border: 1px solid var(--line); padding: 0.8rem 1rem; font-size: 0.85rem;
+           background: color-mix(in srgb, var(--fg) 5%, transparent); }
+  .meta { font-size: 0.8rem; opacity: 0.6; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  td, th { border-bottom: 1px solid var(--line); text-align: left;
+           padding: 0.45rem 0.6rem 0.45rem 0; vertical-align: top; }
+</style>

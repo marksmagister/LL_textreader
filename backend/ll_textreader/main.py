@@ -1,7 +1,9 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
@@ -42,6 +44,29 @@ def health() -> dict[str, str | list[str]]:
     """Deliberately open. It says the version and which languages are loaded —
     nothing about any reader — and something has to answer before anyone signs in."""
     return {"status": "ok", "version": __version__, "languages": settings.language_list}
+
+
+# Served from here rather than from the SPA for two reasons: Google's consent
+# screen wants a URL it can fetch without running JavaScript, and somebody
+# reading the privacy policy to decide whether to sign up must not have to sign
+# up to read it. Registered before the static mount below, which would otherwise
+# swallow both paths.
+LEGAL = Path(__file__).parent / "legal"
+
+
+def _page(name: str) -> HTMLResponse:
+    style = (LEGAL / "_style.html").read_text(encoding="utf-8")
+    return HTMLResponse(style + (LEGAL / name).read_text(encoding="utf-8"))
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy() -> HTMLResponse:
+    return _page("privacy.html")
+
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms() -> HTMLResponse:
+    return _page("terms.html")
 
 
 # In production the built frontend is served from here, so a deployment is one
