@@ -98,10 +98,11 @@ export default function SignIn({ me, error }: { me: Me; error?: string }) {
       <section className="pitch">
         <h2>Open source, and yours to take</h2>
         <p>
-          AGPL-3.0: read the code, run your own copy, keep it running if this one stops.
-          Nothing you import is shared with other readers, and one click gives you a zip of
-          every text and every word you have learned — in formats that outlive this
-          project.
+          AGPL-3.0:{' '}
+          <a href="https://github.com/marksmagister/LL_textreader">read the code</a>, run
+          your own copy, keep it running if this one stops. Nothing you import is shared
+          with other readers, and one click gives you a zip of every text and every word you
+          have learned — in formats that outlive this project.
         </p>
       </section>
 

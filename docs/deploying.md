@@ -52,16 +52,18 @@ That is the whole thing. It installs the packages, adds Caddy's repo, creates th
 `llt` user, gets Python 3.12 through `uv`, clones, builds, and starts the service
 and the backup timer behind TLS.
 
-**It needs two passes.** The repo is private, so the box cannot clone it until it
-has a key of its own. The first pass stops and prints one; add it at
-[Settings → Deploy keys](https://github.com/marksmagister/LL_textreader/settings/keys/new)
-(read-only — it never pushes), then run the same command again. The script is
-idempotent: it checks before every step, so re-running it is also how you resume
+**One pass.** It used to need two: the repo was private, so the first pass stopped
+to print a deploy key that had to be added on GitHub before the box could clone.
+The repository is public now, the box clones over https, and that step is gone
+from the script rather than left in as something to skip. The script is still
+idempotent — it checks before every step, so re-running it is also how you resume
 after a failed download.
 
-It writes `/opt/ll-textreader/.env` once, with a generated password, and prints
-that password exactly once. It will not overwrite it on a later run — regenerating
-it would lock you out of your own lexicon.
+It writes `/opt/ll-textreader/.env` once and never overwrites it. The Google
+client id and secret are left **blank** on purpose, and the box serves nobody
+until they are filled in: a secret is the one value that must not be generated or
+guessed, so the script says what to paste rather than inventing something. See
+*Google sign-in* below.
 
 ### First, rotate the root password
 
@@ -123,6 +125,52 @@ ssh root@159.195.244.92 'LL_TEXTREADER_FQDN=read.example.org bash -s' \
 
 That run drops the `tls internal` line from the Caddyfile on its own, so the real
 certificate issues on the first request with nothing else to remember.
+
+### Google sign-in
+
+Google is the only way in (`decisions/0021`), so the box cannot serve anybody
+until an OAuth client exists and its two values are in `.env`.
+
+The project's client id, which is public by design — it travels in the redirect
+URL and is visible in every reader's browser, so it is recorded here rather than
+being something to go and look up:
+
+```
+369455894872-l6t0vlbfc6kbaar7fhihqj02sr7vc4kr.apps.googleusercontent.com
+```
+
+The **client secret is not public** and must never be committed. It goes straight
+into `/opt/ll-textreader/.env` on the box and nowhere else — not into git, not
+into a chat window, not into an issue.
+
+Three things to set in [console.cloud.google.com](https://console.cloud.google.com):
+
+1. **Register the redirect URI on the OAuth client, exactly.** Google compares it
+   as a string, so a missing slash is a `redirect_uri_mismatch` and nothing else.
+   Both of these can be registered at once, which is what lets you test locally
+   against the same client:
+
+   ```
+   https://v2202609408983511171.ultrasrv.de/api/auth/google/callback
+   http://localhost:8000/api/auth/google/callback
+   ```
+
+   `http` is allowed for `localhost` specifically, and for nothing else.
+
+2. **Scopes: `openid`, `email`, `profile`. Nothing else.** These are Google's
+   non-sensitive scopes, and using only them is what lets this app publish
+   without a verification review. Adding a fourth scope is not a small change —
+   it can put the project into a review queue.
+
+3. **Press "Publish app"** on the OAuth consent screen, so the publishing status
+   reads *In production* rather than *Testing*.
+
+**Testing mode is not a smaller version of production; it behaves differently in
+a way that would look like a bug.** Every user must be added to a test-user list
+by hand, *and* their consent expires seven days after they give it — so readers
+would be signed out weekly, and the first guess would be that sessions are
+broken. There is no upside to staying in Testing: our scopes need no review, so
+publishing costs one click and no waiting.
 
 ### What still needs a human
 

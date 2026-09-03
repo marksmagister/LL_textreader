@@ -32,7 +32,7 @@ Dutch comes last. Current state and roadmap: `docs/status.md`.
 Requires Python 3.12 and Node 20+.
 
 ```bash
-git clone git@github.com:marksmagister/LL_textreader.git
+git clone https://github.com/marksmagister/LL_textreader.git
 cd LL_textreader
 uv sync --extra nlp              # backend deps, incl. spaCy
 ./scripts/setup-models.sh fr     # ~45MB, not vendored — see NOTICE
@@ -67,7 +67,13 @@ undone. Deployment: `docs/deploying.md`.
 
 ## Licence
 
-AGPL-3.0. No third-party data ships in this repo — the setup scripts fetch it. See
-`NOTICE` for what gets downloaded and under what terms.
+AGPL-3.0 — chosen deliberately, so a closed hosted fork is not possible
+(`docs/decisions/0003`). Run your own copy, and if the instance you use stops,
+keep it running yourself.
+
+No third-party data ships in this repo — the setup scripts fetch it, and the
+starter texts in `backend/ll_textreader/starters/` are original prose written for
+the purpose, not excerpts. See `NOTICE` for what gets downloaded and under what
+terms.
 
 Not affiliated with, derived from, or a copy of any existing reading app.
