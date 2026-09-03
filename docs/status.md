@@ -278,9 +278,26 @@ without losing anyone's place. Position never moves backwards.
      `0019` anticipated. There is now one DNS lookup instead of two, done by the
      connection itself, and TLS still verifies against the name.
    - **Privacy policy and terms** at `/privacy` and `/terms`, readable without
-     signing in. Honest about what is stored; **still marked draft, with
-     `[OPERATOR NAME]` unfilled**. A test asserts the draft notice is present,
-     so it has to be removed deliberately.
+     signing in. Honest about what is stored, and the contact is the Google
+     Group rather than anyone's inbox; **still marked draft, with
+     `[OPERATOR NAME]` and `[POSTAL ADDRESS]` unfilled**. A test asserts the
+     draft notice is present, so it has to be removed deliberately.
+
+     **The two placeholders have different sources, and only one of them is
+     hard.** The GDPR wants the controller's identity and a way to reach them
+     (Art. 13) — a name and the group address satisfy that. The *postal*
+     address comes from the Impressum duty instead, and in Germany that wants
+     an address able to receive legal service, which a PO box is not.
+
+     Which means **open signup is what creates the expensive half.** A service
+     offered to strangers is what makes the duty bite; a handful of invited
+     friends is far more defensible as private use. The cheap order is
+     therefore to stay closed — `LL_TEXTREADER_SIGNUP=off`, or the cap set very
+     low and accounts handed out by hand — until the address question is
+     actually answered, rather than answering it in order to launch. A rented
+     Impressum address is five to fifteen euros a month and is the normal way
+     not to publish your home; it is worth buying the day strangers are wanted,
+     and not before. Not legal advice, and it depends on jurisdiction.
    - **New accounts pick a language and get starter lessons** — two original
      French texts in `starters/fr/`, the second reusing the first's vocabulary
      in unmet shapes.
