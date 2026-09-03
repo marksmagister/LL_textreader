@@ -1,13 +1,13 @@
-"""Who is reading: sessions, invites, and the dependency every route hangs on.
+"""Who is reading: sessions, accounts, and the dependency every route hangs on.
 
-Identity comes from Google (`google.py`); what lives here is everything that
-stays true whoever issues it. That split is deliberate — invites decide *who gets
-in*, which is a different question from how they prove who they are, and only the
-second half would change if a password ever arrived alongside Google.
+Identity comes from Google (`google.py`); what lives here is everything that stays
+true whoever issues it. Only the first half would change if a second sign-in
+method ever arrived.
 
 The one rule worth restating from docs/decisions/0013: there is no fallback user.
 A route that forgets to depend on `current_user` gets no user at all rather than
-silently reading user 1's vocabulary.
+silently reading user 1's vocabulary — which is why the constant was deleted
+rather than defaulted.
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ from .config import settings
 from .db import connect, init_db
 
 COOKIE = "ll_session"
+
 
 # Everything a route needs to know about who is asking. Deliberately not the
 # database row: routes want an id, and passing the row around invites someone to
@@ -143,7 +144,7 @@ def count_users(conn: sqlite3.Connection) -> int:
     return int(conn.execute("SELECT COUNT(*) FROM user").fetchone()[0])
 
 
-# ---------------------------------------------------------------- the command
+# ---------------------------------------------------------------- the cap
 
 
 def room_for_another(conn: sqlite3.Connection) -> bool:
@@ -174,9 +175,7 @@ def _main() -> None:
             print(f"deleted {sweep_sessions(conn)} stale sessions")
             conn.commit()
             return
-        rows = conn.execute(
-            "SELECT id, name, email, created_at FROM user ORDER BY id"
-        ).fetchall()
+        rows = conn.execute("SELECT id, name, email, created_at FROM user ORDER BY id").fetchall()
         if not rows:
             print("no accounts yet")
         for r in rows:

@@ -248,3 +248,16 @@ CREATE TABLE IF NOT EXISTS session (
 CREATE INDEX IF NOT EXISTS idx_session_user ON session(user_id);
 
 
+
+-- ---------------------------------------------------------------- limits
+-- What one account is allowed to cost, counted in fixed hourly windows. See
+-- limits.py, which also says why fixed windows rather than a sliding log.
+-- Rows older than the current window are dead weight and get swept.
+
+CREATE TABLE IF NOT EXISTS rate_limit (
+    user_id  INTEGER NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    action   TEXT    NOT NULL,          -- 'import', 'fetch', 'translate', ...
+    window   TEXT    NOT NULL,          -- strftime('%Y-%m-%dT%H')
+    n        INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, action, window)
+);

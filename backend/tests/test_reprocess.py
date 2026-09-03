@@ -5,9 +5,11 @@ records which pipeline produced each one; this is the tool that acts on it.
 """
 
 from ll_textreader.api import lessons
-from ll_textreader.db import USER_ID, connect
+from ll_textreader.db import connect
 from ll_textreader.importers.plain_text import reprocess, stale
 from ll_textreader.nlp import languages
+
+from .conftest import user_id
 
 TEXT = "Il marchait le long du quai. Nous marchons. Une mouette cria."
 
@@ -70,7 +72,7 @@ def test_reprocessing_keeps_your_place(client, monkeypatch):
         reprocess(conn, lesson)
         moved = conn.execute(
             "SELECT last_token FROM reading_progress WHERE lesson_id = ? AND user_id = ?",
-            (lesson, USER_ID),
+            (lesson, user_id()),
         ).fetchone()["last_token"]
 
     assert moved > 0

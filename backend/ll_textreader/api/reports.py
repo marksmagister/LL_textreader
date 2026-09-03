@@ -9,26 +9,29 @@ See `docs/decisions/0010-bug-reports-are-untrusted.md`.
 from fastapi import APIRouter
 
 from .. import __version__
-from ..db import USER_ID, connect
+from ..auth import CurrentUser, User
+from ..db import connect
+from ..limits import check_rate
 from ..models import BugReport
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 
 @router.post("", status_code=201)
-def report(req: BugReport) -> dict[str, int]:
+def report(req: BugReport, user: User = CurrentUser) -> dict[str, int]:
     """Store a report with the context that makes it actionable."""
     with connect() as conn:
+        check_rate(conn, user.id, "report")
         pipeline = None
         if req.lesson_id:
             row = conn.execute(
                 "SELECT pipeline_id FROM lesson WHERE id = ? AND user_id = ?",
-                (req.lesson_id, USER_ID),
+                (req.lesson_id, user.id),
             ).fetchone()
             pipeline = row["pipeline_id"] if row else None
         cur = conn.execute(
             "INSERT INTO bug_report (user_id, text, lesson_id, page, version, pipeline)"
             " VALUES (?,?,?,?,?,?)",
-            (USER_ID, req.text.strip(), req.lesson_id, req.page, __version__, pipeline),
+            (user.id, req.text.strip(), req.lesson_id, req.page, __version__, pipeline),
         )
     return {"id": int(cur.lastrowid)}

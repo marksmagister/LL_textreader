@@ -8,7 +8,9 @@ fails, the cache is wrong and not the assertion.
 
 import pytest
 
-from ll_textreader.db import USER_ID, connect
+from ll_textreader.db import connect
+
+from .conftest import user_id
 
 TEXT = "Il marchait le long du quai. Nous marchons vers le quai."
 
@@ -28,7 +30,7 @@ def assert_honest(client):
     """Stored counts equal counted-from-scratch, for every lesson."""
     with connect() as conn:
         for row in conn.execute("SELECT id, n_new, n_learning, n_known FROM lesson"):
-            truth = conn.execute(TRUTH, (USER_ID, USER_ID, row["id"])).fetchone()
+            truth = conn.execute(TRUTH, (user_id(), user_id(), row["id"])).fetchone()
             assert (row["n_new"], row["n_learning"], row["n_known"]) == tuple(truth), (
                 f"lesson {row['id']} drifted: stored {tuple(row)[1:]} vs actual {tuple(truth)}"
             )
