@@ -153,6 +153,20 @@ The **client secret is not public** and must never be committed. It goes straigh
 into `/opt/ll-textreader/.env` on the box and nowhere else — not into git, not
 into a chat window, not into an issue.
 
+The support address is a Google Group, `ll_textreader@googlegroups.com`, and the
+reason is worth keeping: *User support email* on the consent screen is a
+dropdown, not a text field, and Google only offers the logged-in account's own
+address or a group it manages. A personal address would work and would then sit
+on the consent screen and — worse — on the privacy and terms pages, which are
+public and get scraped. The group takes the spam instead, and can be moderated
+or deleted without touching anyone's inbox. It is the address in
+`legal/privacy.html` and `legal/terms.html` too.
+
+**A new Google Group rejects mail from non-members by default**, which would make
+the support address look fine and silently bounce every reader who wrote to it.
+Set posting permission to anyone on the web, and send it a message from an
+unrelated account once to prove it arrives.
+
 Three things to set in [console.cloud.google.com](https://console.cloud.google.com):
 
 1. **Register the redirect URI on the OAuth client, exactly.** Google compares it
@@ -172,8 +186,27 @@ Three things to set in [console.cloud.google.com](https://console.cloud.google.c
    without a verification review. Adding a fourth scope is not a small change —
    it can put the project into a review queue.
 
-3. **Press "Publish app"** on the OAuth consent screen, so the publishing status
-   reads *In production* rather than *Testing*.
+3. **Press "Publish app"** so the publishing status reads *In production* rather
+   than *Testing* — and it is on the **Audience** page, not Branding:
+   `console.cloud.google.com/auth/audience?project=ll-textreader`.
+
+   The old console put this under APIs & Services → OAuth consent screen. That
+   page no longer exists: the 2025 reorganisation split it into the Google Auth
+   Platform's Branding, Audience, Clients and Data Access pages, and publishing
+   moved to Audience. An earlier version of this file sent a reader to the old
+   path, where the button simply is not present.
+
+   Two things gate the button, and both fail quietly rather than explaining
+   themselves:
+
+   - **Branding must be complete and saved first** — App name, user support
+     email and developer contact. With any of them blank, publishing refuses
+     with *"Your app's OAuth configuration is incomplete"* and points back at
+     Branding.
+   - **User type must be External.** Internal apps do not publish at all, since
+     they are already limited to one Workspace organisation. A project owned by
+     a personal Google account has no organisation and so can only be External,
+     but it is worth confirming rather than assuming.
 
 **Testing mode is not a smaller version of production; it behaves differently in
 a way that would look like a bug.** Every user must be added to a test-user list
