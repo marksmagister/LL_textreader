@@ -5,11 +5,41 @@ email reset. 0013's *order* survives intact — export and deletion first, the `
 removal early, open signup and recovery late — and everything it says about what
 ownership means is unchanged. What changes is who issues the identity.
 
+## Four corrections, made while building it
+
+Written the same day, beside the original rather than instead of it. Each made the
+thing smaller, and each came from the maintainer rather than from the code.
+
+- **No invites. Open signup, capped at a hundred accounts.** The plan below has a
+  whole phase for an invite table, a minting command and a landing page. A number in
+  `config.py` does the same job — bound how many strangers can arrive — in one line,
+  and `CLAUDE.md` is explicit that a table nobody needs yet is the wrong change. Raise
+  the cap when it binds. Phase 6 is deleted, not deferred.
+- **No adoption of existing users.** An earlier draft had an "adopting invite" that
+  bound a Google identity to a row that already existed, so a pre-accounts database
+  would not be orphaned. Cut: the only database that needs it is the maintainer's own,
+  once, and a hand-written `UPDATE` run knowingly is safer than a feature that can
+  hand one person's whole lexicon to whoever opens a link. **Consequence to remember:
+  the existing user 1 on the box has no `google_sub` and nobody can sign in as it.
+  That reading is safe but unreachable until the link is made by hand.**
+- **One shared database, not one per account.** Considered seriously, and rejected as
+  the *less* lean option despite sounding simpler: per-file means attaching the shared
+  dictionary or duplicating 8.9MB per reader, running migrations over N files on every
+  deploy, and a multi-file backup — while leaving `user_id` on every table as dead
+  weight. `0005` put `user_id` in the schema for exactly this, and that groundwork is
+  already paid for. Isolation is bought instead with the enumerated test in phase 3.
+- **New accounts choose their language and are given starter lessons in it.** Nobody
+  should meet an empty library. The texts are original prose in `starters/` — an
+  excerpt would break `CLAUDE.md` and `NOTICE` both — and the second French one
+  deliberately reuses the first's vocabulary in unmet shapes, so it opens already
+  half-legible. That is the lemma-keyed model arguing for itself on a page nobody
+  has touched.
+
 ## The decision
 
-Google is the only way in. No passwords, no password reset, no outbound mail.
-Invite-first: an account is created by following an invite link and signing in with
-Google, and the invite is what decides who gets in.
+Google is the only way in. No passwords, no password reset, no outbound mail. Signup
+is open to anyone with a Google account until the cap is reached. *(This paragraph
+originally said invite-first; see the corrections above.)*
 
 Three things this buys, in the order they matter:
 
@@ -60,8 +90,8 @@ re-consent, no verification queue. Testing mode is for the few minutes before th
 real sign-in works.
 
 The consequence for the roadmap is that Google's limits stop being a reason to keep the
-beta small. Invites stay, because *we* want to choose who gets in while the box has no
-quotas and no terms page — not because Google is counting.
+beta small. Something else has to bound it, since the box's capacity is real even when
+Google's is not — and that is `max_users`, plus the per-account limits in `limits.py`.
 
 Sources checked September 2026: [when verification is not
 needed](https://support.google.com/cloud/answer/13464323),
@@ -98,11 +128,18 @@ third party can hand a reader a callback URL and land them in the wrong account.
 
 ## Schema
 
-0013's tables, plus what Google needs. `user` gains three columns; `session` and
-`invite` are new.
+0013's tables, plus what Google needs. `user` gains four columns and `session` is new.
+No `invite` table — see the corrections above.
+
+Note on the ALTER below: SQLite **cannot** add a `UNIQUE` column to a table that
+already exists, so `google_sub` is added plain and a unique index does that job. It is
+created in `db.py` after the columns rather than in `schema.sql`, which runs first
+against a table that may not have them yet. The index permits many NULLs, which is
+what an un-linked legacy row needs.
 
 ```sql
-ALTER TABLE user ADD COLUMN google_sub TEXT UNIQUE;  -- the identity. never email.
+ALTER TABLE user ADD COLUMN google_sub TEXT;         -- the identity. never email.
+ALTER TABLE user ADD COLUMN lang       TEXT;         -- chosen at sign-up
 ALTER TABLE user ADD COLUMN email      TEXT;         -- display, and a future fallback
 ALTER TABLE user ADD COLUMN picture    TEXT;
 
@@ -113,12 +150,6 @@ CREATE TABLE session (
     seen_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE TABLE invite (
-    token      TEXT PRIMARY KEY,
-    note       TEXT,                    -- who it was for
-    used_by    INTEGER REFERENCES user(id),
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
 ```
 
 Server-side sessions rather than a signed stateless cookie, for 0013's reason: it makes
@@ -189,22 +220,22 @@ That stays true — each reader imports their own — so `counts.py` is untouche
 `session` table, cookie, `require_user` replacing the stub, and a real logout.
 
 **The shared password is retired here, not kept as an outer gate.** Two auth systems is
-the bloat `CLAUDE.md` warns about, and the invite is already the thing deciding who gets
+the bloat `CLAUDE.md` warns about, and sign-in is already the thing deciding who gets
 in. This has one consequence to handle rather than discover: `scripts/serve.sh --share`
-refuses to start without a password today. It should refuse to start unless signup is
-invite-only instead — the tunnel stays as safe as it was, guarded by the thing that now
-does the guarding.
+refuses to start without a password today. It should refuse to start unless *Google is
+configured* instead — a public tunnel nobody can sign in to reads as a broken app
+rather than a closed one.
 
 ### 5 — Google
 
 Start, callback, `state`, PKCE, the `aud` check, first sign-in creating a user against
-an invite. Config: `LL_TEXTREADER_GOOGLE_CLIENT_ID`, `..._SECRET`, `..._REDIRECT_URI`.
+the cap. Config: `LL_TEXTREADER_GOOGLE_CLIENT_ID`, `..._SECRET`, `..._REDIRECT_URI`.
 
-### 6 — Invites
+### 6 — ~~Invites~~ — cut, see the corrections above
 
-The table, a command that mints one and prints the link, and `LL_TEXTREADER_SIGNUP`
-taking `invite` (the default), `open` or `off`. Open signup is then the flag 0013
-promised, not a rewrite.
+Replaced by `LL_TEXTREADER_MAX_USERS`. `LL_TEXTREADER_SIGNUP` survives with two
+values, `open` and `off`, because closing the door without locking out the people
+already inside is a real thing to want.
 
 ### 7 — The front end
 

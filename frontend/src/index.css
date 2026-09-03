@@ -62,6 +62,11 @@
 /* The browser paints its own ground behind a transparent body. */
 body { margin: 0; background: var(--bg); color: var(--fg); }
 
+/* Links take the text colour. The browser's default blue-and-purple is a fifth
+   and sixth colour in an app whose whole palette is four states of one word, and
+   a visited link turning purple looks like a render state that means something. */
+a { color: inherit; }
+
 /* A reading app: the text is the interface. ~65 characters of measure. */
 main { max-width: 34rem; margin: 0 auto; padding: 2rem 1.5rem 8rem; }
 
@@ -335,3 +340,59 @@ kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--line);
 .legend-loop { font-size: 1rem; line-height: 2.4; }
 .legend-notes { padding-left: 1.1rem; }
 .legend-notes li { margin-bottom: 0.7rem; }
+
+/* ---------------------------------------------------------------- accounts */
+
+/* The first screen anyone sees. It keeps the reader's own measure and type,
+   because the argument for this app is what a page of it looks like — so the
+   page shows one instead of describing it. The sample uses the real .tok
+   classes (as the legend does), which means it cannot drift from the product. */
+main.signin { max-width: 32rem; padding-top: 4.5rem; }
+.signin h1 { font-size: 1.5rem; margin-bottom: 1.2rem; }
+.signin .lede { line-height: 1.8; }
+.signin .lede em { font-style: italic; }
+
+/* Set at reading size and given room, so it reads as a page rather than as a
+   swatch. This is the one thing on the screen worth looking at. */
+.signin-demo { font-size: 1.12rem; line-height: 2; margin: 2rem 0 1.4rem;
+               padding: 1.4rem 1.3rem; border: 1px solid var(--line);
+               border-radius: 4px; }
+.signin-demo .tok { cursor: default; }
+
+.signin-key { list-style: none; padding: 0; margin: 0 0 2rem;
+              font-size: 0.82rem; line-height: 1.6; opacity: 0.85;
+              display: grid; gap: 0.4rem; }
+.signin-key li { display: grid; grid-template-columns: max-content 1fr;
+                 gap: 0.9rem; align-items: baseline; }
+.signin-key .tok { cursor: default; justify-self: start; }
+
+.signin-go { border-top: 1px solid var(--line); padding-top: 1.6rem;
+             margin-top: 2rem; }
+.signin-go .bar { margin-bottom: 1rem; }
+.signin .meta { line-height: 1.6; max-width: 28rem; }
+.signin-foot { margin-top: 2.5rem; }
+.signin label { font-size: 0.85rem; opacity: 0.7; }
+.signin select { font: inherit; font-size: 0.85rem; padding: 0.25rem;
+                 background: var(--bg); color: var(--fg);
+                 border: 1px solid var(--line); border-radius: 3px; }
+
+/* The one button on the page that is a destination rather than an option. */
+a.button.primary { display: inline-block; font-size: 0.95rem;
+                   padding: 0.55rem 1.1rem; text-decoration: none; opacity: 1;
+                   border-color: currentColor; }
+a.button.primary:hover { background: color-mix(in srgb, var(--fg) 8%, transparent); }
+
+/* Warnings carry a rule rather than a colour: the palette's blues and yellows
+   already mean something specific in this app, and a red would be a sixth
+   state competing with the five that matter. */
+.warn { border-left: 2px solid var(--cursor); padding-left: 0.7rem;
+        font-size: 0.85rem; line-height: 1.6; }
+
+.account { position: fixed; top: 0.6rem; right: 0.75rem; z-index: 7; text-align: right; }
+.account > button { background: var(--bg); }
+.account-menu { border: 1px solid var(--line); background: var(--bg);
+                padding: 0.7rem; width: 15rem; text-align: left;
+                display: flex; flex-direction: column; gap: 0.45rem;
+                align-items: flex-start; }
+.account-menu .meta { margin: 0; }
+.account-menu .warn { margin: 0; }

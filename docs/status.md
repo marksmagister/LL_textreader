@@ -253,25 +253,52 @@ without losing anyone's place. Position never moves backwards.
    needs an answer for a device with no keyboard, and that answer deserves its
    own decision file before anyone starts.
 
-5. **Accounts — decided and started, 3 September.** Sign in with Google, no
-   passwords, invite-first. `decisions/0021` carries the decision, the eight
-   phases and the four things only a human can do; `0013` still holds for what
-   ownership means and what publishing costs. Being built on the branch
-   `accounts` rather than straight to `main` — it touches 41 call
-   sites and the failure mode is one reader seeing another's vocabulary, so it
-   wants to land as one reviewed piece.
+5. **Accounts — built on the `accounts` branch, 3 September. Not merged, not
+   deployed.** Sign in with Google, open signup capped at 100, no passwords and
+   no invites. `decisions/0021` carries the decision and four corrections made
+   while building it. The suite is 235 backend + 25 frontend, all passing;
+   `ruff` and `tsc` clean.
 
-   Two corrections came out of planning it, both worth knowing before reading
-   `0013`:
+   What works, verified by running it rather than only by tests: the app boots,
+   `/api/auth/me` answers `null` before sign-in, every reader route answers 401
+   without a session, `/privacy` and `/terms` serve, and the sign-in screen
+   renders in both themes.
 
-   - **Google's 100-user cap was the wrong thing to plan around.** It applies
-     to *Testing* mode, which also expires every reader's consent after seven
-     days — weekly re-logins in an app you open daily. Our scopes (`openid`,
-     `email`, `profile`) are non-sensitive, so publishing to production needs
-     no verification at all. Press "Publish app" on day one; the cap and the
-     re-consent both disappear and nothing is queued for review.
-   - **`0019`'s DNS rebinding becomes must-fix**, as `0019` itself predicted,
-     and it is not in `0013`'s costing. Phase 8.
+   - **`USER_ID` is gone from all 41 call sites.** Deleted rather than
+     defaulted, so a route that forgets fails to import. Two tests guard it:
+     one enumerates every route from the app's own OpenAPI schema and asserts a
+     stranger gets 401 — so a route added later without a user fails the day it
+     is written — and one drives two accounts through the same database checking
+     neither can see, open, delete, finish, undo or export the other's work.
+   - **Limits on everything exploitable**, per account per hour: import 40,
+     URL fetch 30, translate 60, reports 20, term updates 3000, page turns 600;
+     plus 500 lessons and 2M characters an account. `limits.py`.
+   - **The DNS-rebinding hole is closed**, which `0019` said would become
+     must-fix the day accounts arrived — and open signup made it worse than
+     `0019` anticipated. There is now one DNS lookup instead of two, done by the
+     connection itself, and TLS still verifies against the name.
+   - **Privacy policy and terms** at `/privacy` and `/terms`, readable without
+     signing in. Honest about what is stored; **still marked draft, with
+     `[OPERATOR NAME]` unfilled**. A test asserts the draft notice is present,
+     so it has to be removed deliberately.
+   - **New accounts pick a language and get starter lessons** — two original
+     French texts in `starters/fr/`, the second reusing the first's vocabulary
+     in unmet shapes.
+
+   Three things it does not do, on purpose:
+
+   - **Nobody can sign in as the existing user 1.** Adoption was cut (0021),
+     so the lexicon on the box and on the laptop is safe but unreachable until
+     the maintainer links their Google identity to it by hand. Deliberate: a
+     feature that hands one person's lexicon to whoever opens a link is worse
+     than one `UPDATE`.
+   - **Google is not wired to anything real.** The code is written and the
+     failure paths are covered, but the round trip needs a browser, a person
+     pressing Allow, and credentials that only exist on a Google Cloud project
+     nobody has made yet. It is the one part of this that a session cannot
+     finish or verify alone.
+   - **Nothing is deployed.** The branch is not merged and the box still runs
+     the password build.
 
 6. **Export the lessons, and account deletion** — `decisions/0013`. No longer
    at the back of the queue: they are phase 1 of the accounts work, because

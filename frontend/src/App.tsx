@@ -5,7 +5,20 @@ import { apply, effective, stored, type Theme } from './theme'
 import Legend from './Legend'
 import LessonList from './LessonList'
 import Vocab from './Vocab'
-import { deleteLesson, fetchUrl, importText, listLessons, undoBulk } from './api'
+import {
+  accountExportUrl,
+  deleteAccount,
+  deleteLesson,
+  fetchUrl,
+  importText,
+  listLessons,
+  NotSignedIn,
+  signOut,
+  undoBulk,
+  whoami,
+} from './api'
+import SignIn from './SignIn'
+import type { Me } from './api'
 import type { LessonSummary } from './types'
 
 const LANG = 'fr'
@@ -185,7 +198,66 @@ function Palette({ commands, onClose }: { commands: [string, () => void][]; onCl
   )
 }
 
+/** Sign out, export, or leave. Small enough to live here; it is three buttons
+ *  and a confirmation, and a file of its own would be ceremony. */
+function Account({ me, onSignedOut }: { me: Me; onSignedOut: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  if (!me.user) return null
+  return (
+    <div className="account">
+      <button className="ghost" onClick={() => setOpen(!open)}>
+        {me.user.name || me.user.email || 'account'}
+      </button>
+      {open && (
+        <div className="account-menu">
+          <p className="meta">{me.user.email}</p>
+          {/* A plain link so Content-Disposition does the saving. */}
+          <a className="button" href={accountExportUrl()}>
+            export everything
+          </a>
+          <button
+            onClick={async () => {
+              await signOut()
+              onSignedOut()
+            }}
+          >
+            sign out
+          </button>
+          {confirming ? (
+            <p className="warn">
+              This deletes your texts and every word you have learned. It cannot be undone —
+              export first if you might want it.
+              <button
+                onClick={async () => {
+                  await deleteAccount()
+                  onSignedOut()
+                }}
+              >
+                delete it all
+              </button>
+              <button className="ghost" onClick={() => setConfirming(false)}>
+                keep it
+              </button>
+            </p>
+          ) : (
+            <button className="ghost" onClick={() => setConfirming(true)}>
+              delete account
+            </button>
+          )}
+          <p className="meta">
+            <a href="/privacy">privacy</a> · <a href="/terms">terms</a>
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
+  // undefined while we are still asking. Rendering the reader before the answer
+  // arrives would flash the library at somebody who is not signed in.
+  const [me, setMe] = useState<Me | undefined>()
   const [view, setView] = useState<View>({ at: 'library' })
   const [palette, setPalette] = useState(false)
   // A bulk action can change a hundred words, and finishing the last page of a
@@ -198,6 +270,24 @@ export default function App() {
   useEffect(() => {
     apply(theme)
   }, [theme])
+
+  useEffect(() => {
+    whoami().then(setMe)
+  }, [])
+
+  // A session can expire between one page turn and the next, so any call may
+  // come back 401. Catching it here — once, at the window — turns that into the
+  // sign-in screen rather than an error message on whatever screen you were on.
+  useEffect(() => {
+    const onRejection = (e: PromiseRejectionEvent) => {
+      if (e.reason instanceof NotSignedIn) {
+        e.preventDefault()
+        setMe((m) => (m ? { ...m, user: null } : m))
+      }
+    }
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => window.removeEventListener('unhandledrejection', onRejection)
+  }, [])
 
   // The offer expires. It exists so a misclick is not final, and after a minute
   // you have either noticed or you have not — leaving it there turns a safety
@@ -235,8 +325,17 @@ export default function App() {
     ['follow the system theme', () => setTheme('system')],
   ]
 
+  if (!me) return <main>…</main>
+  if (!me.user) {
+    // The callback sends failures back here as ?error=, since it is reached by
+    // the browser navigating and a JSON error would be a dead end.
+    const error = new URLSearchParams(window.location.search).get('error') ?? undefined
+    return <SignIn me={me} error={error} />
+  }
+
   return (
     <>
+      <Account me={me} onSignedOut={() => setMe({ ...me, user: null })} />
       {undo && (
         <p className="undo">
           Marked {undo.n} words known.

@@ -1,11 +1,23 @@
 # The API
 
-Seventeen endpoints. Everything the frontend does goes through one of them, and
+Twenty-three endpoints. Everything the frontend does goes through one of them, and
 FastAPI serves the live schema at `/docs` if you'd rather read it there.
+
+**Every route below needs a session except three**, and the three are listed first:
+`/api/health`, `/api/dictionary` and the sign-in flow. Everything else answers 401
+without one. That list is enforced by a test that reads the routes off the app's own
+schema, so a new endpoint is guarded unless it is deliberately added to the exemptions
+(`test_auth.py`).
 
 | | | |
 |---|---|---|
-| `GET` | `/api/health` | version and configured languages |
+| `GET` | `/api/health` | version and configured languages — **open** |
+| `GET` | `/api/auth/me` | who is signed in, or `null`; also whether signup is open |
+| `GET` | `/api/auth/google/start` | begin sign-in; `?lang=` is what they will learn |
+| `GET` | `/api/auth/google/callback` | Google returns here; sets the session cookie |
+| `POST` | `/api/auth/logout` | delete the session, server-side |
+| `GET` | `/api/account/export` | a zip: every text you imported, plus the lexicon as JSON |
+| `DELETE` | `/api/account` | delete the account and every row belonging to it |
 | `POST` | `/api/lessons/fetch` | read a web page and hand back its text — imports nothing |
 | `POST` | `/api/lessons` | import plain text — **tokenises and lemmatises here, once** |
 | `GET` | `/api/lessons` | the library, with per-lesson counts by state |
@@ -32,10 +44,16 @@ FastAPI serves the live schema at `/docs` if you'd rather read it there.
   subtracts. Don't rebuild text from tokens; slice the body.
 - **`undo_id` is only set** on a response to `finish` with `mark_rest_known`, and
   only when something actually changed.
-- **Everything is one user.** `USER_ID = 1` in `db.py`, threaded through 44 call
-  sites. The schema is ready for more; the API is not.
-- **A password locks all of it**, including `/api/health`, when
-  `LL_TEXTREADER_PASSWORD` is set. Empty means no door.
+- **Every route carries a user, and there is no default.** `USER_ID` is gone from
+  `db.py` (0021). Routes take `user: User = CurrentUser` and pass `user.id` into the
+  query; a route that forgets fails to import rather than serving user 1's words.
+- **Asking for someone else's lesson is a 404, not a 403.** Whether a lesson exists is
+  itself somebody else's business.
+- **The door is Google, and the shared password is gone.** There is no basic auth and
+  no `LL_TEXTREADER_PASSWORD`.
+- **Expensive actions are rate-limited per account, per hour** — import, URL fetch,
+  translation, reports, term updates, page turns — and an account holds at most 500
+  lessons. `limits.py` has the numbers and the reasoning. Over the line is a 429.
 - **`POST /api/lessons/fetch` makes the server fetch a URL**, so it validates the
   address *and every redirect it leads to* — see `decisions/0019`. Anything that
   changes that path needs to keep the redirect guard.
