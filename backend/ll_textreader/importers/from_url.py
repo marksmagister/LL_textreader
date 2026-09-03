@@ -132,9 +132,7 @@ class _GuardedRedirects(urllib.request.HTTPRedirectHandler):
 def _download(url: str) -> str:
     """The page's HTML. Ours rather than trafilatura's, so that redirects go
     through `check` and every connection resolves through `resolve`."""
-    opener = urllib.request.build_opener(
-        _PinnedHTTPHandler, _PinnedHTTPSHandler, _GuardedRedirects
-    )
+    opener = urllib.request.build_opener(_PinnedHTTPHandler, _PinnedHTTPSHandler, _GuardedRedirects)
     request = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
         with opener.open(request, timeout=TIMEOUT) as response:

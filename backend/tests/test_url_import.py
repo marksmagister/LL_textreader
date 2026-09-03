@@ -205,9 +205,13 @@ def test_the_connection_resolves_through_the_guard_not_around_it(loopback_is_pub
     that matters return a private address.
     """
     base = serve(lambda h: None)
-    monkeypatch.setattr(from_url, "resolve", lambda hostname: (_ for _ in ()).throw(
-        BadUrl(f"{hostname} resolves to a non-public address")
-    ))
+    monkeypatch.setattr(
+        from_url,
+        "resolve",
+        lambda hostname: (_ for _ in ()).throw(
+            BadUrl(f"{hostname} resolves to a non-public address")
+        ),
+    )
     with pytest.raises(BadUrl, match="non-public"):
         from_url.fetch(base + "/article")
 
