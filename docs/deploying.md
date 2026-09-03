@@ -71,6 +71,16 @@ netcup emailed it in plaintext, so treat it as public and change it before
 anything else. The box has a routable IPv4 address and will be finding out about
 SSH brute-forcers within the hour.
 
+**This got more urgent when the repository went public, 3 September 2026.** This
+file is now readable by anyone, and taken together it says: here is the address,
+here are two account names, password authentication is still accepted, and the
+root password may still be the one netcup emailed. That is not a leak — every
+part of it was already discoverable, since the hostname resolves to the address
+and appears in the app's own OAuth redirect URI — but it is now collected in one
+place with instructions. Redacting it would buy nothing and cost the record; the
+fix is to make the sentence untrue. **Do the two lines below and the hardening in
+*What still needs a human* before leaving the box another night.**
+
 ```bash
 ssh root@159.195.244.92     # the password from netcup's email
 passwd                      # pick a new one
