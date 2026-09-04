@@ -18,7 +18,8 @@ Working and verified against real text, in the browser:
 - a language dropdown in the header, in two groups — the ones you are learning,
   then everything else the server can read — curated in settings; it filters the
   library, and the reader takes its language from the lesson, not from the control
-- three starter texts per new language, written for the purpose, one press to add
+- three starter texts per language — French, Russian and Italian — written for
+  the purpose, in a collection, one press to add
 - the interface is English or German; English is the default and stays it, and
   German is chosen in settings, never guessed from the browser
 - plain-text import (paste or `.txt`), pages, saved position, "mark page known"
@@ -241,7 +242,7 @@ without losing anyone's place. Position never moves backwards.
 
 3. **Russian and Italian — done, and what is left of it.** `decisions/0021` has
    the measurements and the four surprises. Both languages read, the interface is
-   English or German, and each new language ships three starter texts. Left over,
+   English or German, and every language ships three starter texts. Left over,
    all small and all named at the end of 0021:
 
    - **The dictionaries.** `./scripts/setup-dictionary.sh ru` and `it` — ~940MB

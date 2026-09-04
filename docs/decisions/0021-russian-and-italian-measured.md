@@ -123,13 +123,22 @@ pipeline and counting how much of the third text the first two teach:
 | | lemmas already taught | of those, in a shape never met |
 |---|---|---|
 | Russian, text 3 | 41 | **19** |
+| French, text 3 | 40 | **12** |
 | Italian, text 3 | 42 | **4** |
 
-The same amount of vocabulary carried over; five times as many unmet shapes. That
-is the first measured evidence for the two-table split, and it says what one
-would hope: in Italian the state is a nicety, in Russian it is half of what you
-see. Not proof — six short texts by one author — but it is a number where there
-was an argument.
+The same amount of vocabulary carried over in all three; the unmet shapes differ
+five-fold. That is the first measured evidence for the two-table split, and it
+says what one would hope — and it orders the three languages the way their
+morphology does, which is the sanity check that the number is measuring something
+real rather than an accident of who wrote the texts. In Italian the state is a
+nicety, in French it is worth having, in Russian it is half of what you see.
+
+Not proof — nine short texts by one author — but it is a number where there was
+an argument.
+
+(French was added to the comparison after the fact, when its own starter texts
+were written. The Russian and Italian rows are unchanged from the first
+measurement.)
 
 ## What the front end needed
 

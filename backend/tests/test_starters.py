@@ -16,6 +16,13 @@ def multilingual(client, monkeypatch):
     return client
 
 
+def test_all_three_languages_ship_starters():
+    """Every language the reader offers has somewhere to begin."""
+    assert {p.name for p in starters.DIR.iterdir() if p.is_dir()} == {"fr", "ru", "it"}
+    for lang in ("fr", "ru", "it"):
+        assert len(starters.available(lang)) == 3
+
+
 def test_every_language_that_ships_starters_can_be_read(client):
     """A starter for a language with no adapter would be a button that 500s."""
     for lang in (p.name for p in starters.DIR.iterdir() if p.is_dir()):
@@ -35,6 +42,7 @@ def test_the_title_is_the_first_line():
 def test_the_folder_is_the_collection():
     assert {collection for collection, _, _ in starters.available("it")} == {"Primi passi"}
     assert {collection for collection, _, _ in starters.available("ru")} == {"Первые шаги"}
+    assert {collection for collection, _, _ in starters.available("fr")} == {"Premiers pas"}
 
 
 def test_the_title_line_stays_in_the_body():
@@ -96,5 +104,7 @@ def test_the_library_can_be_asked_for_one_language(multilingual):
 
 
 def test_a_language_with_no_starters_is_not_an_error(multilingual):
-    assert multilingual.get("/api/lessons/starters?lang=fr").json() == []
-    assert multilingual.post("/api/lessons/starters", json={"lang": "fr"}).json() == []
+    """Dutch is in the schema's future but ships no texts; the button just
+    never appears, rather than the endpoint failing."""
+    assert multilingual.get("/api/lessons/starters?lang=nl").json() == []
+    assert multilingual.post("/api/lessons/starters", json={"lang": "nl"}).json() == []

@@ -117,18 +117,14 @@ ENV
   new_password=$pw
 fi
 
-step "Python, model and dictionary"
+step "Python, models and dictionaries"
 as_llt "cd $app && ~/.local/bin/uv sync --extra nlp --extra translate --no-dev"
-as_llt "cd $app && ~/.local/bin/uv run python -c 'import fr_core_news_md' 2>/dev/null" \
-  || as_llt "cd $app && ./scripts/setup-models.sh fr"
-# 573MB down the wire to leave 12MB of glosses behind, so only once.
-# -readonly is load-bearing: without it this probe *creates* the database, as
-# root, and then the loader below cannot write to it. That is what stopped the
-# first provisioning run dead.
-glosses=$(sqlite3 -readonly "$state/ll_textreader.db" 'SELECT COUNT(*) FROM hint' 2>/dev/null || echo 0)
-if [ "${glosses:-0}" -lt 1 ]; then
-  as_llt "cd $app && ./scripts/setup-dictionary.sh fr"
-fi
+# Both scripts do every language in LL_TEXTREADER_LANGUAGES and skip whatever is
+# already there, so this stays resumable — which matters when it is most of a
+# gigabyte per dictionary — and it cannot fall behind the configured languages
+# the way naming `fr` here twice did.
+as_llt "cd $app && ./scripts/setup-models.sh"
+as_llt "cd $app && ./scripts/setup-dictionary.sh"
 
 step "Frontend"
 # The font is optional and the CSS falls back to Georgia, but it has to be in
