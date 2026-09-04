@@ -15,6 +15,7 @@ for lang in $langs; do
   case "$lang" in
     fr) uv run python -m spacy download fr_core_news_md ;;
     ru) uv run python -m spacy download ru_core_news_md ;;
+    it) uv run python -m spacy download it_core_news_md ;;
     nl) uv run python -m spacy download nl_core_news_md ;;
     ar) echo "Arabic needs a morphological analyser, not just spaCy — deferred past the"
         echo "pilot. See docs/decisions/0002-arabic-pipeline.md."; exit 1 ;;

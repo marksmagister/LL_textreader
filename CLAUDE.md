@@ -7,10 +7,11 @@ As you read more, the page decolourises. That is the whole product.
 Solo project — one maintainer, no team. Target languages, in order: **French, Russian,
 Arabic (MSA + Levantine), Dutch**.
 
-**Pilot scope: French, and maybe Russian. Nothing else.** Arabic is not an afterthought —
-it is the hardest case, and the data model below exists because of it — but the pilot does
-not have to handle its edge cases. Build so Arabic *can* land later without a rewrite; do
-not spend pilot time making it work. Dutch comes last.
+**Pilot scope: French, Russian and Italian. Nothing else** — no Dutch (maintainer,
+4 September 2026). Italian is the morphological control alongside Russian. Arabic is
+not an afterthought — it is the hardest case, and the data model below exists because
+of it — but the pilot does not have to handle its edge cases. Build so Arabic *can*
+land later without a rewrite; do not spend pilot time making it work. Dutch comes last.
 
 **Current state and next steps: `docs/status.md`.** This file describes *design and
 conventions* (changes on a decision); `docs/status.md` holds *state* (changes on an event).
@@ -111,7 +112,8 @@ backend/ll_textreader/
   translate.py   sentence translation (optional extra)
   export.py      the lexicon as Anki TSV / CSV / JSON
   nlp/           tokenise + lemmatise -> token stream
-    languages/   one adapter per language; fr.py also carries tense rules
+    languages/   one adapter per language; _spacy.py is the shared plain-spaCy
+                 base (ru, it); fr.py stands alone and carries tense rules
   api/           routes: lessons, terms, vocab, dictionary, reports (docs/api.md)
   importers/     plain_text.py, from_url.py -> lesson
 backend/tests/

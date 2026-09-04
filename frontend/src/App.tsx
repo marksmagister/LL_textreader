@@ -8,7 +8,15 @@ import Vocab from './Vocab'
 import { deleteLesson, fetchUrl, importText, listLessons, undoBulk } from './api'
 import type { LessonSummary } from './types'
 
-const LANG = 'fr'
+/** The languages you can read. Adding one is a backend adapter plus a line here.
+ *  Names in the language itself, the way the reader shows grammar terms. */
+export const LANGS: [string, string][] = [
+  ['fr', 'français'],
+  ['ru', 'русский'],
+  ['it', 'italiano'],
+]
+
+const langName = (code: string) => LANGS.find(([c]) => c === code)?.[1] ?? code
 
 /** How long the offer to take back a bulk change stays on screen. */
 export const UNDO_LINGERS = 60_000
@@ -23,10 +31,14 @@ function Library({
   onOpen,
   onVocab,
   onLegend,
+  lang,
+  setLang,
 }: {
   onOpen: (id: number) => void
   onVocab: () => void
   onLegend: () => void
+  lang: string
+  setLang: (l: string) => void
 }) {
   const [lessons, setLessons] = useState<LessonSummary[]>([])
   const [text, setText] = useState('')
@@ -61,7 +73,7 @@ function Library({
     if (!text.trim()) return
     setBusy('importing — lemmatising, this takes a moment…')
     try {
-      const lesson = await importText(text, title, LANG, source)
+      const lesson = await importText(text, title, lang, source)
       setText('')
       setUrl('')
       setTitle('')
@@ -80,6 +92,14 @@ function Library({
     <main className="library">
       <p className="bar">
         <strong>LL_textreader</strong>
+        {/* Sets what the library shows and what an import is lemmatised as. */}
+        <select value={lang} onChange={(e) => setLang(e.target.value)}>
+          {LANGS.map(([code, name]) => (
+            <option key={code} value={code}>
+              {name}
+            </option>
+          ))}
+        </select>
         <button onClick={onVocab}>vocabulary</button>
         <button onClick={onLegend}>legend</button>
         <span className="muted">press / for commands</span>
@@ -109,7 +129,7 @@ function Library({
         />
         <textarea
           value={text}
-          placeholder="Paste French text, or choose a .txt file"
+          placeholder={`Paste ${langName(lang)} text, or choose a .txt file`}
           onChange={(e) => setText(e.target.value)}
         />
         <p className="bar">
@@ -129,13 +149,15 @@ function Library({
               }}
             />
           </label>
-          <button onClick={submit}>Import</button>
+          {/* Imported as whatever the header is set to — the same control, since
+              you would be reading that language to import it. */}
+          <button onClick={submit}>Import {langName(lang)}</button>
         </p>
         {busy && <p className="busy">{busy}</p>}
       </section>
 
       <LessonList
-        lessons={lessons}
+        lessons={lessons.filter((l) => l.lang === lang)}
         onOpen={onOpen}
         onDelete={(id) => deleteLesson(id).then(load)}
         onChanged={load}
@@ -194,10 +216,18 @@ export default function App() {
   const [undo, setUndo] = useState<{ id: number; n: number } | null>(null)
   const [refresh, setRefresh] = useState(0)
   const [theme, setTheme] = useState<Theme>(stored)
+  // Which language the library imports into, filters to, and the vocabulary page
+  // shows. Remembered like the theme. The reader ignores it and follows whichever
+  // language the open lesson is in.
+  const [lang, setLang] = useState(() => localStorage.getItem('lang') ?? 'fr')
 
   useEffect(() => {
     apply(theme)
   }, [theme])
+
+  useEffect(() => {
+    localStorage.setItem('lang', lang)
+  }, [lang])
 
   // The offer expires. It exists so a misclick is not final, and after a minute
   // you have either noticed or you have not — leaving it there turns a safety
@@ -260,13 +290,14 @@ export default function App() {
           onOpen={(id) => setView({ at: 'reader', id })}
           onVocab={() => setView({ at: 'vocab' })}
           onLegend={() => setView({ at: 'legend' })}
+          lang={lang}
+          setLang={setLang}
         />
       )}
       {view.at === 'reader' && (
         <Reader
           key={refresh}
           id={view.id}
-          lang={LANG}
           onBack={() => setView({ at: 'library' })}
           onBulk={setUndo}
           // So "the colours are wrong here" arrives with a page number. The
@@ -275,7 +306,7 @@ export default function App() {
         />
       )}
       {view.at === 'vocab' && (
-        <Vocab key={refresh} lang={LANG} onBack={() => setView({ at: 'library' })} />
+        <Vocab key={refresh} lang={lang} onBack={() => setView({ at: 'library' })} />
       )}
       {view.at === 'legend' && <Legend onBack={() => setView({ at: 'library' })} />}
       {palette && <Palette commands={commands} onClose={() => setPalette(false)} />}

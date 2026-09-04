@@ -11,7 +11,14 @@ reading the French.
 import sqlite3
 from functools import cached_property
 
-MODELS = {("fr", "en"): "Helsinki-NLP/opus-mt-fr-en"}
+# OPUS-MT, one dedicated model per pair. Verified to exist on Hugging Face
+# 2026-09-04. Each is a ~300MB download, fetched on first use of translation for
+# that language and then cached.
+MODELS = {
+    ("fr", "en"): "Helsinki-NLP/opus-mt-fr-en",
+    ("ru", "en"): "Helsinki-NLP/opus-mt-ru-en",
+    ("it", "en"): "Helsinki-NLP/opus-mt-it-en",
+}
 
 # Marian is small; batching is what makes a page fast rather than a sentence at a time.
 BATCH = 16

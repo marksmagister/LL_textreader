@@ -8,46 +8,73 @@ change on a decision; this file changes on an event. Don't copy one into the oth
 
 ## Session note — 4 September (Sonnet, part-done, needs review)
 
-A local/box session picked up the five hand-off tasks from the two cloud runs.
 **The next session that is Opus should check briefly that this work was done
-thoroughly and properly** — it was done under a tight token budget and stopped
-partway.
+thoroughly and properly** — done under a tight token budget.
 
-Started and left running (local, background, safe — local DB was backed up first):
+The maintainer's instruction this session: the online box should teach **French,
+Russian and Italian** — nothing else (not Dutch). Make the server operational
+with all three; the sign-in hand-off tasks are on hold (see below).
 
-- Russian dictionary: `setup-dictionary.sh ru` downloading + loading into local DB
-- Italian dictionary: `setup-dictionary.sh it` — `it) name="Italian"` was added to
-  `scripts/setup-dictionary.sh` (only fr/ru/nl existed); the loader is
-  language-agnostic JSONL so no other change was needed
-- Russian spaCy model: `setup-models.sh ru` (`ru_core_news_md`)
-- Translation weights prefetch into the HF cache: `Helsinki-NLP/opus-mt-ru-en` and
-  `opus-mt-it-en` (model *names* still unverified against `translate.py`, which may
-  hardcode fr-en — that wiring is untouched)
+### Done — Russian and Italian, built and verified locally
 
-Confirmed:
+- `nlp/languages/_spacy.py` — a minimal shared spaCy adapter (analyse loop,
+  offsets, sentence ids, POS-`X` and PRON→surface fallback). `fr.py` does **not**
+  use it: French keeps its tense rules and report fixes. Second/third callers:
+- `nlp/languages/ru.py`, `nlp/languages/it.py` — 12-line subclasses, model as it
+  comes, no hand rules yet.
+- `scripts/setup-models.sh` gained an `it` case (`it_core_news_md`); ru was there.
+- `scripts/setup-dictionary.sh` gained `it) name="Italian"`.
+- `translate.py` `MODELS` gained `("ru","en")` and `("it","en")` —
+  `Helsinki-NLP/opus-mt-{ru,it}-en`, both verified to exist on Hugging Face.
+- Frontend: `App.tsx` now has a language picker (fr/ru/it) in the header,
+  remembered in `localStorage`, that sets the import language, filters the
+  library, and drives the vocab page. `Reader.tsx` dropped its `lang` prop and
+  follows the open lesson's own language.
+- Tests: `backend/tests/test_languages.py` (adapter wiring + a model-gated
+  analyse check). 188 backend / 25 frontend green, ruff + tsc clean.
+- **Verified in a browser locally**: imported Russian prose, read it fully
+  coloured, `читает → читать` VERB with morphology attached, page segmentation
+  correct. Glosses show "no dictionary entry" locally because the ru/it kaikki
+  extracts are not loaded on this laptop (they go on the box — see below).
 
-- **SSH to the box works** with `ssh -i ~/.ssh/ll_textreader_deploy -o IdentitiesOnly=yes
-  llt@159.195.244.92`. The `--disabled-password` diagnosis in this file is right; the
-  `-i` key is the way in. Box is at `b7c1da6`, one commit behind local `main` (`e0bec75`).
-- Both `claude/*` remote branches are **fully merged into `main`** (`git log main..origin/<branch>`
-  is empty on both) — "merge the branch" from the hand-off is already done. Nothing is
-  deployed yet; box is one commit behind only.
+### Not done in this session
 
-**Blocker found — the sign-in tasks presuppose code that is not in the repo.**
-Hand-off tasks 1–4 (one real Google sign-in end to end; link the existing lexicon to
-the new account; re-home demo content; swap in real starter texts) all assume a Google
-OAuth flow, a sessions/cookie layer, a `user.email`/`google_sub` column, a `starters/`
-directory, and a starter-lesson import path. **None of these exist on `main`:** `user`
-is still `(id, name, created_at)`, `main.py` auth is still the one shared HTTP-basic
-password, there is no `starters/` directory, and `decisions/0013` still describes the
-password/invite design with Google sign-in marked "not yet a decision" (item 5 below).
-The two cloud sessions' output is not on any pushed branch and not stashed. Before
-tasks 1–4 can proceed, the maintainer needs to say where that work lives, or a
-decision file for Google sign-in needs writing and the feature building (0013 est.
-~1 day for users/sessions/login alone).
+- **Deploy + load models/dictionaries on the box.** Next concrete step: push,
+  `ssh llt@… deploy.sh`, then in tmux as `llt`: `setup-models.sh ru it` and
+  `setup-dictionary.sh ru` / `setup-dictionary.sh it`, then set
+  `LL_TEXTREADER_LANGUAGES=fr,ru,it` in `/opt/ll-textreader/.env` and restart.
+  Watch RAM on the 4GB box (0012's stated risk): three spaCy models + a
+  translator is the ceiling. Lazy loading helps — only what is read loads.
+- **Measure Russian morphology** before trusting it (0012 step 3, and the open
+  question at the bottom of this file). Not started. `morph.ts` still names
+  grammar in French and lacks Case/Aspect/Animacy (0012 step 4).
+- **Verify ru/it translation** end to end (first call downloads ~300MB each).
+- **SSH hardening** (the requested last step) — untouched; wants a second
+  terminal open per `deploying.md`.
 
-SSH hardening (the requested last step) was **not done** — it depends on the above
-settling and wants a second terminal open per `deploying.md`.
+### Hand-off tasks 1–4 (Google sign-in) — blocked, code not in repo
+
+The sign-in tasks presuppose a Google OAuth flow, a sessions/cookie layer, a
+`user.email`/`google_sub` column, a `starters/` directory, and a starter-lesson
+import path. **None exist on `main`:** `user` is still `(id, name, created_at)`,
+`main.py` auth is the one shared HTTP-basic password, there is no `starters/`.
+`decisions/0013` still describes the password/invite design with Google sign-in
+marked "not yet a decision" (item 5 below). The two cloud sessions' output is not
+on any pushed branch and not stashed. Before tasks 1–4 proceed, the maintainer
+needs to say where that work lives, or a decision file for Google sign-in needs
+writing and the feature building.
+
+### Confirmed infrastructure
+
+- **SSH to the box works**: `ssh -i ~/.ssh/ll_textreader_deploy -o IdentitiesOnly=yes
+  llt@159.195.244.92`. The `--disabled-password` diagnosis here is right; `-i` is
+  the way in.
+- Both `claude/*` remote branches are **already merged into `main`**
+  (`git log main..origin/<branch>` empty on both) — "merge the branch" is done.
+- The laptop now carries `ru_core_news_md` and some HF cache from this session's
+  aborted downloads. **These, and all other local models/dictionaries, are to be
+  deleted once the project is fully server-based** — the maintainer asked to be
+  reminded and to have removal confirmed, so a later session must raise it.
 
 ## Where things stand
 
@@ -84,7 +111,12 @@ more the longer the lesson is, because the page boundaries are re-derived from e
 token each time: 5ms on a 2,000-word article, 10ms at 20,000, 31ms on a 100,000-word
 book. The dictionary is a 573MB download that leaves 12MB in the database.
 
-Not built: audio, EPUB import, Russian, sync, anything on a phone.
+Russian and Italian: adapters, model/dictionary scripts, translation entries and
+a front-end language picker landed 4 September and work locally; not yet deployed
+to the box, and Russian morphology is not yet measured (see the session note up
+top and open questions below).
+
+Not built: audio, EPUB import, sync, anything on a phone.
 
 ### Four rules the pilot decided by hand
 
@@ -273,15 +305,23 @@ without losing anyone's place. Position never moves backwards.
    left to people themselves, outside the app? Worth noting against `0015`,
    which already argued about what this project should and should not host.
 
-3. **Russian and Italian together, plus a German interface** — `decisions/0012`,
-   updated 2 September. Italian is nearly free once the front end stops saying
-   `fr`, and it is the control that tells you whether the novel-form state is
-   earning its keep. New work in there: the UI has no i18n at all, and the
-   reader needs to choose interface language and translation target
-   *separately* — a German speaker reading French may still want English
-   glosses. Translation itself is already keyed on `(source, target)`, so that
-   half is one model entry per pair. The step not to skip is still measuring
-   Russian morphology before trusting it, the way French was measured.
+3. **Russian and Italian** — `decisions/0012`. **The reading path is built**
+   (4 September, see the session note up top): adapters, model/dictionary
+   scripts, translation entries, a header language picker that filters the
+   library. What is left of this item:
+   - deploy it to the box and load the ru/it models and dictionaries there;
+   - **measure Russian morphology before trusting it**, the way French was
+     measured — the step not to skip, still not done;
+   - `morph.ts` still names grammar in French and has no Case/Aspect/Animacy, so
+     Russian words show a thin or French-worded description;
+   - the German interface and a switchable translation target are untouched —
+     the UI still has no i18n. Interface language and translation target are two
+     settings, not one (a German speaker reading French may want English glosses).
+
+   One thing to re-examine here rather than assume: Tab now stops on novel forms
+   (report #6). `0004` originally refused to, predicting that in a heavily
+   inflected language it would make Tab useless. Nobody has tested that, and
+   Russian is the test.
 
    One thing to re-examine here rather than assume: Tab now stops on novel forms
    (report #6). `0004` originally refused to, predicting that in a heavily
@@ -312,10 +352,10 @@ available.
 
 ## Planned in detail, not started
 
-- **Multi-language: Russian and Italian, and a German interface** — `decisions/0012`.
-  Mostly front-end: `lang` is already a key everywhere and adapters load by module
-  name. What is genuinely new is UI localisation and letting the reader pick an
-  interface language and a translation target separately. Now item 3 above.
+- **German interface, switchable translation target** — `decisions/0012`. The
+  Russian/Italian reading path is built (item 3 above); what remains here is UI
+  localisation and letting the reader pick an interface language and a
+  translation target separately.
 - **Multi-user** — `decisions/0013`. The document still recommends an instance per
   reader until that becomes the annoying part; the maintainer's current leaning is
   Sign in with Google, which is item 5 above and not yet a decision.

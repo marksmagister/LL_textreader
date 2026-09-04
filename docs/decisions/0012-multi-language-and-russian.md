@@ -1,6 +1,21 @@
 # 0012 — Multi-language, and Russian
 
-**Status: planned, not built.**
+**Status: the reading path is built (4 September 2026); the rest is planned.**
+
+**Update, 4 September 2026 — Russian and Italian reading works.** Steps 1, 2 and
+most of 5 below are done: `nlp/languages/_spacy.py` is a shared minimal adapter
+and `ru.py` / `it.py` are thin subclasses of it (`fr.py` stays separate, it has
+rules); `App.tsx` has a header language picker (fr/ru/it, `localStorage`-backed)
+that sets the import language and filters the library; `Reader.tsx` follows the
+open lesson's language; `translate.py` has the ru/it OPUS-MT entries;
+`setup-models.sh`/`setup-dictionary.sh` know Italian. Verified locally by reading
+Russian prose (`читает → читать`, morphology attached). **Still open: step 3
+(measure Russian morphology — not started), step 4 (`morph.ts` Case/Aspect/
+Animacy, and it still names grammar in French), the German interface, and
+deploying + loading the ru/it models and dictionaries on the box.** The "two
+things to decide" (ё/е, aspect pairs) are unchanged and unresolved — the
+adapter currently does not fold ё/е (it does nothing special) and keeps aspect
+pairs as separate lemmas because they are separate spaCy lemmas.
 
 **Update, 2 September 2026 — the scope grew, and it grew in a good direction.**
 Three things the maintainer added:
@@ -47,7 +62,8 @@ More than it looks:
 - `settings.languages` exists and `/api/health` already reports it.
 - Literata was chosen over a system stack **because it has real Cyrillic** (0004).
 
-What is genuinely missing is the front end: `const LANG = 'fr'` on line 11 of `App.tsx`.
+~~What is genuinely missing is the front end: `const LANG = 'fr'` on line 11 of
+`App.tsx`.~~ Done 4 September — see the update at the top.
 
 ## The work, in order
 
