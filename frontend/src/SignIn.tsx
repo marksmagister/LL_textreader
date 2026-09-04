@@ -21,90 +21,29 @@ const NAMES: Record<string, string> = {
   de: 'German',
 }
 
-/** The product, in one sentence, using the reader's own classes.
+/** The door, and nothing else.
  *
- * Shown rather than described, for the same reason the legend is: these are the
- * real `.tok` spans, so this cannot drift from what the reader actually does.
- * A paragraph claiming "words are coloured by whether you know them" asks to be
- * believed; this is just true on the page in front of you. */
-function Sample() {
-  return (
-    <p className="signin-demo">
-      <span className="tok tok--known">Le </span>
-      <span className="tok tok--learning">brouillard</span>
-      <span className="tok tok--known"> se levait sur le </span>
-      <span className="tok tok--new">quai</span>
-      <span className="tok tok--known">, et nous </span>
-      <span className="tok tok--novel-form">marcherons</span>
-      <span className="tok tok--known"> vers la lanterne.</span>
-    </p>
-  )
-}
-
+ * This page used to argue: a worked sample, a key to the colours, three
+ * sections on the lemmatiser and the licence. All of it was true and none of it
+ * belonged here — the people who reach this screen have been handed the link by
+ * someone, so they have already decided. Explaining the product to a person who
+ * came to sign in is a toll, not a service.
+ *
+ * So: mark, name, button, small print. The argument lives in the README and in
+ * the reader itself, where it can be seen rather than claimed. */
 export default function SignIn({ me, error }: { me: Me; error?: string }) {
   // Only asked once, and only used when the account is created — it decides
-  // which starter lessons you are given. Changing what you read later is the
-  // library's job, not this screen's.
+  // which starter lessons you are given. The picker is hidden entirely when
+  // there is nothing to choose, which today there is not.
   const [lang, setLang] = useState(me.languages[0] ?? 'fr')
   const full = !me.signup
 
   return (
     <main className="signin">
+      {/* The same file the browser tab and the consent screen use, so the mark
+          cannot drift between them. */}
+      <img className="signin-mark" src="/favicon.svg" alt="" width="72" height="72" />
       <h1>LL_textreader</h1>
-      <p className="lede">
-        Read whatever you actually want to read. Every word is coloured by whether{' '}
-        <em>you</em> know it, and the page decolourises as you go.
-      </p>
-
-      <Sample />
-
-      <ul className="signin-key">
-        <li>
-          <span className="tok tok--new">quai</span> you have never judged this word
-        </li>
-        <li>
-          <span className="tok tok--novel-form">marcherons</span> you know the word — not
-          this shape of it
-        </li>
-        <li>
-          <span className="tok tok--learning">brouillard</span> you are learning it
-        </li>
-      </ul>
-
-      <section className="pitch">
-        <h2>It knows that marcherons is marcher</h2>
-        <p>
-          A part-of-speech tagger reads every text as it is imported, so a word is tracked
-          once rather than once per spelling. <i>Court</i> and <i>courraient</i> are one
-          entry. <i>Porte</i> the door is not <i>porte</i> the verb. Your word count means
-          something.
-        </p>
-        <p>
-          And when a word you know turns up in a shape you have never met, it says so
-          instead of pretending you are fine. That is a nicety in French and the whole game
-          in Russian.
-        </p>
-      </section>
-
-      <section className="pitch">
-        <h2>No deck to grind</h2>
-        <p>
-          Click a word, read the definition, carry on. Review happens by meeting the word
-          again in the next thing you read — which is how you learned most of the words you
-          already know.
-        </p>
-      </section>
-
-      <section className="pitch">
-        <h2>Open source, and yours to take</h2>
-        <p>
-          AGPL-3.0:{' '}
-          <a href="https://github.com/marksmagister/LL_textreader">read the code</a>, run
-          your own copy, keep it running if this one stops. Nothing you import is shared
-          with other readers, and one click gives you a zip of every text and every word you
-          have learned — in formats that outlive this project.
-        </p>
-      </section>
 
       {error && <p className="warn">{REASONS[error] ?? 'Something went wrong signing in.'}</p>}
 
@@ -118,10 +57,10 @@ export default function SignIn({ me, error }: { me: Me; error?: string }) {
           you can still <a href="/api/auth/google/start">sign in</a>.
         </p>
       ) : (
-        <div className="signin-go">
+        <>
           {me.languages.length > 1 && (
-            <p className="bar">
-              <label htmlFor="lang">I am learning</label>
+            <p className="signin-lang">
+              <label htmlFor="lang">I am learning</label>{' '}
               <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)}>
                 {me.languages.map((l) => (
                   <option key={l} value={l}>
@@ -136,11 +75,7 @@ export default function SignIn({ me, error }: { me: Me; error?: string }) {
           <a className="button primary" href={`/api/auth/google/start?lang=${lang}`}>
             Sign in with Google
           </a>
-          {/* Only what the sections above have not already said. */}
-          <p className="meta">
-            You start with a couple of short texts, then import your own.
-          </p>
-        </div>
+        </>
       )}
 
       <p className="meta signin-foot">
