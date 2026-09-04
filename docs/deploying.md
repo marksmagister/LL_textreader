@@ -5,7 +5,6 @@
 No server, no Docker, free:
 
 ```bash
-echo 'LL_TEXTREADER_PASSWORD=something-long' >> .env   # once
 ./scripts/serve.sh --share
 ```
 
@@ -16,16 +15,20 @@ Three things to know:
 
 - **The laptop has to be awake and online.** Close the lid and the URL dies. Fine for
   "have a look at this", not for "use it for a week".
-- **The URL is public**, so the password is the only door. `--share` refuses to start
-  without one, deliberately.
+- **The URL is public**, and the only door is Google sign-in — so the tunnel needs
+  the OAuth client configured, and its redirect URI changes every time the tunnel
+  does. Fine for showing someone the reader over your shoulder; awkward as a way to
+  let them use it. The box is the answer for that.
 - **Quick-tunnel URLs are random and change** every time you restart. There is no
   bookmark; send a fresh link each session.
 
 The server only ever binds `127.0.0.1` — cloudflared runs on the same machine and
 connects locally, so nothing else needs to listen on the network.
 
-There are no accounts. Whoever has the URL and password reads *your* lexicon and sees
-what you have read. That is what makes it a demo rather than a product.
+This used to say that whoever had the URL and the password read *your* lexicon. That
+is no longer true: there are accounts now (`decisions/0021`), everyone who signs in
+gets their own, and no reader can see another's words. The shared password is gone
+entirely.
 
 ## The real host
 
@@ -167,7 +170,7 @@ the support address look fine and silently bounce every reader who wrote to it.
 Set posting permission to anyone on the web, and send it a message from an
 unrelated account once to prove it arrives.
 
-Three things to set in [console.cloud.google.com](https://console.cloud.google.com):
+Four things to set in [console.cloud.google.com](https://console.cloud.google.com):
 
 1. **Register the redirect URI on the OAuth client, exactly.** Google compares it
    as a string, so a missing slash is a `redirect_uri_mismatch` and nothing else.
@@ -186,34 +189,51 @@ Three things to set in [console.cloud.google.com](https://console.cloud.google.c
    without a verification review. Adding a fourth scope is not a small change —
    it can put the project into a review queue.
 
-3. **Press "Publish app"** so the publishing status reads *In production* rather
-   than *Testing* — and it is on the **Audience** page, not Branding:
-   `console.cloud.google.com/auth/audience?project=ll-textreader`.
+3. **Stay in Testing, and add each reader by hand.** Audience page →
+   *Test users* → **Add users**, one Google address per person:
+   `console.cloud.google.com/auth/audience?project=ll-textreader`. Up to 100.
+   Only addresses on that list can sign in at all, which makes the list the
+   access control — there is no invite table in this codebase because this is it.
 
-   The old console put this under APIs & Services → OAuth consent screen. That
-   page no longer exists: the 2025 reorganisation split it into the Google Auth
-   Platform's Branding, Audience, Clients and Data Access pages, and publishing
-   moved to Audience. An earlier version of this file sent a reader to the old
-   path, where the button simply is not present.
+   **Do not copy that list into this repository.** The repo is public, and a file
+   of testers' addresses would publish the email addresses of people who agreed
+   to try a reading app. It lives in the console and nowhere else.
 
-   Two things gate the button, and both fail quietly rather than explaining
-   themselves:
+4. **Upload the logo** — `frontend/public/brand/logo-120.png`. Google requires
+   verification for a logo *unless* the status is Testing, so staying in Testing
+   is what makes this free.
 
-   - **Branding must be complete and saved first** — App name, user support
-     email and developer contact. With any of them blank, publishing refuses
-     with *"Your app's OAuth configuration is incomplete"* and points back at
-     Branding.
-   - **User type must be External.** Internal apps do not publish at all, since
-     they are already limited to one Workspace organisation. A project owned by
-     a personal Google account has no organisation and so can only be External,
-     but it is worth confirming rather than assuming.
+**About the seven-day consent expiry, because it sounds worse than it is here.**
+Google expires a test user's *OAuth grant* after seven days. That is severe for an
+app holding a refresh token to call Google while the user is away — it would break
+weekly. This app holds none: `google.py` never asks for offline access, stores no
+refresh token, and does not call Google again after the one code exchange at
+sign-in. Readers are carried by our own session cookie for `session_days`, ninety
+by default. The only visible effect is that somebody signing in again more than a
+week later sees the consent screen once more. One extra click, on a re-login.
 
-**Testing mode is not a smaller version of production; it behaves differently in
-a way that would look like a bug.** Every user must be added to a test-user list
-by hand, *and* their consent expires seven days after they give it — so readers
-would be signed out weekly, and the first guess would be that sessions are
-broken. There is no upside to staying in Testing: our scopes need no review, so
-publishing costs one click and no waiting.
+An earlier version of this file said readers "would be signed out weekly" and told
+you to publish immediately. That was wrong for this application, and the mistake
+was reasoning about OAuth in general rather than about what this code actually does.
+
+### If this is ever opened to the public
+
+Publishing removes the 100-place ceiling and the hand-kept list. It also brings two
+things Testing avoids, so it is a decision rather than a step:
+
+- **A logo then needs brand verification**, which checks ownership of the domain on
+  the consent screen. `ultrasrv.de` is netcup's, not ours, so that review cannot pass
+  until there is a domain of our own.
+- **A postal address becomes necessary.** The Impressum duty bites on a service
+  offered to the public; a hand-kept list of people is not that. `docs/status.md`
+  carries the reasoning and what it costs.
+
+The button is on the **Audience** page, not Branding. The old console put it under
+APIs & Services → OAuth consent screen; that page no longer exists, since the 2025
+reorganisation split it into Branding, Audience, Clients and Data Access. Two things
+gate it quietly: branding must be complete and saved first, or it refuses with *"Your
+app's OAuth configuration is incomplete"*; and user type must be External, because
+internal apps never publish.
 
 ### What still needs a human
 

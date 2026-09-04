@@ -34,7 +34,7 @@ Working and verified against real text, in the browser:
 - undo for "mark page known"
 - the sentence you first met a word in, kept and shown
 - `--dry-run`-able reprocessing for stale token streams (rule 6)
-- 207 tests, ruff and tsc clean
+- 260 tests, ruff and tsc clean
 
 Numbers worth knowing: a 12,000-word chapter imports in 1.3s. Opening a page costs
 more the longer the lesson is, because the page boundaries are re-derived from every
@@ -75,8 +75,9 @@ without losing anyone's place. Position never moves backwards.
    `/var/lib/ll-textreader/`. Deploys are
    `ssh llt@159.195.244.92 '/opt/ll-textreader/scripts/deploy.sh'`.
 
-   Verified on 2 September, through the public URL and not just on the box:
-   401 without the password and 200 with it, the frontend and the font served,
+   Verified on 2 September, through the public URL and not just on the box —
+   under the shared password, which has since been retired for accounts:
+   401 without it and 200 with it, the frontend and the font served,
    an import running spaCy on the box (`dort` → `dormir`, morphology attached),
    `porte` → "door" out of the 126,214 glosses, and a delete putting the library
    back to empty.
@@ -280,24 +281,37 @@ without losing anyone's place. Position never moves backwards.
    - **Privacy policy and terms** at `/privacy` and `/terms`, readable without
      signing in. Honest about what is stored, and the contact is the Google
      Group rather than anyone's inbox; **still marked draft, with
-     `[OPERATOR NAME]` and `[POSTAL ADDRESS]` unfilled**. A test asserts the
-     draft notice is present, so it has to be removed deliberately.
+     `[OPERATOR NAME]` unfilled**. A test asserts the draft notice is present,
+     so it has to be removed deliberately.
 
-     **The two placeholders have different sources, and only one of them is
-     hard.** The GDPR wants the controller's identity and a way to reach them
-     (Art. 13) — a name and the group address satisfy that. The *postal*
-     address comes from the Impressum duty instead, and in Germany that wants
-     an address able to receive legal service, which a PO box is not.
+     **Settled 3 September: the instance stays non-public, so only one
+     placeholder is left.** The Google project stays in *Testing* status, which
+     means only addresses on its test-user list can sign in at all. That is the
+     access control — and it is why there is no invite table in this codebase.
 
-     Which means **open signup is what creates the expensive half.** A service
-     offered to strangers is what makes the duty bite; a handful of invited
-     friends is far more defensible as private use. The cheap order is
-     therefore to stay closed — `LL_TEXTREADER_SIGNUP=off`, or the cap set very
-     low and accounts handed out by hand — until the address question is
-     actually answered, rather than answering it in order to launch. A rented
-     Impressum address is five to fifteen euros a month and is the normal way
-     not to publish your home; it is worth buying the day strangers are wanted,
-     and not before. Not legal advice, and it depends on jurisdiction.
+     It also settles the legal question, which had two halves with different
+     sources. The GDPR wants the controller's identity and a way to reach them
+     (Art. 13): a name and the group address satisfy that, and the postal line
+     has been removed from `privacy.html` accordingly. The *postal* address came
+     from the Impressum duty, which bites on a service offered to the public — a
+     hand-kept list of people is not that. Opening this to strangers brings it
+     back, along with a rented service address at five to fifteen euros a month
+     if the alternative is publishing someone's home. Not legal advice.
+
+     So what remains is `[OPERATOR NAME]` in both pages: a real name, which
+     nobody but the maintainer can supply.
+
+   - **The sign-in flow is verified as far as it can be without a browser.**
+     `/api/auth/google/start` redirects to the right endpoint with the right
+     client id, `openid email profile`, S256 PKCE and a 32-character state in an
+     `HttpOnly` ten-minute cookie. The callback rejects a missing state cookie
+     and a mismatched state (both land on `?error=expired`, no session created),
+     and reports a cancelled consent as `?error=cancelled`. The exchange itself
+     reaches Google: with a deliberately wrong secret it comes back
+     `401 invalid_client`, which proves the client id is real, egress works and
+     Google's own message survives to the log. **What is still unproven is one
+     real sign-in** — a valid code, a session cookie, a user row. That needs a
+     browser and an address on the test-user list.
    - **New accounts pick a language and get starter lessons** — two original
      French texts in `starters/fr/`, the second reusing the first's vocabulary
      in unmet shapes.

@@ -16,15 +16,19 @@ class Settings(BaseSettings):
 
     # --- accounts (docs/decisions/0021) ---
 
-    # Anyone with a Google account may sign up, until there are max_users of
-    # them. The cap is the whole growth control — deliberately a blunt number
-    # rather than an invite system, because a number is one line and an invite
-    # table is a table, a command and a landing page. Raise it when it binds.
+    # Who may create an account, on *our* side. Note that this is the second
+    # gate, not the first: the Google project is in Testing status, so only
+    # addresses on its test-user list can reach the callback at all. That list
+    # is the invite system, kept in Google's console rather than in a table here
+    # (docs/decisions/0021).
     #
-    # It bounds what strangers can cost: a lesson is 53.5 kB, so a hundred
-    # readers is single-digit gigabytes even if they all read hard.
+    # So "open" does not mean open to the world — it means "we impose no further
+    # restriction beyond Google's list". The cap still matters as a backstop: if
+    # the project is ever published, this is what stops the box filling up
+    # before anyone notices. A lesson is 53.5 kB, so a hundred readers is
+    # single-digit gigabytes even if they all read hard.
     #
-    # "off" closes the door entirely without locking out the people already in.
+    # "off" closes our door entirely without locking out anyone already in.
     signup: str = "open"
     max_users: int = 100
 

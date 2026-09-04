@@ -97,6 +97,47 @@ Sources checked September 2026: [when verification is not
 needed](https://support.google.com/cloud/answer/13464323),
 [managing app audience](https://support.google.com/cloud/answer/15549945).
 
+### Correction, 3 September: stay in Testing, and the seven days barely matter here
+
+The paragraph above is reversed, on the maintainer's decision, and the reasoning that
+made publishing look urgent was **wrong for this application specifically**.
+
+"Consent expires after seven days" means the *OAuth grant* expires — which matters
+enormously to an app holding a refresh token so it can call Google's APIs on your
+behalf while you are away. That app really would break weekly.
+
+**We hold no refresh token.** `google.py` asks for no `access_type=offline`, stores no
+refresh token, and never calls Google again after the one code exchange at sign-in. It
+reads the ID token's claims, and from then on the reader is carried by *our* session
+cookie, which lasts `session_days` — ninety of them. Google's grant expiring changes
+nothing about a signed-in reader.
+
+What the seven days actually cost: somebody who signs in again more than a week after
+they last consented sees the consent screen one extra time. One click, on a re-login.
+That is the whole of it.
+
+So Testing is the better state for now, and not merely an acceptable one:
+
+- **It is the access-control mechanism**, for free. Only addresses on the test-user
+  list can sign in at all, so the list *is* the invite system that the corrections at
+  the top of this file deleted — without a table, a token or a landing page.
+- **It keeps the instance non-public**, which is what the legal reasoning in
+  `status.md` turns on: the Impressum duty bites on a service offered to the public,
+  and a hand-kept list of people is not that. Publishing would create the postal-address
+  problem that staying in Testing avoids entirely.
+- **The logo can be uploaded after all.** Google requires verification for a logo
+  *unless* the status is Testing. That was the reason to leave branding blank; it no
+  longer applies.
+
+The cost is the 100-place ceiling and adding each address by hand, both of which are
+fine at this size, and neither of which is permanent — publishing later is one button
+and the corrections above still describe what happens when it is pressed.
+
+**The test-user list stays in the Google console and must not be mirrored into this
+repo.** The repo is public: a file of testers' email addresses would publish the
+addresses of people who agreed to try a reading app, which is precisely the exposure
+the Google Group exists to avoid.
+
 ## The flow, and the crypto we do not write
 
 Authorization code flow, exchanged server-side. The browser never handles a token.

@@ -140,8 +140,10 @@ data/            gitignored: the sqlite db, downloaded models, imported texts
 - **Ship no third-party data in the repo.** Wiktionary/Kaikki data is CC-BY-SA and NLP
   models carry their own licences — `scripts/` downloads them into `data/` at setup time.
   This keeps the repo's licence story simple. See `NOTICE`.
-- **One instance, many readers, and every reader is alone in it.** Sign in with Google,
-  open signup up to a cap (`decisions/0021`). What has *not* changed is the isolation:
+- **One instance, many readers, and every reader is alone in it.** Sign in with Google
+  (`decisions/0021`). The Google project stays in *Testing*, so the people who can sign
+  in are the ones on its test-user list — that list is the invite system, and it is why
+  there is no invite table here. What has *not* changed is the isolation:
   `user_id` is part of the key on everything a reader owns, and there is no ambient
   current user — every query that touches reader data carries the id, passed in from
   `current_user`. Do not add a `USER_ID` default back; a call site that forgets must
