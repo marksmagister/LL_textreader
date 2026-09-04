@@ -37,20 +37,41 @@ with all three; the sign-in hand-off tasks are on hold (see below).
   correct. Glosses show "no dictionary entry" locally because the ru/it kaikki
   extracts are not loaded on this laptop (they go on the box — see below).
 
+### Deployed to the box, 4 September
+
+`main` at `62d7a2e` is live. `/api/health` reports `["fr","ru","it"]`. On the box:
+
+- all three spaCy models installed (`fr/ru/it_core_news_md@3.8.0`);
+  `deploy.sh` now re-fetches all three after `uv sync` prunes them. **Any bare
+  `uv run` on the box re-syncs and re-prunes ru/it** — use `uv run --no-sync`
+  or `UV_NO_SYNC=1` for one-off commands there. The systemd unit runs
+  `.venv/bin/uvicorn` directly, so restarts are safe.
+- `hint` table: fr 126,214 / it 207,759 / ru 89,823 glosses (kaikki, loaded on
+  the box, raw files deleted). `книга → "book"`, `libro → "book; …"` verified.
+- `LL_TEXTREADER_LANGUAGES=fr,ru,it` appended to `/opt/ll-textreader/.env`.
+- Verified through the box API: Russian import (`Дети → ребёнок`, `читает →
+  читать`) and Italian import (`bambini → bambino`, `leggere`), both then
+  deleted — no test data left, library is the 5 French demo lessons.
+- RAM after loading all three pipelines in testing: ~1.4 GB used, ~2.5 GB
+  available. Headroom is fine for reading; a loaded translator adds ~1 GB, so
+  0012's RAM caution still stands if several translators wake at once.
+
 ### Not done in this session
 
-- **Deploy + load models/dictionaries on the box.** Next concrete step: push,
-  `ssh llt@… deploy.sh`, then in tmux as `llt`: `setup-models.sh ru it` and
-  `setup-dictionary.sh ru` / `setup-dictionary.sh it`, then set
-  `LL_TEXTREADER_LANGUAGES=fr,ru,it` in `/opt/ll-textreader/.env` and restart.
-  Watch RAM on the 4GB box (0012's stated risk): three spaCy models + a
-  translator is the ceiling. Lazy loading helps — only what is read loads.
-- **Measure Russian morphology** before trusting it (0012 step 3, and the open
-  question at the bottom of this file). Not started. `morph.ts` still names
+- **SSH hardening** — handed back to the maintainer (see below). Key access for
+  `llt` and `root` is confirmed working, so `PasswordAuthentication no` will not
+  lock anyone out, but this is a security-setting change and stays a human job
+  per `deploying.md`.
+- **Measure Russian and Italian morphology** before trusting it (0012 step 3).
+  Not started. Known model quirks already seen: Italian `giocavano →
+  "giocavare"` (should be `giocare`) and fused-preposition lemmas like `nel →
+  "in il"`; Russian looked clean on a handful of sentences but that is not a
+  measurement. Same class of issue as French `marchions → "marchion"` — the
+  defence is noticing and pressing `o`.
+  See also the open question at the bottom of this file. `morph.ts` still names
   grammar in French and lacks Case/Aspect/Animacy (0012 step 4).
 - **Verify ru/it translation** end to end (first call downloads ~300MB each).
-- **SSH hardening** (the requested last step) — untouched; wants a second
-  terminal open per `deploying.md`.
+  `translate.py` has the model entries; nothing has exercised them.
 
 ### Hand-off tasks 1–4 (Google sign-in) — blocked, code not in repo
 
@@ -64,11 +85,29 @@ on any pushed branch and not stashed. Before tasks 1–4 proceed, the maintainer
 needs to say where that work lives, or a decision file for Google sign-in needs
 writing and the feature building.
 
+### SSH hardening — for the maintainer to run
+
+Still `publickey,password` on the box, `/etc/ssh/sshd_config.d/` empty, the
+plaintext-emailed root password still a live door. Key access for both `llt` and
+`root` is confirmed working from this laptop, so closing password auth will not
+lock you out. Left for a human because it is a security-setting change and wants
+a second terminal open (per `deploying.md`). In one terminal, staying logged in:
+
+```
+ssh -i ~/.ssh/ll_textreader_deploy root@159.195.244.92
+printf 'PermitRootLogin prohibit-password\nPasswordAuthentication no\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/harden.conf
+sshd -t && systemctl restart ssh
+```
+
+Then, from a *second* terminal, confirm `ssh -i ~/.ssh/ll_textreader_deploy
+llt@159.195.244.92` still works before closing the first.
+
 ### Confirmed infrastructure
 
 - **SSH to the box works**: `ssh -i ~/.ssh/ll_textreader_deploy -o IdentitiesOnly=yes
-  llt@159.195.244.92`. The `--disabled-password` diagnosis here is right; `-i` is
-  the way in.
+  llt@159.195.244.92` (and `root@` with the same key). The `--disabled-password`
+  diagnosis here is right; `-i` is the way in. `deploy.sh` is
+  `ssh -i ~/.ssh/ll_textreader_deploy llt@159.195.244.92 '/opt/ll-textreader/scripts/deploy.sh'`.
 - Both `claude/*` remote branches are **already merged into `main`**
   (`git log main..origin/<branch>` empty on both) — "merge the branch" is done.
 - The laptop now carries `ru_core_news_md` and some HF cache from this session's
