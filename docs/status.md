@@ -50,9 +50,12 @@ more the longer the lesson is, because the page boundaries are re-derived from e
 token each time: 5ms on a 2,000-word article, 10ms at 20,000, 31ms on a 100,000-word
 book. The dictionary is a 573MB download that leaves 12MB in the database.
 
-Not built: audio, EPUB import, sync, anything on a phone. Russian and Italian read
-but have no Wiktionary glosses yet — that is a download (`setup-dictionary.sh ru`,
-`it`), not a decision — and translation only targets English.
+All three languages have their Wiktionary glosses on the box (fr 126,214,
+it 207,759, ru 89,823) and translate to English, verified 4 September.
+
+Not built: audio, EPUB import, sync, a phone *edition* — the reader no longer
+breaks on a phone, but Tab, `1`, `k` and `i` still have no touch equivalent.
+Translation only targets English.
 
 ### Five rules the pilot decided by hand
 
@@ -81,93 +84,136 @@ but have no Wiktionary glosses yet — that is a download (`setup-dictionary.sh 
 stored**, and position is a token index, so changing the page size reflows a book
 without losing anyone's place. Position never moves backwards.
 
-## Handing off: what needs a machine this session could not reach
+## 4 September: the hand-off was done, and the two branches joined
 
-Written 3 September 2026, at the end of the multi-language work. Everything below
-needs either the box or the maintainer's laptop; a session running in the cloud
-cannot do any of it, because the box is unreachable from there — no SSH, and the
-agent proxy refuses even HTTPS to the hostname.
+Everything the cloud sessions could not reach is done. Written up here rather
+than deleted, because the *why* is the part that would be expensive to rederive.
 
-### 1. SSH to the box is key-only, and the key is on one laptop
+### Both branches are merged into `main`
 
-**The symptom.** `ssh llt@159.195.244.92` prompts for a password, and every
-password fails — including the netcup root password and the one in `.env`.
+There were two, built in parallel against the same `main`, and both had real
+work in them:
 
-**Why.** There is no password to get right. `provision.sh:49` creates the user
-with `adduser --disabled-password`, so `llt` has no password at all and the
-prompt can never be satisfied. Access is by key: `provision.sh` installs one
-public key into `authorized_keys` for both `llt` and `root`,
+- `claude/multi-language-support-d7mu26` — Russian and Italian measured, i18n,
+  a settings screen, starter texts per language.
+- `accounts` — Sign in with Google, sessions, per-account rate limits, legal
+  pages, account export and deletion.
 
-```
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK12YUpwWHoOAp8sEczaZfG6qRyzRJcy2UauY5eNF60
-```
+**A warning worth keeping.** A session earlier the same day concluded the
+sign-in work "does not exist in the repo" and wrote that into this file. It was
+wrong: it ran `git branch -a`, which lists *stale remote-tracking refs*, and
+never ran `git fetch`. Both branches had been on the remote the whole time. It
+then rebuilt Russian and Italian from scratch, worse — a naive pass-through of
+whatever spaCy said, against a branch that had measured the models and written
+three rules from the results. That work is deleted, not kept beside the better
+version. **Fetch before concluding anything is missing.**
 
-and if the laptop you are on does not hold the matching private key, or holds it
-under a filename ssh does not try by default, you fall through to the password
-prompt that cannot work.
+Conflicts that were real, and how they were settled:
 
-Worth being explicit, because it has caused confusion once already: the password
-in `/opt/ll-textreader/.env` is `LL_TEXTREADER_PASSWORD`, the **web** basic-auth
-password for the reader. It has nothing to do with SSH.
+- `api/lessons.py` — accounts removed `USER_ID` for `user: User = CurrentUser`;
+  multi-language added `?lang=` filtering and the starter routes. Both kept.
+- `starters.py` — both branches wrote one. Merged to a single implementation:
+  the multi-language layout (`<lang>/<collection>/NN-*.txt`, all three
+  languages) with the accounts sign-up entry point. `install` raises so the
+  button can report a missing model; `give_starters` swallows, because a missing
+  model must not cost somebody their account.
+- **Both branches numbered their decision 0021**, which `CLAUDE.md` warns about
+  by name. Languages kept 0021; sign-in became **0022**, references repointed.
+- A merge silently reverted `b7c1da6` — the `PATH` line `deploy.sh` needs to
+  find `uv`. Nothing conflicted, so nothing warned. It is commented now, having
+  been lost twice.
 
-**To diagnose**, on the laptop:
+### Live on the box
 
-```bash
-grep -l AAAAC3NzaC1lZDI1NTE5AAAAIBK12YUpwWHoOAp8sEczaZfG6qRyzRJcy2UauY5eNF60 ~/.ssh/*.pub
-ssh -v llt@159.195.244.92 true      # shows which keys were actually offered
-```
+`https://v2202609408983511171.ultrasrv.de`, three languages, French, Russian and
+Italian, all reading with glosses.
 
-- **The key is there under another name** → `ssh -i ~/.ssh/<that key> llt@…`, and
-  put it in `~/.ssh/config` so it is not a flag you have to remember.
-- **No match** → that key lives on whichever machine provisioned the box. Get in
-  as `root` (netcup's emailed password, if it was never rotated — `0018` says it
-  is compromised on arrival and should have been) and append the laptop's public
-  key:
+- spaCy `fr`/`ru`/`it_core_news_md`, and `deploy.sh` re-fetches all three because
+  `uv sync` prunes them. **Any bare `uv run` on the box re-prunes them** — use
+  `uv run --no-sync`. The systemd unit runs `.venv/bin/uvicorn` directly, so
+  restarts are safe.
+- Glosses: fr 126,214 / it 207,759 / ru 89,823.
+- All 48 language-measurement tests pass against the real models on the box.
+  Spot-checked on unseen prose: `живёт → жить` and `пьёт → пить` (the ё rule),
+  `Меня → я` and `ей → она` (oblique pronouns), `Person=3` normalised,
+  `Дети → ребёнок`. The three rules in `ru.py` fire on text they were not
+  tuned on.
+- **Translation works for all three pairs, run for the first time.**
+  `opus-mt-{fr,ru,it}-en` all resolve on Hugging Face — that settles the caveat
+  the branch added when it had no network to check. "Она живёт в Москве и пьёт
+  чай." → "She lives in Moscow and drinks tea."
+- The ~1.6GB of translation weights are now in the box's Hugging Face cache, so
+  **report #17's wait is now model load rather than model download**. The report
+  stays open: warming at startup is still the real fix.
 
-  ```bash
-  ssh root@159.195.244.92
-  echo 'ssh-ed25519 AAAA…' >> /home/llt/.ssh/authorized_keys
-  chown llt:llt /home/llt/.ssh/authorized_keys && chmod 600 /home/llt/.ssh/authorized_keys
-  ```
+### SSH is hardened
 
-- **Root will not take a password either** → netcup's web console (VNC) is the way
-  back in, and that is the moment to rotate the root password and turn password
-  authentication off for good. `deploying.md` has the two lines; it wants a second
-  terminal open, because getting it wrong locks you out.
+Done, not handed back. `/etc/ssh/sshd_config.d/harden.conf` sets
+`PermitRootLogin prohibit-password`, `PasswordAuthentication no` and
+`KbdInteractiveAuthentication no`. Key logins for `llt` and `root` were proven
+working *before* the change, `sshd -t` validated the config before the restart,
+and both were re-proven on fresh connections after; a password attempt now gets
+`Permission denied (publickey)`. The root password netcup emailed in plaintext is
+no longer a door.
 
-### 2. Then load the dictionaries
+### The maintainer's own reading is on the box
 
-The reason for getting in. Russian and Italian read fine today but every word
-says "no dictionary entry", because only French has glosses on the box.
+`scripts/import-lexicon.py` moved it: 15 lessons, 542 words, 682 met forms, 4
+lemma overrides, 17 reports, 10,308 tokens. The four demo texts that were there
+to show a visitor the product are gone — replaced, which is what `Next` item 1
+said to do the moment the box became the maintainer's own reader.
 
-```bash
-ssh llt@159.195.244.92 'cd /opt/ll-textreader && ./scripts/deploy.sh'
-ssh llt@159.195.244.92 'cd /opt/ll-textreader && tmux new -s dict "./scripts/setup-dictionary.sh"'
-```
+It moves **rows, not identity**. Binding a Google account to that data is still
+the separate hand-written `UPDATE` that `0022` argued for.
 
-**Deploy first.** The box is still on the old script, which takes a mandatory
-language argument and exits with a usage error when given none. After the deploy,
-no argument means every configured language and skips whatever is already loaded,
-so French will not be re-downloaded.
+### Phone: not an edition, but no longer broken
 
-**Use tmux.** ~940MB for Russian and ~500MB for Italian; each file resumes after a
-dropped connection but the shell driving it does not. The site stays up while it
-loads — WAL — but the loader is the only writer, so do not import anything at the
-same time. Run it as `llt`, never as root: a root-owned file in the state
-directory is what stopped the first provisioning run dead (`0018`).
+`decisions/0004` makes this reader keyboard-first, and Tab, `1`, `k` and `i`
+have no touch equivalent — a real phone edition still needs its own decision
+(`Next` item 4). What was fixed is the part that was simply broken, found by
+driving it at 375px:
 
-### 3. Smaller, and none of them blocking
+- the per-lesson actions are `opacity: 0` until `:hover`, and **a phone never
+  hovers** — delete and collection were invisible and untappable;
+- the two floating tabs sat on top of the word panel's buttons;
+- `.bar-actions` could not wrap, pushing "Next page" off a screen that does not
+  scroll sideways;
+- buttons were three different heights, because long labels wrapped inside them.
 
-- **The translation model names for Russian and Italian are unverified.**
-  `opus-mt-ru-en` and `opus-mt-it-en` were added from 0012's own text, but this
-  session had no network to Hugging Face to confirm they resolve. First press of
-  the English button will say. `translate.py` carries the caveat.
-- **Read with it for a fortnight.** The open question is the one `0004` raised and
-  nobody has tested: Tab now stops on novel forms, and Russian is where that was
-  predicted to become noise. A starter page shows sixteen of them at once, which
-  is the density the argument was about.
-- **Merging the branch.** `claude/multi-language-support-d7mu26`, against a `main`
-  that has not moved since. Nothing in it is deployed yet.
+The theme switch and "something's wrong" now live in the account menu, at the
+maintainer's suggestion — which deletes two fixed elements and a z-index layer
+rather than hiding them. **Tapping away is what Esc is on a device with no Esc**,
+so it closes the word panel and the account menu as it already did the palette.
+
+### What is left, and it is one thing
+
+**The Google client secret is not on the box.** It is not in the repo either, and
+must not be — `deploying.md` is explicit. Until it is set, `/api/auth/me` reports
+`"google": false`, the sign-in button 503s, and **nobody can get in at all**,
+because the shared password is gone with `0022`. The client id and redirect URI
+are already set, as are `SIGNUP=open` and `MAX_USERS=100`.
+
+Then, and only then, the two steps that finish this:
+
+1. Sign in once at the URL above as `bisinger.noah@gmail.com`. That creates a
+   *new* user row with a `google_sub`, and it will have starter texts and an
+   empty lexicon — which is expected and not the end state.
+2. **Move the identity onto the row that holds the reading, rather than moving
+   the reading.** One row changes instead of nine tables:
+
+   ```sql
+   -- take the new row's identity
+   UPDATE user SET google_sub = (SELECT google_sub FROM user WHERE id = <new>),
+                   email      = (SELECT email      FROM user WHERE id = <new>),
+                   picture    = (SELECT picture    FROM user WHERE id = <new>),
+                   name       = (SELECT name       FROM user WHERE id = <new>)
+   WHERE id = 1;
+   -- then delete the new row's lessons and the row itself
+   ```
+
+   `google_sub` is uniquely indexed, so the delete has to happen in the same
+   transaction. After it, signing in with that Google account lands on user 1 and
+   the 542 words are there.
 
 ## Next
 
@@ -206,19 +252,14 @@ directory is what stopped the first provisioning run dead (`0018`).
      correction. A domain of your own is still worth five euros for the
      password-reset email `0013` needs, but it is no longer needed for TLS.
 
-   **There is demo content on the box**, so a visitor sees the product rather
-   than an empty library: four short French texts written for the purpose (not
-   excerpts — the repo ships no third-party text), three of them in a collection
-   called "Une semaine à Lyon". They were read through the real endpoints, not
-   seeded into the database: one completed, two part-read, one never opened, and
-   twelve words left in learning. The point is the fourth text — never opened,
-   and already 66% readable, with `reviendront`, `sait`, `assis` and `arrivé`
-   showing as novel forms of lemmas the first three taught. That is the whole
-   argument for the lemma-keyed model, visible on a page nobody has touched.
-   It is demo data in a real lexicon: if the box becomes the maintainer's own
-   reader, this is the thing to clear first.
+   ~~**There is demo content on the box**~~ — **gone, 4 September.** Four short
+   French texts stood in the library so a visitor saw the product rather than an
+   empty page. The box is now the maintainer's own reader, which is exactly the
+   condition this file said to clear them under, and their place is taken by the
+   15 lessons and 542 words carried over from the laptop. New accounts meet the
+   starter texts in `starters/` instead, which is the same job done properly.
 
-   Left undone, deliberately, both decided on 2 September:
+   Left undone:
 
    - **Backups still have nowhere to go.** The timer runs daily and `backup.sh`
      works, but `LL_TEXTREADER_BACKUP_TO` is unset, so every copy lands on the
@@ -226,11 +267,9 @@ directory is what stopped the first provisioning run dead (`0018`).
      a backup. Skipped for now with the risk understood: one disk failure takes
      the lexicon, and the lexicon is the months of reading that cannot be
      regenerated. Setting it is an hour whenever it stops being acceptable.
-   - **SSH still accepts passwords** — the box advertises `publickey,password`,
-     so the root password netcup emailed in plaintext is still a live door, and
-     it is not known whether it was ever rotated. `deploying.md` has the
-     two-line hardening; it stays a human's job because getting it wrong locks
-     you out, and it wants a second terminal open.
+   - ~~**SSH still accepts passwords**~~ — **hardened 4 September.** The box now
+     offers `publickey` only; the plaintext-emailed root password is dead. See
+     the September 4 section above for how it was done safely.
 
 2. **The bug reports.** Seventeen filed from real use. Fourteen are now closed
    (`./scripts/reports.sh`); **10, 11 and 17 are the ones still open.** Until
@@ -425,18 +464,21 @@ directory is what stopped the first provisioning run dead (`0018`).
 
    Three things it does not do, on purpose:
 
-   - **Nobody can sign in as the existing user 1.** Adoption was cut (0021),
+   - **Nobody can sign in as the existing user 1.** Adoption was cut (0022),
      so the lexicon on the box and on the laptop is safe but unreachable until
      the maintainer links their Google identity to it by hand. Deliberate: a
      feature that hands one person's lexicon to whoever opens a link is worse
      than one `UPDATE`.
-   - **Google is not wired to anything real.** The code is written and the
-     failure paths are covered, but the round trip needs a browser, a person
-     pressing Allow, and credentials that only exist on a Google Cloud project
-     nobody has made yet. It is the one part of this that a session cannot
-     finish or verify alone.
-   - **Nothing is deployed.** The branch is not merged and the box still runs
-     the password build.
+   - **Google is wired but not yet proven end to end.** As of 4 September the
+     box has the client id, the redirect URI, `SIGNUP=open` and `MAX_USERS=100`;
+     what it does not have is the **client secret**, which is not in the repo by
+     design and must not be. Until it is set, `/api/auth/me` says
+     `"google": false` and the sign-in button 503s. The round trip still needs a
+     browser and a person pressing Allow — the one part a session cannot finish
+     alone.
+   - ~~**Nothing is deployed.**~~ **Deployed 4 September.** Both branches are
+     merged and the box runs the merged build; the shared password is gone with
+     it, which is why the missing secret currently means nobody can get in.
 
 6. **Export the lessons, and account deletion** — `decisions/0013`. No longer
    at the back of the queue: they are phase 1 of the accounts work, because
@@ -468,7 +510,7 @@ had the attention.
 
 ## Testing
 
-273 tests: 238 backend (pytest), 35 frontend (vitest). `npm test` in `frontend/`.
+319 tests: 284 backend (pytest), 35 frontend (vitest). `npm test` in `frontend/`.
 Some backend tests need a real spaCy model and skip without it, so
 `./scripts/setup-models.sh` — no argument, meaning every configured language — is
 part of running the suite, not just the app.
