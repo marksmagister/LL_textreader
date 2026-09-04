@@ -2,6 +2,16 @@
 # Run this ON the server. Deployment is a pull and a restart.
 set -euo pipefail
 cd /opt/ll-textreader
+
+# uv installs itself here, and `ssh box ./deploy.sh` runs a non-interactive shell
+# that never reads the profile which adds it. Set before sourcing _config.sh,
+# whose db_scalar shells out to uv as well.
+#
+# This line has now been lost twice. It was added in b7c1da6 and then reverted by
+# a branch that forked before it; if it goes missing again the symptom is
+# `uv: command not found` on line 11 and a deploy that stops before the restart.
+PATH="$HOME/.local/bin:$PATH"
+
 . scripts/_config.sh
 
 echo "Backing up first — a deploy is exactly when you want yesterday's lexicon."
