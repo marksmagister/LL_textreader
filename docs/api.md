@@ -1,6 +1,6 @@
 # The API
 
-Seventeen endpoints. Everything the frontend does goes through one of them, and
+Nineteen endpoints. Everything the frontend does goes through one of them, and
 FastAPI serves the live schema at `/docs` if you'd rather read it there.
 
 | | | |
@@ -8,7 +8,9 @@ FastAPI serves the live schema at `/docs` if you'd rather read it there.
 | `GET` | `/api/health` | version and configured languages |
 | `POST` | `/api/lessons/fetch` | read a web page and hand back its text — imports nothing |
 | `POST` | `/api/lessons` | import plain text — **tokenises and lemmatises here, once** |
-| `GET` | `/api/lessons` | the library, with per-lesson counts by state |
+| `GET` | `/api/lessons` | the library, with per-lesson counts by state; `?lang=` narrows it |
+| `GET` | `/api/lessons/starters` | the texts a language starts with, and whether you have them |
+| `POST` | `/api/lessons/starters` | put the ones you don't have in the library |
 | `GET` | `/api/lessons/{id}` | one page, resuming where you stopped unless `?page=` says otherwise |
 | `DELETE` | `/api/lessons/{id}` | delete a lesson and its tokens |
 | `PUT` | `/api/lessons/{id}/collection` | put it in a collection by name; empty takes it out |
@@ -36,6 +38,12 @@ FastAPI serves the live schema at `/docs` if you'd rather read it there.
   sites. The schema is ready for more; the API is not.
 - **A password locks all of it**, including `/api/health`, when
   `LL_TEXTREADER_PASSWORD` is set. Empty means no door.
+- **The starter routes are declared before `/{lesson_id}`.** Routes match in
+  declaration order and "starters" is not an integer, so the other way round
+  `GET /api/lessons/starters` is a 422 rather than a listing.
+- **`/api/health` is what the language menu is built from.** The frontend never
+  hardcodes a language list; what you can read is a fact about which models the
+  server has, not about the bundle.
 - **`POST /api/lessons/fetch` makes the server fetch a URL**, so it validates the
   address *and every redirect it leads to* — see `decisions/0019`. Anything that
   changes that path needs to keep the redirect guard.

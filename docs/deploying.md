@@ -96,6 +96,39 @@ ssh llt@159.195.244.92 '/opt/ll-textreader/scripts/deploy.sh'
 Pull, sync, rebuild, restart, health-check. `provision.sh` gives `llt` exactly one
 root privilege — restarting this one service — which is all `deploy.sh` needs.
 
+### Adding a language to the box
+
+Two things per language, and both scripts do every language in
+`LL_TEXTREADER_LANGUAGES` and skip whatever is already there, so they are safe to
+re-run and safe to interrupt:
+
+```bash
+ssh llt@159.195.244.92 'cd /opt/ll-textreader && ./scripts/setup-models.sh'
+ssh llt@159.195.244.92 'cd /opt/ll-textreader && ./scripts/setup-dictionary.sh'
+```
+
+The **models** are small (fr 63MB, ru 89MB, it 52MB installed) and `deploy.sh`
+already reinstalls them on every deploy, because `uv sync` prunes anything not in
+the lockfile and the model wheels are not.
+
+The **dictionaries** are the slow part: ~570MB for French, ~940MB for Russian and
+~500MB for Italian down the wire, each leaving 12-15MB of glosses behind. Once
+only — nothing prunes them — so they are deliberately *not* in `deploy.sh`. Run it
+in `tmux` or `screen`; a dropped connection mid-download costs the download, since
+each file resumes but the shell that was driving it does not.
+
+Two things to know while it runs:
+
+- **The site stays up.** The database is in WAL mode, so loading glosses does not
+  block anyone reading. It is the only writer while it runs, though, so an import
+  attempted at the same moment waits for it — do it when nobody is reading.
+- **Run it as `llt`, never as root.** A root-owned file in the state directory is
+  what stopped the first provisioning run dead (`decisions/0018`).
+
+Until a language's dictionary is loaded, that language reads fine and shows
+grammar, and every word says "no dictionary entry". `deploy.sh` prints a note for
+any configured language with no glosses, so this cannot sit unnoticed.
+
 ### The certificate, and the name
 
 **Real Let's Encrypt certificate, no warning.** It took some getting: the free

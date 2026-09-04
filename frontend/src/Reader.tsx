@@ -8,7 +8,8 @@ import {
   setTerm,
   translation,
 } from './api'
-import { describe } from './morph'
+import { t, uiLocale } from './i18n'
+import { describe, grammarLocale } from './morph'
 import { nextAsking, nextSentence, segments, sentenceBounds } from './reading'
 import { speak, stop } from './speak'
 import type { Gloss, LessonDetail, Token } from './types'
@@ -92,6 +93,11 @@ export default function Reader({
     return stop // don't carry on reading after you have left
   }, [id])
 
+  // The lesson's own language, never the library's selector: opening a Russian
+  // text while the library is set to Italian must still look words up in
+  // Russian, mark them in the Russian lexicon and read them in a Russian voice.
+  const lang = lesson?.lang ?? ''
+
   const token: Token | null = lesson && cursor >= 0 ? lesson.tokens[cursor] : null
 
   // Fetch the definition when the cursor lands on a word. The panel appears, but
@@ -109,7 +115,7 @@ export default function Reader({
     return () => {
       live = false
     }
-  }, [token?.lemma, token?.pos])
+  }, [lang, token?.lemma, token?.pos])
 
   // Esc is handled at the window, not on the text container: after clicking a
   // panel button focus is in the panel, and the spec says Esc must always bring
@@ -271,6 +277,10 @@ export default function Reader({
     if (k === '1') return (e.preventDefault(), rate(1))
   }
 
+  // Named in the language you are reading when this reader has the words for
+  // it, otherwise in the language of the interface. See morph.ts.
+  const grammar = token ? describe(token.morph, grammarLocale(lang, uiLocale())) : ''
+
   const words = lesson.tokens.filter((t) => t.lemma)
   const unknown = words.filter((t) => t.state === 'new').length
   const last = lesson.page >= lesson.n_pages - 1
@@ -278,58 +288,57 @@ export default function Reader({
   return (
     <main className={token?.lemma ? 'with-panel' : ''}>
       <p className="bar">
-        <button onClick={onBack}>← library</button>
+        <button onClick={onBack}>{t('nav.library')}</button>
         <strong>{lesson.title}</strong>
         <span>
-          page {lesson.page + 1} of {lesson.n_pages} · {unknown} new of {words.length} words
+          {t('reader.pageOf')(lesson.page + 1, lesson.n_pages)} ·{' '}
+          {t('reader.newOf')(unknown, words.length)}
         </span>
         <span className="bar-actions">
         <button
           disabled={lesson.page === 0}
-          title="the previous page"
+          title={t('reader.backTitle')}
           onClick={() => load(lesson.page - 1)}
         >
-          ‹ back
+          {t('reader.back')}
         </button>
         {/* Off unless asked for: a translation always on hand means you stop
             reading the French. */}
         <button
           className={english ? 'on' : ''}
-          title="a translation under each sentence"
+          title={t('reader.translateTitle')}
           onClick={async () => {
             if (english) return setEnglish(null)
             // The first translation of a session loads a 300MB model, which
             // takes far longer than the ones after it. Reported as "stuck",
             // which is what silence looks like.
             setEnglishError(
-              firstTranslation.current
-                ? 'starting the translator — the first page of a session takes a minute'
-                : 'translating this page…',
+              firstTranslation.current ? t('reader.starting') : t('reader.translating'),
             )
             try {
               setEnglish(await translation(id, lesson.page))
               firstTranslation.current = false
               setEnglishError('')
             } catch {
-              setEnglishError('translation not installed — uv sync --extra translate')
+              setEnglishError(t('reader.noTranslator'))
               setEnglish(null)
             }
           }}
         >
-          English
+          {t('lang.en')}
         </button>
         <button
           className={markOnClick ? 'on' : ''}
-          title="while on, clicking a blue word marks it as learning"
+          title={t('reader.markOnClickTitle')}
           onClick={() => setMarkOnClick(!markOnClick)}
         >
-          click = learning
+          {t('reader.markOnClick')}
         </button>
-        <button title="⇧ K — clears the blue and answers the underlined" onClick={() => turn(true, true)}>
-          Mark page known
+        <button title={t('reader.markPageTitle')} onClick={() => turn(true, true)}>
+          {t('reader.markPage')}
         </button>
-        <button title="turn the page and record what you met" onClick={() => turn(false)}>
-          {last ? 'Finish' : 'Next page ›'}
+        <button title={t('reader.nextTitle')} onClick={() => turn(false)}>
+          {last ? t('reader.finish') : t('reader.next')}
         </button>
         </span>
       </p>
@@ -362,7 +371,7 @@ export default function Reader({
             {token.lemma !== token.surface.toLowerCase() && <em> → {token.lemma}</em>}
             <span className="pos"> {token.pos}</span>
             {/* why this form differs from the lemma, not just that it belongs to it */}
-            {describe(token.morph) && <span className="morph">{describe(token.morph)}</span>}
+            {grammar && <span className="morph">{grammar}</span>}
             <button
               className="ghost"
               onClick={() => {
@@ -371,10 +380,10 @@ export default function Reader({
               }}
               title="space"
             >
-              hear it
+              {t('reader.hear')}
             </button>
             <button className="ghost" onClick={() => setFixing(true)} title="o">
-              wrong word?
+              {t('reader.wrongWord')}
             </button>
             {token.overridden && (
               <button
@@ -385,13 +394,13 @@ export default function Reader({
                   toText()
                 }}
               >
-                undo override
+                {t('reader.undoOverride')}
               </button>
             )}
           </p>
 
           <ol className="glosses">
-            {glosses.length === 0 && <li className="muted">no dictionary entry</li>}
+            {glosses.length === 0 && <li className="muted">{t('reader.noEntry')}</li>}
             {glosses.map((g, i) => (
               <li key={i}>
                 <span className="pos">{g.pos}</span> {g.gloss}
@@ -405,31 +414,29 @@ export default function Reader({
                 ref={fixBox}
                 autoFocus
                 value={fix}
-                placeholder={`correct lemma for "${token.surface}" — blank to detach it`}
+                placeholder={t('reader.fixPlaceholder')(token.surface)}
                 onChange={(e) => setFix(e.target.value)}
                 onKeyDown={onKey}
               />
-              <button onClick={saveOverride}>save</button>
-              <button onClick={() => (setFixing(false), toText())}>cancel</button>
+              <button onClick={saveOverride}>{t('reader.save')}</button>
+              <button onClick={() => (setFixing(false), toText())}>{t('reader.cancel')}</button>
             </p>
           )}
 
           <input
             ref={noteBox}
             value={note}
-            placeholder="your own note — saved when you click away, ⌘↵ saves as learning"
+            placeholder={t('reader.notePlaceholder')}
             onChange={(e) => setNote(e.target.value)}
             onBlur={saveNote}
             onKeyDown={onKey}
           />
           <p className="keys">
-            <button onClick={() => rate(1)}>1 learning</button>
-            <button onClick={() => rate(5)}>k known</button>
-            <button onClick={() => rate(-1)}>i ignore</button>
-            <button onClick={() => (setCursor(-1), toText())}>esc</button>
-            {token.state === 'review' && (
-              <span className="muted">met this often — do you know it now?</span>
-            )}
+            <button onClick={() => rate(1)}>{t('reader.learning')}</button>
+            <button onClick={() => rate(5)}>{t('reader.known')}</button>
+            <button onClick={() => rate(-1)}>{t('reader.ignore')}</button>
+            <button onClick={() => (setCursor(-1), toText())}>{t('reader.esc')}</button>
+            {token.state === 'review' && <span className="muted">{t('reader.metOften')}</span>}
           </p>
         </aside>
       )}

@@ -7,11 +7,10 @@ As you read more, the page decolourises. That is the whole product.
 Solo project — one maintainer, no team. Target languages, in order: **French, Russian,
 Arabic (MSA + Levantine), Dutch**.
 
-**Pilot scope: French, Russian and Italian. Nothing else** — no Dutch (maintainer,
-4 September 2026). Italian is the morphological control alongside Russian. Arabic is
-not an afterthought — it is the hardest case, and the data model below exists because
-of it — but the pilot does not have to handle its edge cases. Build so Arabic *can*
-land later without a rewrite; do not spend pilot time making it work. Dutch comes last.
+**Pilot scope: French, and maybe Russian. Nothing else.** Arabic is not an afterthought —
+it is the hardest case, and the data model below exists because of it — but the pilot does
+not have to handle its edge cases. Build so Arabic *can* land later without a rewrite; do
+not spend pilot time making it work. Dutch comes last.
 
 **Current state and next steps: `docs/status.md`.** This file describes *design and
 conventions* (changes on a decision); `docs/status.md` holds *state* (changes on an event).
@@ -111,13 +110,18 @@ backend/ll_textreader/
   dictionary.py  load a kaikki extract; look a lemma up
   translate.py   sentence translation (optional extra)
   export.py      the lexicon as Anki TSV / CSV / JSON
+  counts.py      the library's cached per-lesson counts; recompute, never adjust
+  starters.py    the texts a language starts with
+  starters/      <lang>/<collection>/NN-*.txt — first line is the title
   nlp/           tokenise + lemmatise -> token stream
-    languages/   one adapter per language; _spacy.py is the shared plain-spaCy
-                 base (ru, it); fr.py stands alone and carries tense rules
+    languages/   one adapter per language; each carries its own rules
   api/           routes: lessons, terms, vocab, dictionary, reports (docs/api.md)
   importers/     plain_text.py, from_url.py -> lesson
 backend/tests/
 frontend/        vite + react + typescript
+  src/i18n.ts    the interface in English or German; English is the type
+  src/lang.ts    which language you are reading
+  src/morph.ts   UD features -> grammar a learner can read
 scripts/         setup: download models & dictionaries (never vendored)
 docs/            data-model.md, decisions/ (one file per real decision)
 data/            gitignored: the sqlite db, downloaded models, imported texts
@@ -126,9 +130,18 @@ data/            gitignored: the sqlite db, downloaded models, imported texts
 ## Conventions
 
 - **Python 3.12** (not 3.13/3.14 — spaCy and Stanza lag). `uv` for envs and deps.
-- Default language is `fr`. A language is added by dropping `<code>.py` into
-  `nlp/languages/` exposing `adapter()` — an object with `lang`, `pipeline_id` and
-  `analyse(text) -> list[AnalysedToken]`. No other file should learn it exists.
+- French, Russian and Italian read; `fr` is the default. A language is added by
+  dropping `<code>.py` into `nlp/languages/` exposing `adapter()` — an object with
+  `lang`, `pipeline_id` and `analyse(text) -> list[AnalysedToken]` — and adding the
+  code to `LL_TEXTREADER_LANGUAGES`. No other file should learn it exists; the menu
+  is built from `/api/health`, and its display name is one entry in `i18n.ts`.
+- **Measure a new language before trusting it.** Sixteen forms with the features
+  they actually are, run before any display code, and kept as a floor in the tests.
+  Every language so far has been broken in a way nobody predicted — see
+  `docs/decisions/0021`. An adapter may only correct what is certain from the form
+  or from a closed class; anything else is a guess, and rule 7 applies.
+- The interface is English or German. Strings live in `i18n.ts`, where English is
+  the type, so a missing German string fails the build rather than the reader.
 - **SQLite, single file, no ORM** unless it starts hurting. Raw SQL in `schema.sql`;
   it stays readable and it is the thing you'll reason about most.
 - Backend formatting/lint: `ruff`. Types: `pyright` where it's cheap.

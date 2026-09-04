@@ -1,4 +1,4 @@
-import type { Gloss, LessonDetail, LessonSummary, VocabEntry } from './types'
+import type { Gloss, Health, LessonDetail, LessonSummary, Starter, VocabEntry } from './types'
 
 async function call<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, {
@@ -9,7 +9,25 @@ async function call<T>(url: string, init?: RequestInit): Promise<T> {
   return r.status === 204 ? (undefined as T) : r.json()
 }
 
-export const listLessons = () => call<LessonSummary[]>('/api/lessons')
+/** Version, and which languages this server offers. The language menu is
+ *  populated from here rather than from a constant in the bundle: what you can
+ *  read is a fact about the server's models, not about the frontend. */
+export const health = () => call<Health>('/api/health')
+
+/** The library. With a language, only what you are reading today. */
+export const listLessons = (lang?: string) =>
+  call<LessonSummary[]>('/api/lessons' + (lang ? `?lang=${lang}` : ''))
+
+/** The texts this language starts with, and whether you have them already. */
+export const listStarters = (lang: string) =>
+  call<Starter[]>(`/api/lessons/starters?lang=${lang}`)
+
+/** Put the ones you don't have in the library. Pressing twice is a no-op. */
+export const addStarters = (lang: string) =>
+  call<LessonSummary[]>('/api/lessons/starters', {
+    method: 'POST',
+    body: JSON.stringify({ lang }),
+  })
 
 /** Omit `page` to resume where you stopped. */
 export const readLesson = (id: number, page?: number) =>

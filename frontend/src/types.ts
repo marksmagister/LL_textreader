@@ -20,6 +20,20 @@ export interface Token {
   state: TokenState
 }
 
+export interface Health {
+  status: string
+  version: string
+  /** The languages this server offers. The menu is built from these. */
+  languages: string[]
+}
+
+/** One of the texts a language starts with. */
+export interface Starter {
+  collection: string
+  title: string
+  imported: boolean
+}
+
 export interface LessonSummary {
   id: number
   lang: string

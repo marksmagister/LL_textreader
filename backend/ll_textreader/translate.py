@@ -11,9 +11,14 @@ reading the French.
 import sqlite3
 from functools import cached_property
 
-# OPUS-MT, one dedicated model per pair. Verified to exist on Hugging Face
-# 2026-09-04. Each is a ~300MB download, fetched on first use of translation for
-# that language and then cached.
+# One entry per (source, target) pair; the model is downloaded on first use,
+# ~300MB each, and cached after that.
+#
+# All three names were confirmed to resolve on Hugging Face on 4 September 2026,
+# which settles the caveat added when they were written: the session that added
+# the Russian and Italian pairs had no network to Hugging Face and said so. They
+# were right. If one ever stops resolving the failure is a download error on
+# first press, and the fix is the name here.
 MODELS = {
     ("fr", "en"): "Helsinki-NLP/opus-mt-fr-en",
     ("ru", "en"): "Helsinki-NLP/opus-mt-ru-en",

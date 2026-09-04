@@ -6,122 +6,22 @@ Current state and what's next. Design lives in `../CLAUDE.md`, the data model in
 `data-model.md`, and the reasoning behind individual decisions in `decisions/`. Those
 change on a decision; this file changes on an event. Don't copy one into the other.
 
-## Session note — 4 September (Sonnet, part-done, needs review)
-
-**The next session that is Opus should check briefly that this work was done
-thoroughly and properly** — done under a tight token budget.
-
-The maintainer's instruction this session: the online box should teach **French,
-Russian and Italian** — nothing else (not Dutch). Make the server operational
-with all three; the sign-in hand-off tasks are on hold (see below).
-
-### Done — Russian and Italian, built and verified locally
-
-- `nlp/languages/_spacy.py` — a minimal shared spaCy adapter (analyse loop,
-  offsets, sentence ids, POS-`X` and PRON→surface fallback). `fr.py` does **not**
-  use it: French keeps its tense rules and report fixes. Second/third callers:
-- `nlp/languages/ru.py`, `nlp/languages/it.py` — 12-line subclasses, model as it
-  comes, no hand rules yet.
-- `scripts/setup-models.sh` gained an `it` case (`it_core_news_md`); ru was there.
-- `scripts/setup-dictionary.sh` gained `it) name="Italian"`.
-- `translate.py` `MODELS` gained `("ru","en")` and `("it","en")` —
-  `Helsinki-NLP/opus-mt-{ru,it}-en`, both verified to exist on Hugging Face.
-- Frontend: `App.tsx` now has a language picker (fr/ru/it) in the header,
-  remembered in `localStorage`, that sets the import language, filters the
-  library, and drives the vocab page. `Reader.tsx` dropped its `lang` prop and
-  follows the open lesson's own language.
-- Tests: `backend/tests/test_languages.py` (adapter wiring + a model-gated
-  analyse check). 188 backend / 25 frontend green, ruff + tsc clean.
-- **Verified in a browser locally**: imported Russian prose, read it fully
-  coloured, `читает → читать` VERB with morphology attached, page segmentation
-  correct. Glosses show "no dictionary entry" locally because the ru/it kaikki
-  extracts are not loaded on this laptop (they go on the box — see below).
-
-### Deployed to the box, 4 September
-
-`main` at `62d7a2e` is live. `/api/health` reports `["fr","ru","it"]`. On the box:
-
-- all three spaCy models installed (`fr/ru/it_core_news_md@3.8.0`);
-  `deploy.sh` now re-fetches all three after `uv sync` prunes them. **Any bare
-  `uv run` on the box re-syncs and re-prunes ru/it** — use `uv run --no-sync`
-  or `UV_NO_SYNC=1` for one-off commands there. The systemd unit runs
-  `.venv/bin/uvicorn` directly, so restarts are safe.
-- `hint` table: fr 126,214 / it 207,759 / ru 89,823 glosses (kaikki, loaded on
-  the box, raw files deleted). `книга → "book"`, `libro → "book; …"` verified.
-- `LL_TEXTREADER_LANGUAGES=fr,ru,it` appended to `/opt/ll-textreader/.env`.
-- Verified through the box API: Russian import (`Дети → ребёнок`, `читает →
-  читать`) and Italian import (`bambini → bambino`, `leggere`), both then
-  deleted — no test data left, library is the 5 French demo lessons.
-- RAM after loading all three pipelines in testing: ~1.4 GB used, ~2.5 GB
-  available. Headroom is fine for reading; a loaded translator adds ~1 GB, so
-  0012's RAM caution still stands if several translators wake at once.
-
-### Not done in this session
-
-- **SSH hardening** — handed back to the maintainer (see below). Key access for
-  `llt` and `root` is confirmed working, so `PasswordAuthentication no` will not
-  lock anyone out, but this is a security-setting change and stays a human job
-  per `deploying.md`.
-- **Measure Russian and Italian morphology** before trusting it (0012 step 3).
-  Not started. Known model quirks already seen: Italian `giocavano →
-  "giocavare"` (should be `giocare`) and fused-preposition lemmas like `nel →
-  "in il"`; Russian looked clean on a handful of sentences but that is not a
-  measurement. Same class of issue as French `marchions → "marchion"` — the
-  defence is noticing and pressing `o`.
-  See also the open question at the bottom of this file. `morph.ts` still names
-  grammar in French and lacks Case/Aspect/Animacy (0012 step 4).
-- **Verify ru/it translation** end to end (first call downloads ~300MB each).
-  `translate.py` has the model entries; nothing has exercised them.
-
-### Hand-off tasks 1–4 (Google sign-in) — blocked, code not in repo
-
-The sign-in tasks presuppose a Google OAuth flow, a sessions/cookie layer, a
-`user.email`/`google_sub` column, a `starters/` directory, and a starter-lesson
-import path. **None exist on `main`:** `user` is still `(id, name, created_at)`,
-`main.py` auth is the one shared HTTP-basic password, there is no `starters/`.
-`decisions/0013` still describes the password/invite design with Google sign-in
-marked "not yet a decision" (item 5 below). The two cloud sessions' output is not
-on any pushed branch and not stashed. Before tasks 1–4 proceed, the maintainer
-needs to say where that work lives, or a decision file for Google sign-in needs
-writing and the feature building.
-
-### SSH hardening — for the maintainer to run
-
-Still `publickey,password` on the box, `/etc/ssh/sshd_config.d/` empty, the
-plaintext-emailed root password still a live door. Key access for both `llt` and
-`root` is confirmed working from this laptop, so closing password auth will not
-lock you out. Left for a human because it is a security-setting change and wants
-a second terminal open (per `deploying.md`). In one terminal, staying logged in:
-
-```
-ssh -i ~/.ssh/ll_textreader_deploy root@159.195.244.92
-printf 'PermitRootLogin prohibit-password\nPasswordAuthentication no\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/harden.conf
-sshd -t && systemctl restart ssh
-```
-
-Then, from a *second* terminal, confirm `ssh -i ~/.ssh/ll_textreader_deploy
-llt@159.195.244.92` still works before closing the first.
-
-### Confirmed infrastructure
-
-- **SSH to the box works**: `ssh -i ~/.ssh/ll_textreader_deploy -o IdentitiesOnly=yes
-  llt@159.195.244.92` (and `root@` with the same key). The `--disabled-password`
-  diagnosis here is right; `-i` is the way in. `deploy.sh` is
-  `ssh -i ~/.ssh/ll_textreader_deploy llt@159.195.244.92 '/opt/ll-textreader/scripts/deploy.sh'`.
-- Both `claude/*` remote branches are **already merged into `main`**
-  (`git log main..origin/<branch>` empty on both) — "merge the branch" is done.
-- The laptop now carries `ru_core_news_md` and some HF cache from this session's
-  aborted downloads. **These, and all other local models/dictionaries, are to be
-  deleted once the project is fully server-based** — the maintainer asked to be
-  reminded and to have removal confirmed, so a later session must raise it.
-
 ## Where things stand
 
-**Readable, keyboard-first, with definitions.** Paste French text, read it coloured by
-what you know, Tab between unknown words, and the page decolourises as you go.
+**Readable, keyboard-first, with definitions.** Paste French, Russian or Italian text,
+read it coloured by what you know, Tab between unknown words, and the page
+decolourises as you go.
 
 Working and verified against real text, in the browser:
 - French pipeline: spaCy `fr_core_news_md`, POS-tagged lemmas, run at import
+- Russian and Italian pipelines, measured before they were trusted (`decisions/0021`)
+- a language dropdown in the header, in two groups — the ones you are learning,
+  then everything else the server can read — curated in settings; it filters the
+  library, and the reader takes its language from the lesson, not from the control
+- three starter texts per language — French, Russian and Italian — written for
+  the purpose, in a collection, one press to add
+- the interface is English or German; English is the default and stays it, and
+  German is chosen in settings, never guessed from the browser
 - plain-text import (paste or `.txt`), pages, saved position, "mark page known"
 - all five render states, including known-lemma-novel-form
 - a legend page explaining them, reachable from the library and the palette
@@ -143,21 +43,18 @@ Working and verified against real text, in the browser:
 - undo for "mark page known"
 - the sentence you first met a word in, kept and shown
 - `--dry-run`-able reprocessing for stale token streams (rule 6)
-- 207 tests, ruff and tsc clean
+- 273 tests, ruff and tsc clean
 
 Numbers worth knowing: a 12,000-word chapter imports in 1.3s. Opening a page costs
 more the longer the lesson is, because the page boundaries are re-derived from every
 token each time: 5ms on a 2,000-word article, 10ms at 20,000, 31ms on a 100,000-word
 book. The dictionary is a 573MB download that leaves 12MB in the database.
 
-Russian and Italian: adapters, model/dictionary scripts, translation entries and
-a front-end language picker landed 4 September and work locally; not yet deployed
-to the box, and Russian morphology is not yet measured (see the session note up
-top and open questions below).
+Not built: audio, EPUB import, sync, anything on a phone. Russian and Italian read
+but have no Wiktionary glosses yet — that is a download (`setup-dictionary.sh ru`,
+`it`), not a decision — and translation only targets English.
 
-Not built: audio, EPUB import, sync, anything on a phone.
-
-### Four rules the pilot decided by hand
+### Five rules the pilot decided by hand
 
 - **Confidence.** spaCy gives no per-token score, so the only honest signal is the
   tagger admitting defeat: POS `X` falls back to the surface form (rule 7). The
@@ -174,12 +71,103 @@ Not built: audio, EPUB import, sync, anything on a phone.
   always end in `-r`, so a form can be classified against its own lemma with certainty
   (`nlp/languages/fr.py`). Where the rules are silent and the tagger is not
   trustworthy, no tense is shown at all: 14 correct, 0 wrong, 4 silent.
+- **What a language adapter may correct.** Only what is certain from the form or
+  from a closed class — Russian gets three rules on that basis, Italian none,
+  because its faults need a lexicon rather than a rule (`decisions/0021`).
 
 ### Pages
 
 ~150 tokens, packed greedily and broken between sentences. **Derived at read time, not
 stored**, and position is a token index, so changing the page size reflows a book
 without losing anyone's place. Position never moves backwards.
+
+## Handing off: what needs a machine this session could not reach
+
+Written 3 September 2026, at the end of the multi-language work. Everything below
+needs either the box or the maintainer's laptop; a session running in the cloud
+cannot do any of it, because the box is unreachable from there — no SSH, and the
+agent proxy refuses even HTTPS to the hostname.
+
+### 1. SSH to the box is key-only, and the key is on one laptop
+
+**The symptom.** `ssh llt@159.195.244.92` prompts for a password, and every
+password fails — including the netcup root password and the one in `.env`.
+
+**Why.** There is no password to get right. `provision.sh:49` creates the user
+with `adduser --disabled-password`, so `llt` has no password at all and the
+prompt can never be satisfied. Access is by key: `provision.sh` installs one
+public key into `authorized_keys` for both `llt` and `root`,
+
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK12YUpwWHoOAp8sEczaZfG6qRyzRJcy2UauY5eNF60
+```
+
+and if the laptop you are on does not hold the matching private key, or holds it
+under a filename ssh does not try by default, you fall through to the password
+prompt that cannot work.
+
+Worth being explicit, because it has caused confusion once already: the password
+in `/opt/ll-textreader/.env` is `LL_TEXTREADER_PASSWORD`, the **web** basic-auth
+password for the reader. It has nothing to do with SSH.
+
+**To diagnose**, on the laptop:
+
+```bash
+grep -l AAAAC3NzaC1lZDI1NTE5AAAAIBK12YUpwWHoOAp8sEczaZfG6qRyzRJcy2UauY5eNF60 ~/.ssh/*.pub
+ssh -v llt@159.195.244.92 true      # shows which keys were actually offered
+```
+
+- **The key is there under another name** → `ssh -i ~/.ssh/<that key> llt@…`, and
+  put it in `~/.ssh/config` so it is not a flag you have to remember.
+- **No match** → that key lives on whichever machine provisioned the box. Get in
+  as `root` (netcup's emailed password, if it was never rotated — `0018` says it
+  is compromised on arrival and should have been) and append the laptop's public
+  key:
+
+  ```bash
+  ssh root@159.195.244.92
+  echo 'ssh-ed25519 AAAA…' >> /home/llt/.ssh/authorized_keys
+  chown llt:llt /home/llt/.ssh/authorized_keys && chmod 600 /home/llt/.ssh/authorized_keys
+  ```
+
+- **Root will not take a password either** → netcup's web console (VNC) is the way
+  back in, and that is the moment to rotate the root password and turn password
+  authentication off for good. `deploying.md` has the two lines; it wants a second
+  terminal open, because getting it wrong locks you out.
+
+### 2. Then load the dictionaries
+
+The reason for getting in. Russian and Italian read fine today but every word
+says "no dictionary entry", because only French has glosses on the box.
+
+```bash
+ssh llt@159.195.244.92 'cd /opt/ll-textreader && ./scripts/deploy.sh'
+ssh llt@159.195.244.92 'cd /opt/ll-textreader && tmux new -s dict "./scripts/setup-dictionary.sh"'
+```
+
+**Deploy first.** The box is still on the old script, which takes a mandatory
+language argument and exits with a usage error when given none. After the deploy,
+no argument means every configured language and skips whatever is already loaded,
+so French will not be re-downloaded.
+
+**Use tmux.** ~940MB for Russian and ~500MB for Italian; each file resumes after a
+dropped connection but the shell driving it does not. The site stays up while it
+loads — WAL — but the loader is the only writer, so do not import anything at the
+same time. Run it as `llt`, never as root: a root-owned file in the state
+directory is what stopped the first provisioning run dead (`0018`).
+
+### 3. Smaller, and none of them blocking
+
+- **The translation model names for Russian and Italian are unverified.**
+  `opus-mt-ru-en` and `opus-mt-it-en` were added from 0012's own text, but this
+  session had no network to Hugging Face to confirm they resolve. First press of
+  the English button will say. `translate.py` carries the caveat.
+- **Read with it for a fortnight.** The open question is the one `0004` raised and
+  nobody has tested: Tab now stops on novel forms, and Russian is where that was
+  predicted to become noise. A starter page shows sixteen of them at once, which
+  is the density the argument was about.
+- **Merging the branch.** `claude/multi-language-support-d7mu26`, against a `main`
+  that has not moved since. Nothing in it is deployed yet.
 
 ## Next
 
@@ -231,16 +219,12 @@ without losing anyone's place. Position never moves backwards.
 
    Left undone, deliberately, both decided on 2 September:
 
-   - **Backups still have nowhere to go — and this is a launch blocker.** The
-     timer runs daily and `backup.sh` works, but `LL_TEXTREADER_BACKUP_TO` is
-     unset, so every copy lands on the same disk as the database, which
-     `decisions/0006` is blunt about not being a backup. Left running that way
-     on 3 September with the risk understood, because a same-disk copy is still
-     worth having: it does not survive a dead disk, but it does survive a bad
-     migration or a page marked known by mistake, which are likelier. What it
-     must not do is survive until launch. **Before anyone but the maintainer
-     has a lexicon on this box, an off-machine destination is required** — an
-     hour's work, and the only loss here that cannot be undone.
+   - **Backups still have nowhere to go.** The timer runs daily and `backup.sh`
+     works, but `LL_TEXTREADER_BACKUP_TO` is unset, so every copy lands on the
+     same disk as the database, which `decisions/0006` is blunt about not being
+     a backup. Skipped for now with the risk understood: one disk failure takes
+     the lexicon, and the lexicon is the months of reading that cannot be
+     regenerated. Setting it is an hour whenever it stops being acceptable.
    - **SSH still accepts passwords** — the box advertises `publickey,password`,
      so the root password netcup emailed in plaintext is still a live door, and
      it is not known whether it was ever rotated. `deploying.md` has the
@@ -344,28 +328,26 @@ without losing anyone's place. Position never moves backwards.
    left to people themselves, outside the app? Worth noting against `0015`,
    which already argued about what this project should and should not host.
 
-3. **Russian and Italian** — `decisions/0012`. **The reading path is built**
-   (4 September, see the session note up top): adapters, model/dictionary
-   scripts, translation entries, a header language picker that filters the
-   library. What is left of this item:
-   - deploy it to the box and load the ru/it models and dictionaries there;
-   - **measure Russian morphology before trusting it**, the way French was
-     measured — the step not to skip, still not done;
-   - `morph.ts` still names grammar in French and has no Case/Aspect/Animacy, so
-     Russian words show a thin or French-worded description;
-   - the German interface and a switchable translation target are untouched —
-     the UI still has no i18n. Interface language and translation target are two
-     settings, not one (a German speaker reading French may want English glosses).
+3. **Russian and Italian — done, and what is left of it.** `decisions/0021` has
+   the measurements and the four surprises. Both languages read, the interface is
+   English or German, and every language ships three starter texts. Left over,
+   all small and all named at the end of 0021:
 
-   One thing to re-examine here rather than assume: Tab now stops on novel forms
-   (report #6). `0004` originally refused to, predicting that in a heavily
-   inflected language it would make Tab useless. Nobody has tested that, and
-   Russian is the test.
+   - **The dictionaries.** `./scripts/setup-dictionary.sh ru` and `it` — ~940MB
+     and ~500MB to download, leaving ~15MB each. Until then a Russian word gives
+     grammar and a note field but no gloss.
+   - **German as a translation target.** One `MODELS` entry per pair, plus
+     somewhere to choose it. Not done because the network it was built on could
+     not reach Hugging Face to confirm the model names.
+   - **`ru→en` and `it→en` are added but unrun**, for the same reason. If a name
+     is wrong the symptom is a download error on the first press of the button.
 
-   One thing to re-examine here rather than assume: Tab now stops on novel forms
-   (report #6). `0004` originally refused to, predicting that in a heavily
-   inflected language it would make Tab useless. Nobody has tested that, and
-   Russian is the test.
+   The thing to actually watch, and the reason to read with it rather than reason
+   about it: **Tab now stops on novel forms** (report #6). `0004` originally
+   refused to, predicting that in a heavily inflected language that would make Tab
+   useless — and 0021 measured 19 unmet shapes in a 126-word Russian text against
+   4 in an Italian one, which is exactly the density `0004` was worried about.
+   Nobody has read a long Russian text this way yet. That is the test.
 
 4. **A phone edition** — at least decent compatibility, because several people
    the maintainer knows would use it mainly there. Not planned in detail yet,
@@ -391,10 +373,6 @@ available.
 
 ## Planned in detail, not started
 
-- **German interface, switchable translation target** — `decisions/0012`. The
-  Russian/Italian reading path is built (item 3 above); what remains here is UI
-  localisation and letting the reader pick an interface language and a
-  translation target separately.
 - **Multi-user** — `decisions/0013`. The document still recommends an instance per
   reader until that becomes the annoying part; the maintainer's current leaning is
   Sign in with Google, which is item 5 above and not yet a decision.
@@ -413,9 +391,15 @@ had the attention.
 
 ## Testing
 
-207 tests: 184 backend (pytest), 23 frontend (vitest). `npm test` in `frontend/`.
-Seven of the backend ones need the real French model and skip without it, so
-`./scripts/setup-models.sh fr` is part of running the suite, not just the app.
+273 tests: 238 backend (pytest), 35 frontend (vitest). `npm test` in `frontend/`.
+Some backend tests need a real spaCy model and skip without it, so
+`./scripts/setup-models.sh` — no argument, meaning every configured language — is
+part of running the suite, not just the app.
+
+`test_russian.py` and `test_italian.py` hold the measurement tables from
+`decisions/0021` as **floors**, not exact expectations: the models get a few of
+them wrong, and a test that pretended otherwise would be the lie the table exists
+to prevent. An upgrade that scores better should raise the floor with it.
 
 The frontend tests cover `reading.ts` and `morph.ts` — pure functions, no DOM and no
 component framework, deliberately. What they pin is the logic that is easy to get
@@ -428,6 +412,13 @@ and it compares the stored numbers against counting from scratch after every ope
 that could move a word between buckets. A drifted count is worse than a slow one.
 
 ## Known, not urgent
+
+- **The setup scripts read configuration, so they can now fail in new ways.**
+  Two did, and both failed silently — a `sed` on a missing `.env` under
+  `set -e` taking a whole script down without printing, and a `sqlite3` probe
+  whose absence read as a real answer. Fixed, and written up in `0021` under
+  "Two bugs in the setup scripts", because the shape will recur. `_config.sh`
+  is the one place that reads `.env` now; keep it that way.
 
 Written down so the next session doesn't rediscover them and think they are news.
 
@@ -447,6 +438,20 @@ Written down so the next session doesn't rediscover them and think they are news
 - **`ago()` is written twice**, in `Vocab.tsx` and `LessonList.tsx`, with different
   wording on purpose. Both had the same timestamp-parsing bug. A third copy means
   it is time to merge them.
+- **The three language adapters share a twenty-five-line spaCy walk**, and it is
+  not extracted. Deliberate: pulling it out means touching `fr.py`, and any change
+  to its `pipeline_id` marks every French lesson on the box stale and forces a
+  reprocess. A fourth language, or the next change `fr.py` needs anyway, is when
+  to do it (`decisions/0021`).
+- **Reading `LL_TEXTREADER_LANGUAGES` out of `.env` is written twice**, in
+  `check.sh` and `setup-models.sh`, because neither may source `.env` safely. Same
+  rule as `ago()`: a third copy means merge them.
+- **Russian and Italian have no glosses until the extracts are downloaded.** The
+  word panel looks broken-but-working: grammar, no definition.
+- **Italian invents lemmas for some first-person and future forms, and does it
+  inconsistently**: `chiamo` is `chiamo` in one sentence and `chare` — not a word
+  — in another, so one verb can become two lexicon entries depending on where you
+  met it. Measured in `decisions/0021`; the defence is `o`.
 
 ## Open questions
 
