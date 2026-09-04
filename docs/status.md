@@ -81,6 +81,94 @@ but have no Wiktionary glosses yet — that is a download (`setup-dictionary.sh 
 stored**, and position is a token index, so changing the page size reflows a book
 without losing anyone's place. Position never moves backwards.
 
+## Handing off: what needs a machine this session could not reach
+
+Written 3 September 2026, at the end of the multi-language work. Everything below
+needs either the box or the maintainer's laptop; a session running in the cloud
+cannot do any of it, because the box is unreachable from there — no SSH, and the
+agent proxy refuses even HTTPS to the hostname.
+
+### 1. SSH to the box is key-only, and the key is on one laptop
+
+**The symptom.** `ssh llt@159.195.244.92` prompts for a password, and every
+password fails — including the netcup root password and the one in `.env`.
+
+**Why.** There is no password to get right. `provision.sh:49` creates the user
+with `adduser --disabled-password`, so `llt` has no password at all and the
+prompt can never be satisfied. Access is by key: `provision.sh` installs one
+public key into `authorized_keys` for both `llt` and `root`,
+
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK12YUpwWHoOAp8sEczaZfG6qRyzRJcy2UauY5eNF60
+```
+
+and if the laptop you are on does not hold the matching private key, or holds it
+under a filename ssh does not try by default, you fall through to the password
+prompt that cannot work.
+
+Worth being explicit, because it has caused confusion once already: the password
+in `/opt/ll-textreader/.env` is `LL_TEXTREADER_PASSWORD`, the **web** basic-auth
+password for the reader. It has nothing to do with SSH.
+
+**To diagnose**, on the laptop:
+
+```bash
+grep -l AAAAC3NzaC1lZDI1NTE5AAAAIBK12YUpwWHoOAp8sEczaZfG6qRyzRJcy2UauY5eNF60 ~/.ssh/*.pub
+ssh -v llt@159.195.244.92 true      # shows which keys were actually offered
+```
+
+- **The key is there under another name** → `ssh -i ~/.ssh/<that key> llt@…`, and
+  put it in `~/.ssh/config` so it is not a flag you have to remember.
+- **No match** → that key lives on whichever machine provisioned the box. Get in
+  as `root` (netcup's emailed password, if it was never rotated — `0018` says it
+  is compromised on arrival and should have been) and append the laptop's public
+  key:
+
+  ```bash
+  ssh root@159.195.244.92
+  echo 'ssh-ed25519 AAAA…' >> /home/llt/.ssh/authorized_keys
+  chown llt:llt /home/llt/.ssh/authorized_keys && chmod 600 /home/llt/.ssh/authorized_keys
+  ```
+
+- **Root will not take a password either** → netcup's web console (VNC) is the way
+  back in, and that is the moment to rotate the root password and turn password
+  authentication off for good. `deploying.md` has the two lines; it wants a second
+  terminal open, because getting it wrong locks you out.
+
+### 2. Then load the dictionaries
+
+The reason for getting in. Russian and Italian read fine today but every word
+says "no dictionary entry", because only French has glosses on the box.
+
+```bash
+ssh llt@159.195.244.92 'cd /opt/ll-textreader && ./scripts/deploy.sh'
+ssh llt@159.195.244.92 'cd /opt/ll-textreader && tmux new -s dict "./scripts/setup-dictionary.sh"'
+```
+
+**Deploy first.** The box is still on the old script, which takes a mandatory
+language argument and exits with a usage error when given none. After the deploy,
+no argument means every configured language and skips whatever is already loaded,
+so French will not be re-downloaded.
+
+**Use tmux.** ~940MB for Russian and ~500MB for Italian; each file resumes after a
+dropped connection but the shell driving it does not. The site stays up while it
+loads — WAL — but the loader is the only writer, so do not import anything at the
+same time. Run it as `llt`, never as root: a root-owned file in the state
+directory is what stopped the first provisioning run dead (`0018`).
+
+### 3. Smaller, and none of them blocking
+
+- **The translation model names for Russian and Italian are unverified.**
+  `opus-mt-ru-en` and `opus-mt-it-en` were added from 0012's own text, but this
+  session had no network to Hugging Face to confirm they resolve. First press of
+  the English button will say. `translate.py` carries the caveat.
+- **Read with it for a fortnight.** The open question is the one `0004` raised and
+  nobody has tested: Tab now stops on novel forms, and Russian is where that was
+  predicted to become noise. A starter page shows sixteen of them at once, which
+  is the density the argument was about.
+- **Merging the branch.** `claude/multi-language-support-d7mu26`, against a `main`
+  that has not moved since. Nothing in it is deployed yet.
+
 ## Next
 
 1. **It is live, with two things left undone on purpose.** The box serves the
