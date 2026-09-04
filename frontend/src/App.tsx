@@ -272,9 +272,43 @@ function Palette({ commands, onClose }: { commands: [string, () => void][]; onCl
 
 /** Sign out, export, or leave. Small enough to live here; it is three buttons
  *  and a confirmation, and a file of its own would be ceremony. */
-function Account({ me, onSignedOut }: { me: Me; onSignedOut: () => void }) {
+/** The account menu, and the home for the two controls that used to float in the
+ *  bottom corners. Both were pinned over the word panel — harmless in the margins
+ *  of a wide screen, and squarely on top of its buttons on a phone. They are not
+ *  things you reach for while reading a sentence, so they belong behind a menu;
+ *  the palette still opens both without the mouse (0004). */
+function Account({
+  me,
+  onSignedOut,
+  themeLabel,
+  onFlipTheme,
+  onReport,
+}: {
+  me: Me
+  onSignedOut: () => void
+  themeLabel: string
+  onFlipTheme: () => void
+  onReport: () => void
+}) {
   const [open, setOpen] = useState(false)
   const [confirming, setConfirming] = useState(false)
+
+  // Clicking anywhere else closes it, which is what every other menu does and
+  // what people try first — pressing the name again was the only way out.
+  useEffect(() => {
+    if (!open) return
+    const away = (e: MouseEvent) => {
+      if (!(e.target as Element)?.closest?.('.account')) setOpen(false)
+    }
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', away)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', away)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+
   if (!me.user) return null
   return (
     <div className="account">
@@ -284,6 +318,22 @@ function Account({ me, onSignedOut }: { me: Me; onSignedOut: () => void }) {
       {open && (
         <div className="account-menu">
           <p className="meta">{me.user.email}</p>
+          <button
+            onClick={() => {
+              setOpen(false)
+              onFlipTheme()
+            }}
+          >
+            {themeLabel}
+          </button>
+          <button
+            onClick={() => {
+              setOpen(false)
+              onReport()
+            }}
+          >
+            {t('report.tab')}
+          </button>
           {/* A plain link so Content-Disposition does the saving. */}
           <a className="button" href={accountExportUrl()}>
             export everything
@@ -332,6 +382,7 @@ export default function App() {
   const [me, setMe] = useState<Me | undefined>()
   const [view, setView] = useState<View>({ at: 'library' })
   const [palette, setPalette] = useState(false)
+  const [reporting, setReporting] = useState(false)
   // A bulk action can change a hundred words, and finishing the last page of a
   // lesson leaves the reader — so the offer to take it back lives up here,
   // above whichever screen you end up on.
@@ -433,6 +484,9 @@ export default function App() {
     [t('cmd.legend'), () => setView({ at: 'legend' })],
     [t('cmd.settings'), () => setView({ at: 'settings' })],
     [t('cmd.theme'), flip],
+    // Both of these lost their floating tab; the palette keeps them one press
+    // away without the mouse, which is what 0004 asks of everything here.
+    [t('report.tabTitle'), () => setReporting(true)],
     [t('cmd.system'), () => setTheme('system')],
     // Switching language is a command too, so the core loop never needs the
     // mouse — the same argument as 0004 makes for everything else. Only the ones
@@ -454,7 +508,13 @@ export default function App() {
     // Keyed on the interface language so that anything holding a translated
     // string in its own state is rebuilt rather than left in the old one.
     <div key={ui}>
-      <Account me={me} onSignedOut={() => setMe({ ...me, user: null })} />
+      <Account
+        me={me}
+        onSignedOut={() => setMe({ ...me, user: null })}
+        themeLabel={effective(theme) === 'dark' ? t('app.themeToLight') : t('app.themeToDark')}
+        onFlipTheme={flip}
+        onReport={() => setReporting(true)}
+      />
       {undo && (
         <p className="undo">
           {t('undo.marked')(undo.n)}
@@ -514,13 +574,13 @@ export default function App() {
         />
       )}
       {palette && <Palette commands={commands} onClose={() => setPalette(false)} />}
-      <Report
-        lessonId={view.at === 'reader' ? view.id : undefined}
-        page={view.at === 'reader' ? view.page : undefined}
-      />
-      <button className="theme-tab" onClick={flip} title={t('app.themeTitle')}>
-        {effective(theme) === 'dark' ? t('app.themeToLight') : t('app.themeToDark')}
-      </button>
+      {reporting && (
+        <Report
+          lessonId={view.at === 'reader' ? view.id : undefined}
+          page={view.at === 'reader' ? view.page : undefined}
+          onClose={() => setReporting(false)}
+        />
+      )}
     </div>
   )
 }

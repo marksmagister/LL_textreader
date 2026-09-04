@@ -131,6 +131,22 @@ export default function Reader({
     return () => window.removeEventListener('keydown', onEsc)
   }, [])
 
+  // Tapping away is what Esc is on a phone, which has no Esc. Anywhere that is
+  // neither a word nor the panel itself closes the panel — the same gesture the
+  // palette, the report box and the account menu already answer to. Another word
+  // is excluded because that is a move, not a dismissal.
+  useEffect(() => {
+    if (cursor < 0) return
+    const away = (e: MouseEvent) => {
+      const el = e.target as Element | null
+      if (el?.closest?.('.panel') || el?.closest?.('[data-i]')) return
+      setFixing(false)
+      setCursor(-1)
+    }
+    document.addEventListener('mousedown', away)
+    return () => document.removeEventListener('mousedown', away)
+  }, [cursor])
+
   useEffect(() => {
     if (cursor >= 0)
       text.current
