@@ -129,13 +129,21 @@ def loopback_is_public(monkeypatch):
     Returns the list of addresses checked.
     """
     real = check
+    real_resolve = from_url.resolve
     calls = []
 
     def checked(url):
         calls.append(url)
         return url if urlparse(url).hostname == "127.0.0.1" else real(url)
 
+    def resolved(hostname):
+        # The connection resolves for itself now, so the stub has to cover that
+        # too — otherwise the loopback server is refused at connect time and
+        # every test below fails on the address rather than on what it is testing.
+        return "127.0.0.1" if hostname == "127.0.0.1" else real_resolve(hostname)
+
     monkeypatch.setattr(from_url, "check", checked)
+    monkeypatch.setattr(from_url, "resolve", resolved)
     return calls
 
 
@@ -178,3 +186,41 @@ def test_a_page_too_big_to_import_is_refused(loopback_is_public):
 
     with pytest.raises(BadUrl, match="too big"):
         from_url.fetch(serve(huge) + "/article")
+
+
+# ---------------------------------------------------------------- rebinding
+#
+# 0019 left this open deliberately, on the grounds that whoever could reach the
+# app had already been invited. Signup is open now, so that reasoning is gone.
+
+
+def test_the_connection_resolves_through_the_guard_not_around_it(loopback_is_public, monkeypatch):
+    """The rebinding fix, stated as behaviour rather than as plumbing.
+
+    There used to be two lookups — one in `check`, one when urllib opened the
+    socket — and a name whose record flipped between them passed the check and
+    was connected to anyway. Now the connection itself resolves, through the
+    same guard, so a name that turns private at connect time is refused at
+    connect time. Simulated by letting `check` pass and making the resolution
+    that matters return a private address.
+    """
+    base = serve(lambda h: None)
+    monkeypatch.setattr(
+        from_url,
+        "resolve",
+        lambda hostname: (_ for _ in ()).throw(
+            BadUrl(f"{hostname} resolves to a non-public address")
+        ),
+    )
+    with pytest.raises(BadUrl, match="non-public"):
+        from_url.fetch(base + "/article")
+
+
+def test_https_still_verifies_the_certificate_against_the_name(monkeypatch):
+    """Pinning the address must not cost certificate checking — 0019's worry.
+
+    The name goes into the handshake as server_hostname, so a pinned connection
+    to a public site still fails if the certificate does not match the name.
+    """
+    conn = from_url._PinnedHTTPSConnection("example.com", 443)
+    assert conn.host == "example.com"

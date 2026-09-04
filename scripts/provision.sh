@@ -4,13 +4,12 @@
 #     ssh root@<ip> 'bash -s' < scripts/provision.sh
 #
 # Safe to run again — every step checks before it acts, so a failed download is
-# just a re-run. You will need two passes: the first stops to print a deploy key,
-# because the repo is private and the box cannot clone it until that key is added
-# on GitHub. Everything after that is scripts/deploy.sh.
+# just a re-run. One pass: the repository is public, so the box clones it over
+# https with no key to install. Everything after this is scripts/deploy.sh.
 set -euo pipefail
 
 fqdn="${LL_TEXTREADER_FQDN:-v2202609408983511171.ultrasrv.de}"
-repo="${LL_TEXTREADER_REPO:-git@github.com:marksmagister/LL_textreader.git}"
+repo="${LL_TEXTREADER_REPO:-https://github.com/marksmagister/LL_textreader.git}"
 app=/opt/ll-textreader
 state=/var/lib/ll-textreader
 u=llt
@@ -73,48 +72,30 @@ step "uv"
 [ -x "/home/$u/.local/bin/uv" ] || as_llt 'curl -LsSf https://astral.sh/uv/install.sh | sh'
 as_llt "/home/$u/.local/bin/uv python install 3.12"
 
-step "Deploy key"
-# The repo is private, so the box needs its own read-only key on GitHub.
-key="/home/$u/.ssh/id_ed25519"
-[ -f "$key" ] || as_llt "ssh-keygen -t ed25519 -N '' -C 'll-textreader box' -f ~/.ssh/id_ed25519"
-export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new'
-if ! as_llt "GIT_SSH_COMMAND='$GIT_SSH_COMMAND' git ls-remote '$repo' -q" >/dev/null 2>&1; then
-  cat <<MSG
-
-This box cannot read the repository yet. Add this as a deploy key —
-read-only is enough, it never pushes:
-
-  https://github.com/marksmagister/LL_textreader/settings/keys/new
-
-$(cat "$key.pub")
-
-Then run this script again. Everything above is already done.
-MSG
-  exit 0
-fi
-
 step "Clone"
 if [ -d "$app/.git" ]; then
-  as_llt "cd $app && GIT_SSH_COMMAND='$GIT_SSH_COMMAND' git pull --ff-only"
+  as_llt "cd $app && git pull --ff-only"
 else
   install -d -o "$u" -g "$u" "$app"
-  as_llt "GIT_SSH_COMMAND='$GIT_SSH_COMMAND' git clone -q '$repo' $app"
+  as_llt "git clone -q '$repo' $app"
 fi
 
 step "Configuration"
-# Written once and never overwritten: regenerating the password on a re-run would
-# lock the reader out of their own lexicon.
+# Written once and never overwritten, so a re-run cannot disturb a working box.
+# The Google values are left blank deliberately: the client secret is the one
+# thing here that must not be generated, guessed, or committed, so provisioning
+# stops short and the last line of this script says what to paste in.
 if [ ! -f "$app/.env" ]; then
-  pw=$(openssl rand -hex 24)
   cat > "$app/.env" <<ENV
 LL_TEXTREADER_DB_PATH=$state/ll_textreader.db
 LL_TEXTREADER_DATA_DIR=$state
-LL_TEXTREADER_USERNAME=read
-LL_TEXTREADER_PASSWORD=$pw
+LL_TEXTREADER_GOOGLE_CLIENT_ID=
+LL_TEXTREADER_GOOGLE_CLIENT_SECRET=
+LL_TEXTREADER_GOOGLE_REDIRECT_URI=https://$fqdn/api/auth/google/callback
 ENV
   chown "$u:$u" "$app/.env"
   chmod 600 "$app/.env"
-  new_password=$pw
+  fresh_env=1
 fi
 
 step "Python, models and dictionaries"
@@ -153,22 +134,25 @@ systemctl reload caddy || systemctl restart caddy
 
 step "Check"
 sleep 3
-set -a; . "$app/.env"; set +a
-curl -fsS -u "${LL_TEXTREADER_USERNAME:-read}:${LL_TEXTREADER_PASSWORD:-}" \
-  -o /dev/null localhost:8000/api/health \
+# /api/health needs no credentials: there is no shared password any more, and a
+# reader who is not signed in still has to be able to reach the sign-in page.
+curl -fsS -o /dev/null localhost:8000/api/health \
   && echo "  backend up" \
   || { echo "  backend down — journalctl -u ll-textreader -n 50" >&2; exit 1; }
 
 cat <<DONE
 
-Done. https://$fqdn  (user: ${LL_TEXTREADER_USERNAME:-read})
+Done. https://$fqdn
 DONE
-if [ -n "${new_password:-}" ]; then
+if [ -n "${fresh_env:-}" ]; then
   cat <<DONE
-The password was generated just now and is printed once:
 
-  $new_password
+One thing left, and the box serves nobody until it is done: put the Google
+OAuth client id and secret into $app/.env, then
 
-It lives in $app/.env. Change it there and restart if you would rather pick one.
+  systemctl restart ll-textreader
+
+The client id is in docs/deploying.md. The secret is only in the Google console
+— it must not be committed, and this script deliberately does not invent one.
 DONE
 fi

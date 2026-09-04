@@ -1,13 +1,13 @@
-from base64 import b64encode
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from secrets import compare_digest
+from pathlib import Path
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
-from .api import dictionary, lessons, reports, terms, vocab
+from .api import account, auth, dictionary, lessons, reports, terms, vocab
 from .config import REPO_ROOT, settings
 from .db import init_db
 
@@ -20,33 +20,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 # No CORS middleware: nothing is ever cross-origin. Vite proxies /api in dev and
 # this app serves the built frontend in production, so the browser only ever
-# talks to one origin. It was also unreachable — with a password set, this
-# middleware answered the preflight with a 401 and no CORS headers at all.
+# talks to one origin.
+#
+# There is no longer a shared password either. It was one door in front of one
+# lexicon, and it made no sense once a request had to say *whose* lexicon it
+# meant: every route that touches reader data now depends on `current_user`, and
+# a request without a session gets a 401 from the route rather than from a
+# middleware that could not tell the routes apart. Two doors would have been the
+# kind of ceremony CLAUDE.md warns about — see docs/decisions/0022.
 app = FastAPI(title="LL_textreader", version=__version__, lifespan=lifespan)
 
-
-@app.middleware("http")
-async def require_password(request: Request, call_next):
-    """One shared password over HTTP basic auth.
-
-    This is a single-user app: there are no accounts, and whoever gets in reads
-    with the one lexicon. The password is not a login system, it is a door — but
-    a tunnel or a public host makes it the only thing between your reading
-    history and anyone who guesses the URL.
-    """
-    if settings.password:
-        header = request.headers.get("authorization", "")
-        expected = b64encode(f"{settings.username}:{settings.password}".encode()).decode()
-        scheme, _, given = header.partition(" ")
-        # compare_digest, so the answer doesn't leak through response timing
-        if scheme.lower() != "basic" or not compare_digest(given, expected):
-            return Response(
-                status_code=401,
-                headers={"WWW-Authenticate": 'Basic realm="LL_textreader"'},
-            )
-    return await call_next(request)
-
-
+app.include_router(account.router)
+app.include_router(auth.router)
 app.include_router(dictionary.router)
 app.include_router(lessons.router)
 app.include_router(reports.router)
@@ -56,7 +41,32 @@ app.include_router(vocab.router)
 
 @app.get("/api/health")
 def health() -> dict[str, str | list[str]]:
+    """Deliberately open. It says the version and which languages are loaded —
+    nothing about any reader — and something has to answer before anyone signs in."""
     return {"status": "ok", "version": __version__, "languages": settings.language_list}
+
+
+# Served from here rather than from the SPA for two reasons: Google's consent
+# screen wants a URL it can fetch without running JavaScript, and somebody
+# reading the privacy policy to decide whether to sign up must not have to sign
+# up to read it. Registered before the static mount below, which would otherwise
+# swallow both paths.
+LEGAL = Path(__file__).parent / "legal"
+
+
+def _page(name: str) -> HTMLResponse:
+    style = (LEGAL / "_style.html").read_text(encoding="utf-8")
+    return HTMLResponse(style + (LEGAL / name).read_text(encoding="utf-8"))
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy() -> HTMLResponse:
+    return _page("privacy.html")
+
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms() -> HTMLResponse:
+    return _page("terms.html")
 
 
 # In production the built frontend is served from here, so a deployment is one

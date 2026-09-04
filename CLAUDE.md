@@ -7,10 +7,11 @@ As you read more, the page decolourises. That is the whole product.
 Solo project — one maintainer, no team. Target languages, in order: **French, Russian,
 Arabic (MSA + Levantine), Dutch**.
 
-**Pilot scope: French, and maybe Russian. Nothing else.** Arabic is not an afterthought —
+**Pilot scope: French, Russian and Italian. Nothing else** — explicitly not Dutch
+(maintainer, 4 September 2026). All three read today. Arabic is not an afterthought —
 it is the hardest case, and the data model below exists because of it — but the pilot does
 not have to handle its edge cases. Build so Arabic *can* land later without a rewrite; do
-not spend pilot time making it work. Dutch comes last.
+not spend pilot time making it work. Dutch comes last, if at all.
 
 **Current state and next steps: `docs/status.md`.** This file describes *design and
 conventions* (changes on a decision); `docs/status.md` holds *state* (changes on an event).
@@ -102,20 +103,25 @@ from exposure, never self-rated — see `docs/decisions/0008-learning-levels.md`
 
 ```
 backend/ll_textreader/
-  main.py        FastAPI app
+  main.py        FastAPI app; also serves /privacy and /terms
   db.py          sqlite connection, migrations
   config.py      env-backed settings
   schema.sql     the source of truth for the schema
   models.py      pydantic types shared with the API, and state_for()
+  auth.py        sessions, the current_user dependency, the account cap
+  google.py      the OAuth exchange — the only thing that talks to Google
+  limits.py      what one account may cost: rates per hour, absolute caps
   dictionary.py  load a kaikki extract; look a lemma up
   translate.py   sentence translation (optional extra)
   export.py      the lexicon as Anki TSV / CSV / JSON
   counts.py      the library's cached per-lesson counts; recompute, never adjust
-  starters.py    the texts a language starts with
+  starters.py    the texts a language starts with: given at sign-up, and a button
   starters/      <lang>/<collection>/NN-*.txt — first line is the title
+  legal/         privacy.html, terms.html — served without signing in
   nlp/           tokenise + lemmatise -> token stream
     languages/   one adapter per language; each carries its own rules
-  api/           routes: lessons, terms, vocab, dictionary, reports (docs/api.md)
+  api/           routes: lessons, terms, vocab, dictionary, reports,
+                 auth (sign in/out), account (export, delete) — docs/api.md
   importers/     plain_text.py, from_url.py -> lesson
 backend/tests/
 frontend/        vite + react + typescript
@@ -149,9 +155,21 @@ data/            gitignored: the sqlite db, downloaded models, imported texts
 - **Ship no third-party data in the repo.** Wiktionary/Kaikki data is CC-BY-SA and NLP
   models carry their own licences — `scripts/` downloads them into `data/` at setup time.
   This keeps the repo's licence story simple. See `NOTICE`.
-- **Single-instance, single-user.** Each person runs their own copy with their own
-  imports. Do not add a shared lesson library — that is the line between "read-later app"
-  and "hosting other people's copyrighted text".
+- **One instance, many readers, and every reader is alone in it.** Sign in with Google
+  (`decisions/0022`). The Google project stays in *Testing*, so the people who can sign
+  in are the ones on its test-user list — that list is the invite system, and it is why
+  there is no invite table here. What has *not* changed is the isolation:
+  `user_id` is part of the key on everything a reader owns, and there is no ambient
+  current user — every query that touches reader data carries the id, passed in from
+  `current_user`. Do not add a `USER_ID` default back; a call site that forgets must
+  fail rather than serve somebody else's vocabulary. `test_auth.py` enumerates the
+  routes from the app's own schema, so a new route without a user fails on the day it
+  is written.
+- **No text this project does not own.** Imports are private to the account that made
+  them: not shared between readers, not published, not a library. The starter lessons
+  in `starters/` are the one thing every reader gets, and they are original prose
+  written for the purpose — an excerpt there would break both this rule and `NOTICE`.
+  The line is ownership of the text, not whether two people can see the same file.
 - Don't name it, style it, or word it after LingQ. Trademark is a separate risk from
   copyright and it's the one that generates letters.
 
@@ -191,6 +209,9 @@ session's transcript.
 ## Working style
 
 - Commit straight to `main`, no branches, no PRs — one person, branching is friction.
-  Commit whenever something works, so a bad session can be undone.
+  Commit whenever something works, so a bad session can be undone. The one exception so
+  far was accounts, on a branch because it touched forty-one call sites at once and the
+  failure mode was one reader seeing another's words. Use a branch when a change is
+  that shape; otherwise don't.
 - Deployment (eventually, a Hetzner box) is `git pull`. Keep it that way.
 - Keep prose short. The maintainer reads everything you write; length is a cost they pay.

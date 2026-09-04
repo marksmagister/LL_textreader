@@ -9,15 +9,22 @@ import LessonList from './LessonList'
 import Settings from './Settings'
 import Vocab from './Vocab'
 import {
+  accountExportUrl,
   addStarters,
+  deleteAccount,
   deleteLesson,
   fetchUrl,
   health,
   importText,
   listLessons,
   listStarters,
+  NotSignedIn,
+  signOut,
   undoBulk,
+  whoami,
 } from './api'
+import SignIn from './SignIn'
+import type { Me } from './api'
 import type { LessonSummary } from './types'
 
 /** How long the offer to take back a bulk change stays on screen. */
@@ -264,7 +271,66 @@ function Palette({ commands, onClose }: { commands: [string, () => void][]; onCl
   )
 }
 
+/** Sign out, export, or leave. Small enough to live here; it is three buttons
+ *  and a confirmation, and a file of its own would be ceremony. */
+function Account({ me, onSignedOut }: { me: Me; onSignedOut: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  if (!me.user) return null
+  return (
+    <div className="account">
+      <button className="ghost" onClick={() => setOpen(!open)}>
+        {me.user.name || me.user.email || 'account'}
+      </button>
+      {open && (
+        <div className="account-menu">
+          <p className="meta">{me.user.email}</p>
+          {/* A plain link so Content-Disposition does the saving. */}
+          <a className="button" href={accountExportUrl()}>
+            export everything
+          </a>
+          <button
+            onClick={async () => {
+              await signOut()
+              onSignedOut()
+            }}
+          >
+            sign out
+          </button>
+          {confirming ? (
+            <p className="warn">
+              This deletes your texts and every word you have learned. It cannot be undone —
+              export first if you might want it.
+              <button
+                onClick={async () => {
+                  await deleteAccount()
+                  onSignedOut()
+                }}
+              >
+                delete it all
+              </button>
+              <button className="ghost" onClick={() => setConfirming(false)}>
+                keep it
+              </button>
+            </p>
+          ) : (
+            <button className="ghost" onClick={() => setConfirming(true)}>
+              delete account
+            </button>
+          )}
+          <p className="meta">
+            <a href="/privacy">privacy</a> · <a href="/terms">terms</a>
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
+  // undefined while we are still asking. Rendering the reader before the answer
+  // arrives would flash the library at somebody who is not signed in.
+  const [me, setMe] = useState<Me | undefined>()
   const [view, setView] = useState<View>({ at: 'library' })
   const [palette, setPalette] = useState(false)
   // A bulk action can change a hundred words, and finishing the last page of a
@@ -283,13 +349,31 @@ export default function App() {
     apply(theme)
   }, [theme])
 
-  // What this server can actually read. Until it answers, the menu is just the
-  // language you had last time, which is the one you are about to use anyway.
   useEffect(() => {
-    health()
-      .then((h) => h.languages.length && setLanguages(h.languages))
-      .catch(() => undefined)
+    whoami().then(setMe)
   }, [])
+
+  // A session can expire between one page turn and the next, so any call may
+  // come back 401. Catching it here — once, at the window — turns that into the
+  // sign-in screen rather than an error message on whatever screen you were on.
+  useEffect(() => {
+    const onRejection = (e: PromiseRejectionEvent) => {
+      if (e.reason instanceof NotSignedIn) {
+        e.preventDefault()
+        setMe((m) => (m ? { ...m, user: null } : m))
+      }
+    }
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => window.removeEventListener('unhandledrejection', onRejection)
+  }, [])
+
+  // What this server can actually read. `whoami` already carries it — it is the
+  // one call that answers before you are signed in — so the menu costs no extra
+  // round trip. Until it answers, the menu is just the language you had last
+  // time, which is the one you are about to use anyway.
+  useEffect(() => {
+    if (me?.languages?.length) setLanguages(me.languages)
+  }, [me])
 
   // What the dropdown shows, in two groups. Anything you are learning that this
   // server cannot read is dropped rather than offered — and the language you are
@@ -359,10 +443,19 @@ export default function App() {
     ),
   ]
 
+  if (!me) return <main>…</main>
+  if (!me.user) {
+    // The callback sends failures back here as ?error=, since it is reached by
+    // the browser navigating and a JSON error would be a dead end.
+    const error = new URLSearchParams(window.location.search).get('error') ?? undefined
+    return <SignIn me={me} error={error} />
+  }
+
   return (
     // Keyed on the interface language so that anything holding a translated
     // string in its own state is rebuilt rather than left in the old one.
     <div key={ui}>
+      <Account me={me} onSignedOut={() => setMe({ ...me, user: null })} />
       {undo && (
         <p className="undo">
           {t('undo.marked')(undo.n)}

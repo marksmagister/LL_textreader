@@ -62,6 +62,11 @@
 /* The browser paints its own ground behind a transparent body. */
 body { margin: 0; background: var(--bg); color: var(--fg); }
 
+/* Links take the text colour. The browser's default blue-and-purple is a fifth
+   and sixth colour in an app whose whole palette is four states of one word, and
+   a visited link turning purple looks like a render state that means something. */
+a { color: inherit; }
+
 /* A reading app: the text is the interface. ~65 characters of measure. */
 main { max-width: 34rem; margin: 0 auto; padding: 2rem 1.5rem 8rem; }
 
@@ -362,3 +367,46 @@ kbd { font: inherit; font-size: 0.8rem; border: 1px solid var(--line);
 .legend-loop { font-size: 1rem; line-height: 2.4; }
 .legend-notes { padding-left: 1.1rem; }
 .legend-notes li { margin-bottom: 0.7rem; }
+
+/* ---------------------------------------------------------------- accounts */
+
+/* The first screen anyone sees, and it is a door rather than a landing page.
+   Everything that used to argue here — a worked sample, a colour key, three
+   sections of prose — is gone: whoever reaches this screen was handed the link
+   by somebody, so they have already decided, and explaining the product to
+   someone who came to sign in is a toll. Mark, name, button, small print,
+   centred, with the whole thing sitting a little above the middle of the
+   viewport because dead centre reads as slightly low. */
+main.signin { max-width: 26rem; min-height: 100vh; box-sizing: border-box;
+              display: flex; flex-direction: column; align-items: center;
+              justify-content: center; text-align: center;
+              padding: 3rem 1.5rem 6rem; gap: 0.4rem; }
+.signin-mark { display: block; border-radius: 14px; }
+.signin h1 { font-size: 1.35rem; margin: 0.6rem 0 1.6rem; }
+.signin .warn { margin-bottom: 1.2rem; text-align: left; }
+.signin-lang { margin: 0 0 1.2rem; font-size: 0.85rem; opacity: 0.75; }
+.signin select { font: inherit; font-size: 0.85rem; padding: 0.25rem;
+                 background: var(--bg); color: var(--fg);
+                 border: 1px solid var(--line); border-radius: 3px; }
+.signin-foot { margin-top: 2.5rem; font-size: 0.75rem; opacity: 0.5; }
+
+/* The one button on the page that is a destination rather than an option. */
+a.button.primary { display: inline-block; font-size: 0.95rem;
+                   padding: 0.55rem 1.1rem; text-decoration: none; opacity: 1;
+                   border-color: currentColor; }
+a.button.primary:hover { background: color-mix(in srgb, var(--fg) 8%, transparent); }
+
+/* Warnings carry a rule rather than a colour: the palette's blues and yellows
+   already mean something specific in this app, and a red would be a sixth
+   state competing with the five that matter. */
+.warn { border-left: 2px solid var(--cursor); padding-left: 0.7rem;
+        font-size: 0.85rem; line-height: 1.6; }
+
+.account { position: fixed; top: 0.6rem; right: 0.75rem; z-index: 7; text-align: right; }
+.account > button { background: var(--bg); }
+.account-menu { border: 1px solid var(--line); background: var(--bg);
+                padding: 0.7rem; width: 15rem; text-align: left;
+                display: flex; flex-direction: column; gap: 0.45rem;
+                align-items: flex-start; }
+.account-menu .meta { margin: 0; }
+.account-menu .warn { margin: 0; }

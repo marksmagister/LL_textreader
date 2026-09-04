@@ -6,11 +6,13 @@ import sqlite3
 from fastapi import APIRouter, HTTPException
 
 from .. import starters
+from ..auth import CurrentUser, User
 from ..counts import refresh, refresh_for_words
-from ..db import USER_ID, connect
+from ..db import connect
 from ..importers import from_url
 from ..importers.from_url import BadUrl
 from ..importers.plain_text import clean, import_text
+from ..limits import check_lesson_cap, check_rate, check_text_size
 from ..models import (
     CollectionRequest,
     FetchRequest,
@@ -107,25 +109,28 @@ ORDER BY t.idx
 """
 
 
-def _lesson_row(conn: sqlite3.Connection, lesson_id: int) -> sqlite3.Row:
-    row = conn.execute(f"{_SUMMARY} AND l.id = ?", (USER_ID, lesson_id)).fetchone()
+def _lesson_row(conn: sqlite3.Connection, user_id: int, lesson_id: int) -> sqlite3.Row:
+    row = conn.execute(f"{_SUMMARY} AND l.id = ?", (user_id, lesson_id)).fetchone()
     if row is None or row["id"] is None:
         raise HTTPException(404, "no such lesson")
     return row
 
 
 @router.post("", response_model=LessonSummary, status_code=201)
-def create_lesson(req: ImportRequest) -> LessonSummary:
+def create_lesson(req: ImportRequest, user: User = CurrentUser) -> LessonSummary:
     """Import plain text. Tokenising and lemmatising happen here, once."""
     text, title, source = req.text, req.title, req.source
     if not clean(text):
         # min_length on the field passes whitespace; cleaning is what decides
         raise HTTPException(400, "no text to import")
+    check_text_size(text)
     with connect() as conn:
+        check_rate(conn, user.id, "import")
+        check_lesson_cap(conn, user.id)
         try:
             lesson_id = import_text(
                 conn,
-                user_id=USER_ID,
+                user_id=user.id,
                 lang=req.lang,
                 text=text,
                 title=title,
@@ -136,12 +141,12 @@ def create_lesson(req: ImportRequest) -> LessonSummary:
         except OSError as exc:  # spaCy model not downloaded
             raise HTTPException(503, f"language model unavailable: {exc}") from None
         refresh(conn, [lesson_id])
-        row = _lesson_row(conn, lesson_id)
+        row = _lesson_row(conn, user.id, lesson_id)
     return LessonSummary(**{k: row[k] for k in DB_FIELDS})
 
 
 @router.get("", response_model=list[LessonSummary])
-def list_lessons(lang: str | None = None) -> list[LessonSummary]:
+def list_lessons(lang: str | None = None, user: User = CurrentUser) -> list[LessonSummary]:
     """The library. With `lang`, only what you are reading today.
 
     A Russian lesson among French ones is noise, so the language selector filters
@@ -149,7 +154,7 @@ def list_lessons(lang: str | None = None) -> list[LessonSummary]:
     request proportional to what is shown.
     """
     where = " AND l.lang = ?" if lang else ""
-    args = (USER_ID, lang) if lang else (USER_ID,)
+    args = (user.id, lang) if lang else (user.id,)
     with connect() as conn:
         rows = conn.execute(
             f"{_SUMMARY}{where} ORDER BY l.imported_at DESC, l.id DESC", args
@@ -160,10 +165,10 @@ def list_lessons(lang: str | None = None) -> list[LessonSummary]:
 # Declared before /{lesson_id}: routes match in order, and "starters" is not an
 # integer, so the other way round this is a 422 rather than a listing.
 @router.get("/starters")
-def list_starters(lang: str) -> list[dict[str, str | bool]]:
+def list_starters(lang: str, user: User = CurrentUser) -> list[dict[str, str | bool]]:
     """What this language starts with, and whether you already have it."""
     with connect() as conn:
-        outstanding = {title for _, title, _ in starters.missing(conn, USER_ID, lang)}
+        outstanding = {title for _, title, _ in starters.missing(conn, user.id, lang)}
     return [
         {"collection": collection, "title": title, "imported": title not in outstanding}
         for collection, title, _ in starters.available(lang)
@@ -171,31 +176,30 @@ def list_starters(lang: str) -> list[dict[str, str | bool]]:
 
 
 @router.post("/starters", response_model=list[LessonSummary], status_code=201)
-def add_starters(req: StarterRequest) -> list[LessonSummary]:
+def add_starters(req: StarterRequest, user: User = CurrentUser) -> list[LessonSummary]:
     """Put the ones you don't have into the library. Pressing twice is a no-op."""
     with connect() as conn:
         try:
-            ids = starters.install(conn, USER_ID, req.lang)
+            ids = starters.install(conn, user.id, req.lang)
         except UnknownLanguage:
             raise HTTPException(400, f"no adapter for language {req.lang!r}") from None
         except OSError as exc:  # spaCy model not downloaded
             raise HTTPException(503, f"language model unavailable: {exc}") from None
-        refresh(conn, ids)
-        rows = [_lesson_row(conn, lesson_id) for lesson_id in ids]
+        rows = [_lesson_row(conn, user.id, lesson_id) for lesson_id in ids]
     return [LessonSummary(**{k: r[k] for k in DB_FIELDS}) for r in rows]
 
 
 @router.get("/{lesson_id}", response_model=LessonDetail)
-def read_lesson(lesson_id: int, page: int | None = None) -> LessonDetail:
+def read_lesson(lesson_id: int, page: int | None = None, user: User = CurrentUser) -> LessonDetail:
     """One page, resuming where you stopped unless a page is named."""
     with connect() as conn:
-        row = _lesson_row(conn, lesson_id)
+        row = _lesson_row(conn, user.id, lesson_id)
         lang = row["lang"]
         pages = _pages(conn, lesson_id)
         page = _resume(pages, row["last_token"]) if page is None else page
         page = max(0, min(page, len(pages) - 1))
         lo, hi = pages[page]
-        tokens = conn.execute(_TOKENS, (USER_ID, lang) * 3 + (lesson_id, lo, hi)).fetchall()
+        tokens = conn.execute(_TOKENS, (user.id, lang) * 3 + (lesson_id, lo, hi)).fetchall()
 
         # Slice from this page's first token to the next page's first, so the
         # whitespace and punctuation between them isn't dropped.
@@ -237,12 +241,14 @@ def read_lesson(lesson_id: int, page: int | None = None) -> LessonDetail:
 
 
 @router.post("/fetch")
-def fetch_url(req: FetchRequest) -> dict[str, str]:
+def fetch_url(req: FetchRequest, user: User = CurrentUser) -> dict[str, str]:
     """Pull the article text out of a web page, without importing anything.
 
     Deliberately not part of importing: extraction gets formatting wrong often
     enough that you want to see it, and fix it, before it becomes a lesson.
     """
+    with connect() as conn:
+        check_rate(conn, user.id, "fetch")
     try:
         text, title = from_url.fetch(req.url)
     except BadUrl as exc:
@@ -253,14 +259,17 @@ def fetch_url(req: FetchRequest) -> dict[str, str]:
 
 
 @router.get("/{lesson_id}/translation")
-def translation(lesson_id: int, page: int | None = None) -> dict[int, str]:
+def translation(
+    lesson_id: int, page: int | None = None, user: User = CurrentUser
+) -> dict[int, str]:
     """English for each sentence on a page, keyed by sent_id.
 
     Translated on first request and kept, so the toggle is instant afterwards and
     an import never pays for a feature that is off by default.
     """
     with connect() as conn:
-        row = _lesson_row(conn, lesson_id)
+        row = _lesson_row(conn, user.id, lesson_id)
+        check_rate(conn, user.id, "translate")
         pages = _pages(conn, lesson_id)
         page = _resume(pages, row["last_token"]) if page is None else page
         lo, hi = pages[max(0, min(page, len(pages) - 1))]
@@ -271,14 +280,16 @@ def translation(lesson_id: int, page: int | None = None) -> dict[int, str]:
 
 
 @router.delete("/{lesson_id}", status_code=204)
-def delete_lesson(lesson_id: int) -> None:
+def delete_lesson(lesson_id: int, user: User = CurrentUser) -> None:
     with connect() as conn:
-        _lesson_row(conn, lesson_id)
-        conn.execute("DELETE FROM lesson WHERE id = ? AND user_id = ?", (lesson_id, USER_ID))
+        _lesson_row(conn, user.id, lesson_id)
+        conn.execute("DELETE FROM lesson WHERE id = ? AND user_id = ?", (lesson_id, user.id))
 
 
 @router.put("/{lesson_id}/collection", response_model=LessonSummary)
-def set_collection(lesson_id: int, req: CollectionRequest) -> LessonSummary:
+def set_collection(
+    lesson_id: int, req: CollectionRequest, user: User = CurrentUser
+) -> LessonSummary:
     """Put a lesson in a collection, creating it if the name is new.
 
     By name rather than by id: there is no screen for managing collections and
@@ -286,7 +297,7 @@ def set_collection(lesson_id: int, req: CollectionRequest) -> LessonSummary:
     two things together.
     """
     with connect() as conn:
-        row = _lesson_row(conn, lesson_id)
+        row = _lesson_row(conn, user.id, lesson_id)
         name = (req.name or "").strip()
         if not name:
             conn.execute(
@@ -295,11 +306,11 @@ def set_collection(lesson_id: int, req: CollectionRequest) -> LessonSummary:
         else:
             conn.execute(
                 "INSERT OR IGNORE INTO collection (user_id, lang, title) VALUES (?,?,?)",
-                (USER_ID, row["lang"], name),
+                (user.id, row["lang"], name),
             )
             cid = conn.execute(
                 "SELECT id FROM collection WHERE user_id=? AND lang=? AND title=?",
-                (USER_ID, row["lang"], name),
+                (user.id, row["lang"], name),
             ).fetchone()["id"]
             # Appended, so the order is the order things were added unless the
             # importer says otherwise.
@@ -315,12 +326,12 @@ def set_collection(lesson_id: int, req: CollectionRequest) -> LessonSummary:
             "DELETE FROM collection WHERE id NOT IN"
             " (SELECT collection_id FROM lesson WHERE collection_id IS NOT NULL)"
         )
-        row = _lesson_row(conn, lesson_id)
+        row = _lesson_row(conn, user.id, lesson_id)
     return LessonSummary(**{k: row[k] for k in DB_FIELDS})
 
 
 @router.post("/{lesson_id}/finish", response_model=LessonSummary)
-def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
+def finish_lesson(lesson_id: int, req: FinishRequest, user: User = CurrentUser) -> LessonSummary:
     """You've read a page.
 
     Records which inflections you've now met on it, saves your place, and — with
@@ -330,7 +341,8 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
     when you turn to the next one.
     """
     with connect() as conn:
-        row = _lesson_row(conn, lesson_id)
+        row = _lesson_row(conn, user.id, lesson_id)
+        check_rate(conn, user.id, "finish")
         lang = row["lang"]
         pages = _pages(conn, lesson_id)
         page = max(0, min(req.page, len(pages) - 1))
@@ -350,7 +362,7 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
                    ON o.user_id = ? AND o.lang = ? AND o.surface = t.norm
             WHERE t.lesson_id = ? AND t.idx BETWEEN ? AND ? AND t.lemma IS NOT NULL
         """
-        args = (USER_ID, lang, lesson_id, lo, hi)
+        args = (user.id, lang, lesson_id, lo, hi)
 
         undo_id, doomed = None, []
         if req.mark_rest_known:
@@ -365,14 +377,14 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
                       AND s.lemma = w.lemma AND s.pos = w.pos
                 WHERE s.status IS NULL OR s.status IN (0, 4)
                 """,
-                (*args, USER_ID, lang),
+                (*args, user.id, lang),
             ).fetchall()
             if doomed:
                 undo_id = conn.execute(
                     "INSERT INTO bulk_undo (user_id, lang, lesson_id, kind, n, before)"
                     " VALUES (?,?,?,'mark_page_known',?,?)",
                     (
-                        USER_ID,
+                        user.id,
                         lang,
                         lesson_id,
                         len(doomed),
@@ -394,7 +406,7 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
                     SET status = 5, updated_at = datetime('now')
                     WHERE lemma_status.status IN (0, 4)
                 """,
-                (USER_ID, lang, *args),
+                (user.id, lang, *args),
             )
         # A word you are learning rises one level for each page you finish that
         # contains it — an observation, not a self-assessment (decision 0008).
@@ -412,14 +424,14 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
                   WHERE user_id = ? AND lang = ? AND lesson_id = ? AND page = ?
               )
             """,
-            (USER_ID, lang, *args, USER_ID, lang, lesson_id, page),
+            (user.id, lang, *args, user.id, lang, lesson_id, page),
         )
         conn.execute(
             f"""
             INSERT OR IGNORE INTO exposure (user_id, lang, lemma, pos, lesson_id, page)
             SELECT ?, ?, lemma, pos, ?, ? FROM ({page_words})
             """,
-            (USER_ID, lang, lesson_id, page, *args),
+            (user.id, lang, lesson_id, page, *args),
         )
         # Every form of a word you have an opinion about has now been met, so it
         # stops being highlighted as novel next time — and `form_seen.count` is
@@ -448,7 +460,7 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
             ON CONFLICT(user_id, lang, lemma, pos, surface) DO UPDATE
                 SET "count" = form_seen."count" + excluded."count"
             """,
-            (USER_ID, lang, USER_ID, lang, USER_ID, lang, lesson_id, lo, hi),
+            (user.id, lang, user.id, lang, user.id, lang, lesson_id, lo, hi),
         )
         # Save the place. Never move it backwards: rereading an early page
         # shouldn't lose the fact that you'd got to chapter nine.
@@ -461,13 +473,13 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
                     completed = MAX(reading_progress.completed, excluded.completed),
                     updated_at = datetime('now')
             """,
-            (USER_ID, lesson_id, hi, int(page + 1 >= len(pages))),
+            (user.id, lesson_id, hi, int(page + 1 >= len(pages))),
         )
         # Marking a page known moves words between buckets; the level bumps above
         # do not, since 1→2→3 stays inside "learning".
         if req.mark_rest_known and doomed:
-            refresh_for_words(conn, USER_ID, lang, [(d["lemma"], d["pos"]) for d in doomed])
-        row = _lesson_row(conn, lesson_id)
+            refresh_for_words(conn, user.id, lang, [(d["lemma"], d["pos"]) for d in doomed])
+        row = _lesson_row(conn, user.id, lesson_id)
     summary = LessonSummary(**{k: row[k] for k in DB_FIELDS})
     summary.undo_id = undo_id
     summary.undo_n = len(doomed)
@@ -475,7 +487,7 @@ def finish_lesson(lesson_id: int, req: FinishRequest) -> LessonSummary:
 
 
 @router.post("/undo/{undo_id}", status_code=204)
-def undo_bulk(undo_id: int) -> None:
+def undo_bulk(undo_id: int, user: User = CurrentUser) -> None:
     """Put back the words a bulk action changed.
 
     Words that had no status before are deleted rather than set to 0, so undoing
@@ -484,7 +496,7 @@ def undo_bulk(undo_id: int) -> None:
     with connect() as conn:
         row = conn.execute(
             "SELECT lang, before, undone FROM bulk_undo WHERE id = ? AND user_id = ?",
-            (undo_id, USER_ID),
+            (undo_id, user.id),
         ).fetchone()
         if row is None:
             raise HTTPException(404, "no such action")
@@ -494,15 +506,15 @@ def undo_bulk(undo_id: int) -> None:
             if prev is None:
                 conn.execute(
                     "DELETE FROM lemma_status WHERE user_id=? AND lang=? AND lemma=? AND pos=?",
-                    (USER_ID, row["lang"], lemma, pos),
+                    (user.id, row["lang"], lemma, pos),
                 )
             else:
                 conn.execute(
                     "UPDATE lemma_status SET status=?, updated_at=datetime('now')"
                     " WHERE user_id=? AND lang=? AND lemma=? AND pos=?",
-                    (prev, USER_ID, row["lang"], lemma, pos),
+                    (prev, user.id, row["lang"], lemma, pos),
                 )
         conn.execute("UPDATE bulk_undo SET undone = 1 WHERE id = ?", (undo_id,))
         refresh_for_words(
-            conn, USER_ID, row["lang"], [(w, p) for w, p, _ in json.loads(row["before"])]
+            conn, user.id, row["lang"], [(w, p) for w, p, _ in json.loads(row["before"])]
         )

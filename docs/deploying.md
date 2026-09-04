@@ -5,7 +5,6 @@
 No server, no Docker, free:
 
 ```bash
-echo 'LL_TEXTREADER_PASSWORD=something-long' >> .env   # once
 ./scripts/serve.sh --share
 ```
 
@@ -16,16 +15,20 @@ Three things to know:
 
 - **The laptop has to be awake and online.** Close the lid and the URL dies. Fine for
   "have a look at this", not for "use it for a week".
-- **The URL is public**, so the password is the only door. `--share` refuses to start
-  without one, deliberately.
+- **The URL is public**, and the only door is Google sign-in — so the tunnel needs
+  the OAuth client configured, and its redirect URI changes every time the tunnel
+  does. Fine for showing someone the reader over your shoulder; awkward as a way to
+  let them use it. The box is the answer for that.
 - **Quick-tunnel URLs are random and change** every time you restart. There is no
   bookmark; send a fresh link each session.
 
 The server only ever binds `127.0.0.1` — cloudflared runs on the same machine and
 connects locally, so nothing else needs to listen on the network.
 
-There are no accounts. Whoever has the URL and password reads *your* lexicon and sees
-what you have read. That is what makes it a demo rather than a product.
+This used to say that whoever had the URL and the password read *your* lexicon. That
+is no longer true: there are accounts now (`decisions/0022`), everyone who signs in
+gets their own, and no reader can see another's words. The shared password is gone
+entirely.
 
 ## The real host
 
@@ -52,22 +55,34 @@ That is the whole thing. It installs the packages, adds Caddy's repo, creates th
 `llt` user, gets Python 3.12 through `uv`, clones, builds, and starts the service
 and the backup timer behind TLS.
 
-**It needs two passes.** The repo is private, so the box cannot clone it until it
-has a key of its own. The first pass stops and prints one; add it at
-[Settings → Deploy keys](https://github.com/marksmagister/LL_textreader/settings/keys/new)
-(read-only — it never pushes), then run the same command again. The script is
-idempotent: it checks before every step, so re-running it is also how you resume
+**One pass.** It used to need two: the repo was private, so the first pass stopped
+to print a deploy key that had to be added on GitHub before the box could clone.
+The repository is public now, the box clones over https, and that step is gone
+from the script rather than left in as something to skip. The script is still
+idempotent — it checks before every step, so re-running it is also how you resume
 after a failed download.
 
-It writes `/opt/ll-textreader/.env` once, with a generated password, and prints
-that password exactly once. It will not overwrite it on a later run — regenerating
-it would lock you out of your own lexicon.
+It writes `/opt/ll-textreader/.env` once and never overwrites it. The Google
+client id and secret are left **blank** on purpose, and the box serves nobody
+until they are filled in: a secret is the one value that must not be generated or
+guessed, so the script says what to paste rather than inventing something. See
+*Google sign-in* below.
 
 ### First, rotate the root password
 
 netcup emailed it in plaintext, so treat it as public and change it before
 anything else. The box has a routable IPv4 address and will be finding out about
 SSH brute-forcers within the hour.
+
+**This got more urgent when the repository went public, 3 September 2026.** This
+file is now readable by anyone, and taken together it says: here is the address,
+here are two account names, password authentication is still accepted, and the
+root password may still be the one netcup emailed. That is not a leak — every
+part of it was already discoverable, since the hostname resolves to the address
+and appears in the app's own OAuth redirect URI — but it is now collected in one
+place with instructions. Redacting it would buy nothing and cost the record; the
+fix is to make the sentence untrue. **Do the two lines below and the hardening in
+*What still needs a human* before leaving the box another night.**
 
 ```bash
 ssh root@159.195.244.92     # the password from netcup's email
@@ -156,6 +171,107 @@ ssh root@159.195.244.92 'LL_TEXTREADER_FQDN=read.example.org bash -s' \
 
 That run drops the `tls internal` line from the Caddyfile on its own, so the real
 certificate issues on the first request with nothing else to remember.
+
+### Google sign-in
+
+Google is the only way in (`decisions/0022`), so the box cannot serve anybody
+until an OAuth client exists and its two values are in `.env`.
+
+The project's client id, which is public by design — it travels in the redirect
+URL and is visible in every reader's browser, so it is recorded here rather than
+being something to go and look up:
+
+```
+369455894872-l6t0vlbfc6kbaar7fhihqj02sr7vc4kr.apps.googleusercontent.com
+```
+
+The **client secret is not public** and must never be committed. It goes straight
+into `/opt/ll-textreader/.env` on the box and nowhere else — not into git, not
+into a chat window, not into an issue.
+
+The support address is a Google Group, `ll_textreader@googlegroups.com`, and the
+reason is worth keeping: *User support email* on the consent screen is a
+dropdown, not a text field, and Google only offers the logged-in account's own
+address or a group it manages. A personal address would work and would then sit
+on the consent screen and — worse — on the privacy and terms pages, which are
+public and get scraped. The group takes the spam instead, and can be moderated
+or deleted without touching anyone's inbox. It is the address in
+`legal/privacy.html` and `legal/terms.html` too.
+
+**A new Google Group rejects mail from non-members by default**, which would make
+the support address look fine and silently bounce every reader who wrote to it.
+Set posting permission to anyone on the web, and send it a message from an
+unrelated account once to prove it arrives.
+
+Four things to set in [console.cloud.google.com](https://console.cloud.google.com):
+
+1. **Register the redirect URI on the OAuth client, exactly.** Google compares it
+   as a string, so a missing slash is a `redirect_uri_mismatch` and nothing else.
+   Both of these can be registered at once, which is what lets you test locally
+   against the same client:
+
+   ```
+   https://v2202609408983511171.ultrasrv.de/api/auth/google/callback
+   http://localhost:8000/api/auth/google/callback
+   ```
+
+   `http` is allowed for `localhost` specifically, and for nothing else.
+
+2. **Scopes: `openid`, `email`, `profile`. Nothing else.** These are Google's
+   non-sensitive scopes, and using only them is what lets this app publish
+   without a verification review. Adding a fourth scope is not a small change —
+   it can put the project into a review queue.
+
+3. **Stay in Testing, and add each reader by hand.** Audience page →
+   *Test users* → **Add users**, one Google address per person:
+   `console.cloud.google.com/auth/audience?project=ll-textreader`. Up to 100.
+   Only addresses on that list can sign in at all, which makes the list the
+   access control — there is no invite table in this codebase because this is it.
+
+   **Do not copy that list into this repository.** The repo is public, and a file
+   of testers' addresses would publish the email addresses of people who agreed
+   to try a reading app. It lives in the console and nowhere else.
+
+4. **Upload the logo** — `frontend/public/brand/logo-120.png`. Google requires
+   verification for a logo *unless* the status is Testing, so staying in Testing
+   is what makes this free.
+
+**About the seven-day consent expiry, because it sounds worse than it is here.**
+Google expires a test user's *OAuth grant* after seven days. That is severe for an
+app holding a refresh token to call Google while the user is away — it would break
+weekly. This app holds none: `google.py` never asks for offline access, stores no
+refresh token, and does not call Google again after the one code exchange at
+sign-in. Readers are carried by our own session cookie for `session_days`, ninety
+by default — and that window *slides*: `user_for_session` pushes `seen_at` forward
+on every request. Somebody who opens the reader once every three months stays
+signed in for ever and never meets Google again.
+
+The seven days therefore surface only at a **fresh** sign-in — a new browser,
+cleared cookies, an explicit sign-out, or ninety idle days — and then only as one
+extra consent click. Not "everyone re-consents weekly"; nearly the opposite.
+
+An earlier version of this file said readers "would be signed out weekly" and told
+you to publish immediately. That was wrong for this application, and the mistake
+was reasoning about OAuth in general rather than about what this code actually does.
+
+### If this is ever opened to the public
+
+Publishing removes the 100-place ceiling and the hand-kept list. It also brings two
+things Testing avoids, so it is a decision rather than a step:
+
+- **A logo then needs brand verification**, which checks ownership of the domain on
+  the consent screen. `ultrasrv.de` is netcup's, not ours, so that review cannot pass
+  until there is a domain of our own.
+- **A postal address becomes necessary.** The Impressum duty bites on a service
+  offered to the public; a hand-kept list of people is not that. `docs/status.md`
+  carries the reasoning and what it costs.
+
+The button is on the **Audience** page, not Branding. The old console put it under
+APIs & Services → OAuth consent screen; that page no longer exists, since the 2025
+reorganisation split it into Branding, Audience, Clients and Data Access. Two things
+gate it quietly: branding must be complete and saved first, or it refuses with *"Your
+app's OAuth configuration is incomplete"*; and user type must be External, because
+internal apps never publish.
 
 ### What still needs a human
 

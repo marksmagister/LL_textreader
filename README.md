@@ -27,7 +27,7 @@ vocabulary page of every word you know with the inflections you've actually met.
 Each new language ships a few short texts to start with, and the interface is English or
 German. Russian is where the design earns its keep: in a 126-word text, 19 of the words
 you already know turn up in a shape you have never met — against 4 in the Italian
-equivalent (`docs/decisions/0021`).
+equivalent (`docs/decisions/0022`).
 
 Arabic is designed for but deliberately not built yet; Dutch comes last. Current state
 and roadmap: `docs/status.md`.
@@ -37,7 +37,7 @@ and roadmap: `docs/status.md`.
 Requires Python 3.12 and Node 20+.
 
 ```bash
-git clone git@github.com:marksmagister/LL_textreader.git
+git clone https://github.com/marksmagister/LL_textreader.git
 cd LL_textreader
 uv sync --extra nlp              # backend deps, incl. spaCy
 cp .env.example .env             # LL_TEXTREADER_LANGUAGES says which languages
@@ -73,7 +73,13 @@ undone. Deployment: `docs/deploying.md`.
 
 ## Licence
 
-AGPL-3.0. No third-party data ships in this repo — the setup scripts fetch it. See
-`NOTICE` for what gets downloaded and under what terms.
+AGPL-3.0 — chosen deliberately, so a closed hosted fork is not possible
+(`docs/decisions/0003`). Run your own copy, and if the instance you use stops,
+keep it running yourself.
+
+No third-party data ships in this repo — the setup scripts fetch it, and the
+starter texts in `backend/ll_textreader/starters/` are original prose written for
+the purpose, not excerpts. See `NOTICE` for what gets downloaded and under what
+terms.
 
 Not affiliated with, derived from, or a copy of any existing reading app.

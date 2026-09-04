@@ -5,9 +5,12 @@ from .config import settings
 
 SCHEMA = Path(__file__).with_name("schema.sql")
 
-# Single-instance, single-user (CLAUDE.md). user_id exists in the schema so that
-# assumption is cheap to drop; until then everything is this row.
-USER_ID = 1
+# There is deliberately no USER_ID constant here any more. It used to be 1, read
+# at forty-odd call sites, and docs/decisions/0013 was blunt about why removing it
+# had to mean *removing* it rather than leaving a default: a call site that forgets
+# to pass a user must fail to import, not quietly serve user 1's vocabulary to
+# whoever asked. Every query that touches user data takes the id as an argument.
+# See auth.py for where it comes from.
 
 
 def connect() -> sqlite3.Connection:
@@ -36,15 +39,36 @@ ADDED_COLUMNS = [
     # otherwise the library still has to touch every token to say "650 words".
     ("lesson", "n_tokens", "INTEGER NOT NULL DEFAULT 0"),
     ("lesson", "n_words", "INTEGER NOT NULL DEFAULT 0"),
+    # Accounts (0022). Nullable, because the row that already exists in a
+    # database predating them has none of these and is adopted rather than
+    # replaced. Declared plain rather than UNIQUE because SQLite cannot add a
+    # UNIQUE column to an existing table — the index below does that job, and it
+    # permits many NULLs, which is exactly right for un-adopted rows.
+    ("user", "google_sub", "TEXT"),
+    ("user", "email", "TEXT"),
+    ("user", "picture", "TEXT"),
+    ("user", "lang", "TEXT NOT NULL DEFAULT 'fr'"),
+]
+
+# Indexes over columns that ADDED_COLUMNS may have just created, so they cannot
+# live in schema.sql — that runs first, against a table which may not have them.
+ADDED_INDEXES = [
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_user_google ON user(google_sub)",
 ]
 
 
 def init_db() -> None:
-    """Apply schema.sql. It is written to be idempotent (CREATE ... IF NOT EXISTS)."""
+    """Apply schema.sql. It is written to be idempotent (CREATE ... IF NOT EXISTS).
+
+    No user is created here. It used to insert user 1 so the single-user app had
+    somewhere to put things; now a user exists only once someone has signed in,
+    and an install that predates accounts keeps whatever rows it already had.
+    """
     with connect() as conn:
         conn.executescript(SCHEMA.read_text())
         for table, column, decl in ADDED_COLUMNS:
             existing = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
             if column not in existing:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
-        conn.execute("INSERT OR IGNORE INTO user (id, name) VALUES (?, 'me')", (USER_ID,))
+        for statement in ADDED_INDEXES:
+            conn.execute(statement)

@@ -1,17 +1,56 @@
 import type { Gloss, Health, LessonDetail, LessonSummary, Starter, VocabEntry } from './types'
 
+/** Thrown on 401. Not an error to show — a signal that the session has gone and
+ *  the sign-in screen belongs on top. Every call can raise it, because a session
+ *  can expire between one page turn and the next. */
+export class NotSignedIn extends Error {}
+
 async function call<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, {
     ...init,
     headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
   })
-  if (!r.ok) throw new Error((await r.text()) || r.statusText)
+  if (r.status === 401) throw new NotSignedIn()
+  if (!r.ok) {
+    // FastAPI puts the readable half in `detail`; the raw body is JSON and
+    // showing it whole gave the reader {"detail":"..."} in a status line.
+    const body = await r.text()
+    let message = body || r.statusText
+    try {
+      const parsed = JSON.parse(body)
+      if (typeof parsed?.detail === 'string') message = parsed.detail
+    } catch {
+      // not JSON; the text is the message
+    }
+    throw new Error(message)
+  }
   return r.status === 204 ? (undefined as T) : r.json()
 }
 
+export type Me = {
+  user: { id: number; name: string; email: string | null; picture: string | null } | null
+  google: boolean
+  signup: boolean
+  languages: string[]
+}
+
+/** The only call that answers without a session, so it must not use `call`'s
+ *  401 handling — "nobody is signed in" is its answer, not its failure.
+ *
+ *  It also carries `languages`, so a signed-in reader needs no separate
+ *  `/api/health` round trip to know what the server can read. */
+export const whoami = () => call<Me>('/api/auth/me')
+
+export const signOut = () => call<void>('/api/auth/logout', { method: 'POST' })
+
+export const deleteAccount = () => call<void>('/api/account', { method: 'DELETE' })
+
+/** Given to the browser rather than fetched, so Content-Disposition saves it. */
+export const accountExportUrl = () => '/api/account/export'
+
 /** Version, and which languages this server offers. The language menu is
- *  populated from here rather than from a constant in the bundle: what you can
- *  read is a fact about the server's models, not about the frontend. */
+ *  populated from the server rather than from a constant in the bundle: what you
+ *  can read is a fact about the server's models, not about the frontend. */
 export const health = () => call<Health>('/api/health')
 
 /** The library. With a language, only what you are reading today. */

@@ -1,15 +1,30 @@
 -- LL_textreader schema. Source of truth; migrations are applied by db.py.
--- SQLite. Single file. Single user for now, but user_id is present everywhere
--- so that assumption is cheap to drop later.
+-- SQLite, one file, many readers. `user_id` is part of the key on everything a
+-- reader owns, and every query that touches those tables carries it — there is
+-- no ambient current user anywhere below this line. See docs/decisions/0022.
 
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
 -- ---------------------------------------------------------------- users
 
+-- Identity is Google's (docs/decisions/0022). `google_sub` is the key and an
+-- address never is: an email can be changed by its owner or reassigned inside a
+-- Workspace domain, so keying on it would let someone inherit another reader's
+-- lexicon. The address is kept for display, and so that a second sign-in method
+-- could be added later without asking every account for one.
+--
+-- They are nullable only because a database written before accounts has a row
+-- with none of them. Nothing creates such a row any more.
 CREATE TABLE IF NOT EXISTS user (
     id          INTEGER PRIMARY KEY,
     name        TEXT NOT NULL,
+    google_sub  TEXT,
+    email       TEXT,
+    picture     TEXT,
+    -- The language they are learning, chosen when they sign up. It decides
+    -- which starter lessons they are given and what the library shows first.
+    lang        TEXT NOT NULL DEFAULT 'fr',
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -214,4 +229,35 @@ CREATE TABLE IF NOT EXISTS reading_progress (
     completed   INTEGER NOT NULL DEFAULT 0,
     updated_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (user_id, lesson_id)
+);
+
+-- ---------------------------------------------------------------- accounts
+-- See docs/decisions/0022. Identity is Google's; what lives here is the session
+-- that identity opens, and the invite that decided it was allowed to.
+
+-- Server-side rather than a signed stateless cookie, so that logout and
+-- revocation are real rather than decorative: deleting the row ends the session
+-- everywhere, immediately.
+CREATE TABLE IF NOT EXISTS session (
+    token      TEXT PRIMARY KEY,        -- secrets.token_urlsafe(32)
+    user_id    INTEGER NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    seen_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_session_user ON session(user_id);
+
+
+
+-- ---------------------------------------------------------------- limits
+-- What one account is allowed to cost, counted in fixed hourly windows. See
+-- limits.py, which also says why fixed windows rather than a sliding log.
+-- Rows older than the current window are dead weight and get swept.
+
+CREATE TABLE IF NOT EXISTS rate_limit (
+    user_id  INTEGER NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    action   TEXT    NOT NULL,          -- 'import', 'fetch', 'translate', ...
+    window   TEXT    NOT NULL,          -- strftime('%Y-%m-%dT%H')
+    n        INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, action, window)
 );

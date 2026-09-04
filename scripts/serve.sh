@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Run the whole app on one port: API and built frontend together.
 #
-#   ./scripts/serve.sh              local only, no password needed
+#   ./scripts/serve.sh              local only
 #   ./scripts/serve.sh --share      also opens a public Cloudflare tunnel
 #
-# The tunnel makes this laptop reachable from the internet, so --share refuses
-# to start without LL_TEXTREADER_PASSWORD. Binding stays on 127.0.0.1 either
-# way: cloudflared runs here and connects locally, so nothing else needs to.
+# The shared password is gone (docs/decisions/0022) — the door is Google sign-in
+# now, and the thing --share has to check is that signing in actually works.
+# Without it a tunnel serves a public URL nobody can get into, which looks like
+# the app is broken. Binding stays on 127.0.0.1 either way: cloudflared runs
+# here and connects locally, so nothing else needs to.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -14,20 +16,34 @@ port="${PORT:-8000}"
 share=""
 [ "${1:-}" = "--share" ] && share=1
 
-# .env is where the password lives, and it is gitignored.
+# .env is where the Google credentials live, and it is gitignored.
 [ -f .env ] && set -a && . ./.env && set +a
 
-if [ -n "$share" ] && [ -z "${LL_TEXTREADER_PASSWORD:-}" ]; then
+if [ -n "$share" ] && [ -z "${LL_TEXTREADER_GOOGLE_CLIENT_ID:-}" ]; then
   cat >&2 <<'MSG'
-Refusing to open a tunnel with no password.
+Refusing to open a tunnel with no way to sign in.
 
-A tunnel puts this laptop on the public internet, and without a password anyone
-with the URL reads your vocabulary and everything you have read. Set one:
+A tunnel puts this laptop on the public internet. Signing in is the only door,
+so without Google configured the URL you hand out is one nobody can open — and
+that reads as a broken app rather than a closed one.
 
-    echo 'LL_TEXTREADER_PASSWORD=something-long' >> .env
+Set these in .env, from an OAuth client at console.cloud.google.com:
+
+    LL_TEXTREADER_GOOGLE_CLIENT_ID=...
+    LL_TEXTREADER_GOOGLE_CLIENT_SECRET=...
+    LL_TEXTREADER_GOOGLE_REDIRECT_URI=https://<the tunnel host>/api/auth/google/callback
+
+The redirect URI has to match one registered on that client exactly, and a
+quick-tunnel hostname changes every run — which is why a real host is easier.
 
 MSG
   exit 1
+fi
+
+# Cookies are Secure by default and a browser ignores those over plain http.
+# Local development has no TLS, so without this nobody can stay signed in.
+if [ -z "$share" ]; then
+  export LL_TEXTREADER_COOKIE_SECURE=false
 fi
 
 # `uv sync` prunes anything not in the lockfile, and the spaCy model is installed

@@ -43,7 +43,7 @@ Working and verified against real text, in the browser:
 - undo for "mark page known"
 - the sentence you first met a word in, kept and shown
 - `--dry-run`-able reprocessing for stale token streams (rule 6)
-- 273 tests, ruff and tsc clean
+- 319 tests (284 backend, 35 frontend), ruff and tsc clean
 
 Numbers worth knowing: a 12,000-word chapter imports in 1.3s. Opening a page costs
 more the longer the lesson is, because the page boundaries are re-derived from every
@@ -177,8 +177,9 @@ directory is what stopped the first provisioning run dead (`0018`).
    `/var/lib/ll-textreader/`. Deploys are
    `ssh llt@159.195.244.92 '/opt/ll-textreader/scripts/deploy.sh'`.
 
-   Verified on 2 September, through the public URL and not just on the box:
-   401 without the password and 200 with it, the frontend and the font served,
+   Verified on 2 September, through the public URL and not just on the box —
+   under the shared password, which has since been retired for accounts:
+   401 without it and 200 with it, the frontend and the font served,
    an import running spaCy on the box (`dort` → `dormir`, morphology attached),
    `porte` → "door" out of the 126,214 glosses, and a delete putting the library
    back to empty.
@@ -357,14 +358,90 @@ directory is what stopped the first provisioning run dead (`0018`).
    needs an answer for a device with no keyboard, and that answer deserves its
    own decision file before anyone starts.
 
-5. **Accounts** — `decisions/0013`, updated 2 September. Leaning to Sign in
-   with Google rather than passwords, to avoid storing passwords and building
-   reset. Invite-first still holds; invites are about who gets in, which is a
-   different question from how they prove who they are.
+5. **Accounts — built on the `accounts` branch, 3 September. Not merged, not
+   deployed.** Sign in with Google, open signup capped at 100, no passwords and
+   no invites. `decisions/0021` carries the decision and four corrections made
+   while building it. The suite is 235 backend + 25 frontend, all passing;
+   `ruff` and `tsc` clean.
 
-6. **Export the lessons, and account deletion** — `decisions/0013`. Moved to
-   the back of the queue on 2 September. An afternoon each, and still what
-   "your data is yours" actually means, but no longer blocking anything.
+   What works, verified by running it rather than only by tests: the app boots,
+   `/api/auth/me` answers `null` before sign-in, every reader route answers 401
+   without a session, `/privacy` and `/terms` serve, and the sign-in screen
+   renders in both themes.
+
+   - **`USER_ID` is gone from all 41 call sites.** Deleted rather than
+     defaulted, so a route that forgets fails to import. Two tests guard it:
+     one enumerates every route from the app's own OpenAPI schema and asserts a
+     stranger gets 401 — so a route added later without a user fails the day it
+     is written — and one drives two accounts through the same database checking
+     neither can see, open, delete, finish, undo or export the other's work.
+   - **Limits on everything exploitable**, per account per hour: import 40,
+     URL fetch 30, translate 60, reports 20, term updates 3000, page turns 600;
+     plus 500 lessons and 2M characters an account. `limits.py`.
+   - **The DNS-rebinding hole is closed**, which `0019` said would become
+     must-fix the day accounts arrived — and open signup made it worse than
+     `0019` anticipated. There is now one DNS lookup instead of two, done by the
+     connection itself, and TLS still verifies against the name.
+   - **Privacy policy and terms** at `/privacy` and `/terms`, readable without
+     signing in. Honest about what is stored, and the contact is the Google
+     Group rather than anyone's inbox.
+
+     **Done, 3 September.** The operator is Noah Bisinger, the contact is the
+     group address, and there is no postal address — the pages carry a standing
+     note that this instance is not open to the public and has had no legal
+     review, rather than a "draft" banner. The test that asserted the pages
+     still said `[OPERATOR NAME]` has been flipped: it now asserts no bracketed
+     placeholder can ever reach a reader again.
+
+     The Google project stays in *Testing* status, so only addresses on its
+     test-user list can sign in. That is both the access control and the reason
+     the postal address is not needed: the GDPR wants the controller's identity
+     and a way to reach them (Art. 13), which a name and an address satisfy; the
+     *postal* line comes from the Impressum duty, which bites on a service
+     offered to the public, and a hand-kept list of people is not that.
+
+     **If this is ever opened up, do not use the maintainer's work address.**
+     It was offered and is the wrong instrument: it belongs to an employer who
+     has not agreed to appear as the contact for a personal project, legal post
+     about it would arrive in a company post room, and it stops being an address
+     where anyone can be reached the day the job changes. A rented service
+     address is five to fifteen euros a month and is the thing actually designed
+     for this. Not legal advice.
+
+   - **The sign-in flow is verified as far as it can be without a browser.**
+     `/api/auth/google/start` redirects to the right endpoint with the right
+     client id, `openid email profile`, S256 PKCE and a 32-character state in an
+     `HttpOnly` ten-minute cookie. The callback rejects a missing state cookie
+     and a mismatched state (both land on `?error=expired`, no session created),
+     and reports a cancelled consent as `?error=cancelled`. The exchange itself
+     reaches Google: with a deliberately wrong secret it comes back
+     `401 invalid_client`, which proves the client id is real, egress works and
+     Google's own message survives to the log. **What is still unproven is one
+     real sign-in** — a valid code, a session cookie, a user row. That needs a
+     browser and an address on the test-user list.
+   - **New accounts pick a language and get starter lessons** — two original
+     French texts in `starters/fr/`, the second reusing the first's vocabulary
+     in unmet shapes.
+
+   Three things it does not do, on purpose:
+
+   - **Nobody can sign in as the existing user 1.** Adoption was cut (0021),
+     so the lexicon on the box and on the laptop is safe but unreachable until
+     the maintainer links their Google identity to it by hand. Deliberate: a
+     feature that hands one person's lexicon to whoever opens a link is worse
+     than one `UPDATE`.
+   - **Google is not wired to anything real.** The code is written and the
+     failure paths are covered, but the round trip needs a browser, a person
+     pressing Allow, and credentials that only exist on a Google Cloud project
+     nobody has made yet. It is the one part of this that a session cannot
+     finish or verify alone.
+   - **Nothing is deployed.** The branch is not merged and the box still runs
+     the password build.
+
+6. **Export the lessons, and account deletion** — `decisions/0013`. No longer
+   at the back of the queue: they are phase 1 of the accounts work, because
+   `0013` is right that they are what makes losing an account survivable, and
+   because Google sign-in has no recovery story of its own.
 
 Alongside all of it: read with the thing. Every real bug so far came from using it, not
 from the tests — the Finish button that did nothing, "mark known" eating learning
