@@ -6,6 +6,8 @@ would be easy to break silently — a static mount at "/" swallows any path not
 claimed before it — so they are pinned here.
 """
 
+import re
+
 import pytest
 
 
@@ -25,9 +27,12 @@ def test_they_say_the_things_that_make_them_useful(env, path):
     assert "GDPR" in body or "AGPL" in body
 
 
-def test_they_are_still_marked_as_a_draft(env):
-    """Deliberately failing once the placeholders are filled in and the box is
-    removed. Better a test that has to be deleted on purpose than a policy that
-    quietly goes live saying [OPERATOR NAME]."""
-    assert "[OPERATOR NAME]" in env.get("/privacy").text
-    assert "draft" in env.get("/terms").text.lower()
+@pytest.mark.parametrize("path", ["/privacy", "/terms"])
+def test_no_placeholders_are_left_in_them(env, path):
+    """This replaced a test asserting the *opposite* — that the pages still said
+    [OPERATOR NAME] — which existed so they could not go live half-written. They
+    are written now, so the useful invariant flips: nothing bracketed and shouty
+    may ever reach a reader again."""
+    body = env.get(path).text
+    assert not re.search(r"\[[A-Z][A-Z ]+\]", body), "a placeholder is still in the page"
+    assert "Noah Bisinger" in body

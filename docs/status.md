@@ -280,26 +280,29 @@ without losing anyone's place. Position never moves backwards.
      connection itself, and TLS still verifies against the name.
    - **Privacy policy and terms** at `/privacy` and `/terms`, readable without
      signing in. Honest about what is stored, and the contact is the Google
-     Group rather than anyone's inbox; **still marked draft, with
-     `[OPERATOR NAME]` unfilled**. A test asserts the draft notice is present,
-     so it has to be removed deliberately.
+     Group rather than anyone's inbox.
 
-     **Settled 3 September: the instance stays non-public, so only one
-     placeholder is left.** The Google project stays in *Testing* status, which
-     means only addresses on its test-user list can sign in at all. That is the
-     access control — and it is why there is no invite table in this codebase.
+     **Done, 3 September.** The operator is Noah Bisinger, the contact is the
+     group address, and there is no postal address — the pages carry a standing
+     note that this instance is not open to the public and has had no legal
+     review, rather than a "draft" banner. The test that asserted the pages
+     still said `[OPERATOR NAME]` has been flipped: it now asserts no bracketed
+     placeholder can ever reach a reader again.
 
-     It also settles the legal question, which had two halves with different
-     sources. The GDPR wants the controller's identity and a way to reach them
-     (Art. 13): a name and the group address satisfy that, and the postal line
-     has been removed from `privacy.html` accordingly. The *postal* address came
-     from the Impressum duty, which bites on a service offered to the public — a
-     hand-kept list of people is not that. Opening this to strangers brings it
-     back, along with a rented service address at five to fifteen euros a month
-     if the alternative is publishing someone's home. Not legal advice.
+     The Google project stays in *Testing* status, so only addresses on its
+     test-user list can sign in. That is both the access control and the reason
+     the postal address is not needed: the GDPR wants the controller's identity
+     and a way to reach them (Art. 13), which a name and an address satisfy; the
+     *postal* line comes from the Impressum duty, which bites on a service
+     offered to the public, and a hand-kept list of people is not that.
 
-     So what remains is `[OPERATOR NAME]` in both pages: a real name, which
-     nobody but the maintainer can supply.
+     **If this is ever opened up, do not use the maintainer's work address.**
+     It was offered and is the wrong instrument: it belongs to an employer who
+     has not agreed to appear as the contact for a personal project, legal post
+     about it would arrive in a company post room, and it stops being an address
+     where anyone can be reached the day the job changes. A rented service
+     address is five to fifteen euros a month and is the thing actually designed
+     for this. Not legal advice.
 
    - **The sign-in flow is verified as far as it can be without a browser.**
      `/api/auth/google/start` redirects to the right endpoint with the right
