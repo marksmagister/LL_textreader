@@ -14,9 +14,10 @@ echo "Backing up first — a deploy is exactly when you want yesterday's lexicon
 git pull --ff-only
 uv sync --extra nlp --extra translate --no-dev
 
-# uv sync prunes anything not in the lockfile, and the spaCy model is installed
-# as a wheel that is not. Re-download it every time rather than debug it later.
-./scripts/setup-models.sh fr
+# uv sync prunes anything not in the lockfile, and the spaCy models are installed
+# as wheels that are not. Re-download them every time rather than debug it later.
+# All three pilot languages — a pruned ru/it model is an import that 500s.
+./scripts/setup-models.sh fr ru it
 
 npm --prefix frontend ci
 npm --prefix frontend run build
