@@ -31,7 +31,8 @@ if [ -f "$db" ]; then
     [ "$n" -gt 0 ] && say y "$lang dictionary ($n glosses)" \
                    || say n "$lang dictionary" "./scripts/setup-dictionary.sh $lang"
   done
-  echo "  · $(sqlite3 "$db" 'SELECT COUNT(*) FROM lesson') lessons, $(sqlite3 "$db" 'SELECT COUNT(*) FROM lemma_status') words known"
+  echo "  · $(db_scalar "$db" 'SELECT COUNT(*) FROM lesson') lessons," \
+       "$(db_scalar "$db" 'SELECT COUNT(*) FROM lemma_status') words known"
 else
   say n "database" "it is created on first run"
 fi

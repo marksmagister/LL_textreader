@@ -188,6 +188,49 @@ plural" or "Genitiv Singular" rather than *родительный падеж*, w
 wall. Every combination that rule produces is the one you would have picked, so
 the settings screen explains it instead of asking.
 
+## Two bugs in the setup scripts, and what they had in common
+
+Both were introduced in this work, both were found by testing the scripts rather
+than by reading them, and both failed in the same direction: **quietly, in a way
+indistinguishable from success.** Worth writing down because the shape will recur
+every time a script learns to read configuration.
+
+**A script that dies silently.** `setup-models.sh` learned to read
+`LL_TEXTREADER_LANGUAGES` out of `.env` with `sed`. Under `set -euo pipefail`, a
+`sed` that cannot open the file fails, and a failing command substitution in an
+assignment takes the whole script down — printing nothing, exiting 2. So on any
+clone without a `.env` yet, `./scripts/setup-models.sh fr` installed nothing and
+said nothing. That is every fresh checkout following the README in order, which
+tells you to run it *before* `cp .env.example .env`.
+
+The fix is a `[ -f .env ]` guard, and the reason it is worth a paragraph is the
+consequence: on the box this script runs inside `deploy.sh`, where a silent exit
+means a language's model is silently absent and the reader gets a 503 that looks
+like a bug in the app.
+
+**A probe whose failure looked like an answer.** The check for "does this
+language have its glosses yet" shelled out to the `sqlite3` CLI and fell back to
+`0` on error. But the CLI is not installed everywhere — it is not in this
+project's dependencies, only on the provisioned box — and where it is missing,
+"cannot tell" came back as "no glosses", which would have re-downloaded most of a
+gigabyte over an extract that was already loaded.
+
+Now it is Python, which is guaranteed present wherever the loader itself can run,
+and it opens the database **read-only** so that it cannot create one. That last
+part is not new caution: a probe that created the database as root is exactly
+what stopped the first provisioning run dead (`0018`), and this is the second
+time the same mistake has been available to make.
+
+The common lesson: **a check should fail loudly or not at all.** Both of these
+had a fallback that was indistinguishable from a real answer, and both would have
+been discovered weeks later by a reader wondering why a language had no
+definitions.
+
+Along the way three copies of the same `.env`-reading appeared — `check.sh`,
+`setup-models.sh`, `setup-dictionary.sh`. This repo's own rule is that the third
+copy is when you merge, so they are one `scripts/_config.sh` now, which is also
+where the read-only probe lives.
+
 ## Three things deliberately not done
 
 **No shared adapter base class.** There are now three adapters running the same

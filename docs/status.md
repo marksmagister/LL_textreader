@@ -325,6 +325,13 @@ that could move a word between buckets. A drifted count is worse than a slow one
 
 ## Known, not urgent
 
+- **The setup scripts read configuration, so they can now fail in new ways.**
+  Two did, and both failed silently — a `sed` on a missing `.env` under
+  `set -e` taking a whole script down without printing, and a `sqlite3` probe
+  whose absence read as a real answer. Fixed, and written up in `0021` under
+  "Two bugs in the setup scripts", because the shape will recur. `_config.sh`
+  is the one place that reads `.env` now; keep it that way.
+
 Written down so the next session doesn't rediscover them and think they are news.
 
 - **Page open is linear in the length of the lesson.** `_pages()` groups a lesson's

@@ -27,20 +27,31 @@ configured_db() {
   echo "${LL_TEXTREADER_DB_PATH:-${from_env:-data/ll_textreader.db}}"
 }
 
-# How many Wiktionary glosses a language has. Zero for a database that does not
-# exist yet, and — the part that matters — it never *creates* one: a probe that
-# did left a root-owned empty file the loader could not write, which is how the
-# first provisioning run died half way (decision 0018).
+# One number out of the database: db_scalar <db> <sql> [params...]
 #
-# Python rather than the sqlite3 CLI, because the CLI is not everywhere and its
-# absence here reads as "no glosses" instead of "cannot tell".
-glosses() {
+# Two things it must do, both learned the hard way. It **never creates** the
+# database — a probe that did left a root-owned empty file the loader could not
+# write, which is how the first provisioning run died half way (decision 0018),
+# hence the read-only URI. And it uses Python rather than the sqlite3 CLI,
+# because the CLI is not installed everywhere and where it is missing its absence
+# reads as a real answer of zero rather than "cannot tell".
+#
+# Zero when anything at all goes wrong, which is the safe direction here: every
+# caller treats zero as "not set up yet" and prints the command that sets it up.
+db_scalar() {
+  local db=$1 sql=$2
+  shift 2
   uv run python -c "
 import sqlite3, sys
 try:
     conn = sqlite3.connect('file:%s?mode=ro' % sys.argv[1], uri=True)
-    print(conn.execute('SELECT COUNT(*) FROM hint WHERE lang = ?', (sys.argv[2],)).fetchone()[0])
+    print(conn.execute(sys.argv[2], sys.argv[3:]).fetchone()[0])
 except Exception:
     print(0)
-" "$1" "$2" 2>/dev/null || echo 0
+" "$db" "$sql" "$@" 2>/dev/null || echo 0
+}
+
+# How many Wiktionary glosses a language has.
+glosses() {
+  db_scalar "$1" "SELECT COUNT(*) FROM hint WHERE lang = ?" "$2"
 }
