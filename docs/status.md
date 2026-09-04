@@ -6,6 +6,49 @@ Current state and what's next. Design lives in `../CLAUDE.md`, the data model in
 `data-model.md`, and the reasoning behind individual decisions in `decisions/`. Those
 change on a decision; this file changes on an event. Don't copy one into the other.
 
+## Session note — 4 September (Sonnet, part-done, needs review)
+
+A local/box session picked up the five hand-off tasks from the two cloud runs.
+**The next session that is Opus should check briefly that this work was done
+thoroughly and properly** — it was done under a tight token budget and stopped
+partway.
+
+Started and left running (local, background, safe — local DB was backed up first):
+
+- Russian dictionary: `setup-dictionary.sh ru` downloading + loading into local DB
+- Italian dictionary: `setup-dictionary.sh it` — `it) name="Italian"` was added to
+  `scripts/setup-dictionary.sh` (only fr/ru/nl existed); the loader is
+  language-agnostic JSONL so no other change was needed
+- Russian spaCy model: `setup-models.sh ru` (`ru_core_news_md`)
+- Translation weights prefetch into the HF cache: `Helsinki-NLP/opus-mt-ru-en` and
+  `opus-mt-it-en` (model *names* still unverified against `translate.py`, which may
+  hardcode fr-en — that wiring is untouched)
+
+Confirmed:
+
+- **SSH to the box works** with `ssh -i ~/.ssh/ll_textreader_deploy -o IdentitiesOnly=yes
+  llt@159.195.244.92`. The `--disabled-password` diagnosis in this file is right; the
+  `-i` key is the way in. Box is at `b7c1da6`, one commit behind local `main` (`e0bec75`).
+- Both `claude/*` remote branches are **fully merged into `main`** (`git log main..origin/<branch>`
+  is empty on both) — "merge the branch" from the hand-off is already done. Nothing is
+  deployed yet; box is one commit behind only.
+
+**Blocker found — the sign-in tasks presuppose code that is not in the repo.**
+Hand-off tasks 1–4 (one real Google sign-in end to end; link the existing lexicon to
+the new account; re-home demo content; swap in real starter texts) all assume a Google
+OAuth flow, a sessions/cookie layer, a `user.email`/`google_sub` column, a `starters/`
+directory, and a starter-lesson import path. **None of these exist on `main`:** `user`
+is still `(id, name, created_at)`, `main.py` auth is still the one shared HTTP-basic
+password, there is no `starters/` directory, and `decisions/0013` still describes the
+password/invite design with Google sign-in marked "not yet a decision" (item 5 below).
+The two cloud sessions' output is not on any pushed branch and not stashed. Before
+tasks 1–4 can proceed, the maintainer needs to say where that work lives, or a
+decision file for Google sign-in needs writing and the feature building (0013 est.
+~1 day for users/sessions/login alone).
+
+SSH hardening (the requested last step) was **not done** — it depends on the above
+settling and wants a second terminal open per `deploying.md`.
+
 ## Where things stand
 
 **Readable, keyboard-first, with definitions.** Paste French text, read it coloured by

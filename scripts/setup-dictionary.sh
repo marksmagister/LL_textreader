@@ -18,6 +18,7 @@ raw="$dest/$lang-raw.jsonl"
 case "$lang" in
   fr) name="French" ;;
   ru) name="Russian" ;;
+  it) name="Italian" ;;
   nl) name="Dutch" ;;
   *)  echo "unknown language: $lang" >&2; exit 1 ;;
 esac
