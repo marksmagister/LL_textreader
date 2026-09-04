@@ -59,9 +59,6 @@ export default function Reader({
   onPage: (page: number) => void
 }) {
   const [lesson, setLesson] = useState<LessonDetail | null>(null)
-  // The lesson's own language, not a global: define, speak and translate all
-  // follow the text you actually opened.
-  const lang = lesson?.lang ?? 'fr'
   const [cursor, setCursor] = useState(-1)
   const [glosses, setGlosses] = useState<Gloss[]>([])
   const [note, setNote] = useState('')

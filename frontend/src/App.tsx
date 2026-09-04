@@ -14,7 +14,6 @@ import {
   deleteAccount,
   deleteLesson,
   fetchUrl,
-  health,
   importText,
   listLessons,
   listStarters,
