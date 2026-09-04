@@ -94,13 +94,30 @@ after it has run you can reach the box without a password at all. Once
 `ssh llt@159.195.244.92` works, close the front door:
 
 ```bash
-printf 'PermitRootLogin prohibit-password\nPasswordAuthentication no\n' \
+printf 'PermitRootLogin prohibit-password\nPasswordAuthentication no\nKbdInteractiveAuthentication no\n' \
   > /etc/ssh/sshd_config.d/harden.conf
-systemctl restart ssh
+sshd -t && systemctl restart ssh          # -t first: a bad config is a locked door
 ```
 
-Do that in a second terminal while the first stays logged in, so a typo is
-recoverable rather than a trip to netcup's web console.
+**Done on this box on 4 September 2026.** `sshd -T` reports
+`passwordauthentication no` and a password attempt gets
+`Permission denied (publickey)`. Left here because it is what a *new* box needs.
+
+`KbdInteractiveAuthentication no` is the third line because without it some
+builds still offer an interactive password prompt through PAM after
+`PasswordAuthentication no` has closed the direct one.
+
+The safe order, which is what makes this not need a second terminal:
+
+1. prove key login works for **both** `llt` and `root` first — that is the thing
+   the change depends on, so test it rather than assume it;
+2. `sshd -t` to validate the file before any restart;
+3. restart, then immediately open a **fresh** connection to confirm.
+
+Restarting `ssh` does not drop connections that already exist, so a second
+terminal is a belt-and-braces extra rather than the thing keeping you safe. If
+all three steps pass you are not locked out; if step 1 or 2 fails, stop.
+netcup's web console (VNC) is the way back in either way.
 
 ### Every time after that
 
@@ -188,6 +205,28 @@ being something to go and look up:
 The **client secret is not public** and must never be committed. It goes straight
 into `/opt/ll-textreader/.env` on the box and nowhere else — not into git, not
 into a chat window, not into an issue.
+
+As of 4 September the box has the client id, the redirect URI, `SIGNUP=open` and
+`MAX_USERS=100`; the secret is the one thing missing, and until it is there
+**nobody can sign in at all**, because `0022` took the shared password away. Set
+it from your own terminal so it never passes through anything else — the leading
+space keeps it out of shell history, and the `grep -c` prints `1` on success
+without echoing the value:
+
+```bash
+ ssh -i ~/.ssh/ll_textreader_deploy llt@159.195.244.92 \
+   'read -rs S; printf "LL_TEXTREADER_GOOGLE_CLIENT_SECRET=%s\n" "$S" >> /opt/ll-textreader/.env; sudo systemctl restart ll-textreader'
+```
+
+Paste the secret at the blank prompt and press Enter. Then check it took:
+
+```bash
+curl -s https://v2202609408983511171.ultrasrv.de/api/auth/me
+```
+
+`"google": true` means the door is open. If the line ever needs replacing rather
+than adding, delete the old one first — `.env` takes the last value it sees, so a
+duplicate is a confusing hour.
 
 The support address is a Google Group, `ll_textreader@googlegroups.com`, and the
 reason is worth keeping: *User support email* on the consent screen is a
