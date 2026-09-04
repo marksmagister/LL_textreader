@@ -209,8 +209,13 @@ app holding a refresh token to call Google while the user is away — it would b
 weekly. This app holds none: `google.py` never asks for offline access, stores no
 refresh token, and does not call Google again after the one code exchange at
 sign-in. Readers are carried by our own session cookie for `session_days`, ninety
-by default. The only visible effect is that somebody signing in again more than a
-week later sees the consent screen once more. One extra click, on a re-login.
+by default — and that window *slides*: `user_for_session` pushes `seen_at` forward
+on every request. Somebody who opens the reader once every three months stays
+signed in for ever and never meets Google again.
+
+The seven days therefore surface only at a **fresh** sign-in — a new browser,
+cleared cookies, an explicit sign-out, or ninety idle days — and then only as one
+extra consent click. Not "everyone re-consents weekly"; nearly the opposite.
 
 An earlier version of this file said readers "would be signed out weekly" and told
 you to publish immediately. That was wrong for this application, and the mistake
