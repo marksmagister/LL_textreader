@@ -27,7 +27,8 @@ Working and verified against real text, in the browser:
 - the interface is English or German; English is the default and stays it, and
   German is chosen in settings, never guessed from the browser
 - plain-text import (paste or `.txt`), pages, saved position, "mark page known"
-- all five render states, including known-lemma-novel-form
+- all six render states: a novel form takes the colour of the word it belongs
+  to, blue if you know it and yellow if you are learning it (`decisions/0023`)
 - a legend page explaining them, reachable from the library and the palette
 - Wiktionary glosses: 126k senses for French, from a kaikki.org extract
 - morphology: "conditional · 1st person singular", with rules that stay quiet
@@ -47,7 +48,7 @@ Working and verified against real text, in the browser:
 - undo for "mark page known"
 - the sentence you first met a word in, kept and shown
 - `--dry-run`-able reprocessing for stale token streams (rule 6)
-- 319 tests (284 backend, 35 frontend), ruff and tsc clean
+- 325 tests (285 backend, 40 frontend), ruff and tsc clean
 
 Numbers worth knowing: a 12,000-word chapter imports in 1.3s. Opening a page costs
 more the longer the lesson is, because the page boundaries are re-derived from every
@@ -360,8 +361,46 @@ fixed: the translation weights are now cached on the box, so the wait is model
      offers `publickey` only; the plaintext-emailed root password is dead. See
      the September 4 section above for how it was done safely.
 
-2. **The bug reports.** Seventeen filed from real use. Fourteen are now closed
-   (`./scripts/reports.sh`); **10, 11 and 17 are the ones still open.** Until
+2. **The bug reports.** Twenty-eight filed from real use; twenty-one closed
+   (`./scripts/reports.sh`). **10, 11, 17, 22, 24, 25 and 27 are open.**
+
+   **#18–#28 came in on 4–5 September**, the first from reading on a phone and
+   from Italian. Closed the same day:
+
+   - **#18** was a test of the report box itself. It worked.
+   - **#19 swipe to turn the page** — built. Left onward, right back; what counts
+     as a swipe rather than a scroll is in `reading.ts` with tests, because a
+     page that turns while you scroll is worse than one that never turns.
+   - **#20 the panel's buttons sat in the phone's gesture bar**, so marking a
+     word swiped you out of the app. Bottom padding plus `safe-area-inset-bottom`.
+   - **#21 / titles pushing the library's columns out of line** — one bug, and a
+     regression from the phone work the day before: a global
+     `button { white-space: nowrap }` meant for control labels also held lesson
+     titles on one line, widening the grid's `1fr` track. `.name` is excluded and
+     the track is `minmax(0, 1fr)`, whose 0 minimum is what actually lets a title
+     wrap instead of shoving the columns right.
+   - **#23 the account menu pushed the page down** rather than overlaying —
+     caused by the previous day's fix for the name being clipped, which made
+     `.account` static. `relative` plus an absolute menu gets both.
+   - **#26 dark mode and "something's wrong" are back in the corners on desktop**
+     and stay in the account menu on a phone. Rendered in both places, picked by
+     CSS, so no component knows the window width.
+   - **#28 a novel form now takes the colour of the word it belongs to** —
+     `decisions/0023`, and the one that changed the core render model.
+
+   Still open, and each has a reason:
+
+   - **#22, #25 and #27 are one problem, now measured** — `decisions/0024`. The
+     tagger disagrees with itself about the same word, and since POS is part of
+     the key that splits one word into two lexicon entries. 0.16% of lexical
+     tokens outside one lesson of song lyrics. The largest fixable group is a
+     rule `fr.py` already has, one condition too narrow. **Options written up,
+     decision not taken.**
+   - **#24 reading statistics** — `decisions/0025`. A plan, not code: most of the
+     data is already stored, the heat map needs one column on `exposure`, and the
+     cross-language part is where it would be easy to build something dishonest.
+
+   Until
    2 September the `done` column had never been set on anything, so if it looks
    untouched again, suspect that before suspecting the list. What each one was:
 
@@ -596,7 +635,7 @@ had the attention.
 
 ## Testing
 
-319 tests: 284 backend (pytest), 35 frontend (vitest). `npm test` in `frontend/`.
+325 tests: 285 backend (pytest), 40 frontend (vitest). `npm test` in `frontend/`.
 Some backend tests need a real spaCy model and skip without it, so
 `./scripts/setup-models.sh` — no argument, meaning every configured language — is
 part of running the suite, not just the app.
