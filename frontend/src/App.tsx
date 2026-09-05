@@ -318,7 +318,12 @@ function Account({
       {open && (
         <div className="account-menu">
           <p className="meta">{me.user.email}</p>
+          {/* On a phone these two live here; on a desktop they are back in the
+              bottom corners where they were, and CSS picks. Rendered in both
+              places rather than switched in JS, so there is no width in the
+              component and no resize listener. */}
           <button
+            className="only-narrow"
             onClick={() => {
               setOpen(false)
               onFlipTheme()
@@ -327,6 +332,7 @@ function Account({
             {themeLabel}
           </button>
           <button
+            className="only-narrow"
             onClick={() => {
               setOpen(false)
               onReport()
@@ -573,6 +579,20 @@ export default function App() {
           onBack={() => setView({ at: 'library' })}
         />
       )}
+      {/* The corner tabs, for screens with corners to spare. Below 640px they
+          are hidden and the account menu carries them instead: they used to sit
+          on top of the word panel's buttons on a phone, which is what took them
+          out of the corners in the first place. */}
+      <button className="theme-tab only-wide" onClick={flip} title={t('app.themeTitle')}>
+        {effective(theme) === 'dark' ? t('app.themeToLight') : t('app.themeToDark')}
+      </button>
+      <button
+        className="report-tab only-wide"
+        onClick={() => setReporting(true)}
+        title={t('report.tabTitle')}
+      >
+        {t('report.tab')}
+      </button>
       {palette && <Palette commands={commands} onClose={() => setPalette(false)} />}
       {reporting && (
         <Report

@@ -10,7 +10,7 @@ import {
 } from './api'
 import { t, uiLocale } from './i18n'
 import { describe, grammarLocale } from './morph'
-import { nextAsking, nextSentence, segments, sentenceBounds } from './reading'
+import { nextAsking, nextSentence, segments, sentenceBounds, swipeAction } from './reading'
 import { speak, stop } from './speak'
 import type { Gloss, LessonDetail, Token } from './types'
 
@@ -71,6 +71,8 @@ export default function Reader({
   const [fixing, setFixing] = useState(false)
   const [fix, setFix] = useState('')
   const text = useRef<HTMLDivElement>(null)
+  // Where a touch began, so a swipe can be told from a scroll (report #19).
+  const swipe = useRef<{ x: number; y: number; t: number } | null>(null)
   const noteBox = useRef<HTMLInputElement>(null)
   const fixBox = useRef<HTMLInputElement>(null)
   // Whether the translator has been woken yet, so the wait can be explained.
@@ -371,6 +373,21 @@ export default function Reader({
           // Only words you have not judged: clicking a word you already know
           // should not quietly demote it back to learning.
           if (markOnClick && lesson.tokens[i]?.state === 'new') rate(1, i)
+        }}
+        onTouchStart={(e) => {
+          const t = e.touches[0]
+          swipe.current = t ? { x: t.clientX, y: t.clientY, t: Date.now() } : null
+        }}
+        onTouchEnd={(e) => {
+          // Turn the page with a gesture (report #19). What counts as a swipe
+          // rather than a scroll is in reading.ts, where it can be tested.
+          const from = swipe.current
+          swipe.current = null
+          const t = e.changedTouches[0]
+          if (!from || !t) return
+          const go = swipeAction(from, { x: t.clientX, y: t.clientY, t: Date.now() })
+          if (go === 'next') turn(false)
+          else if (go === 'back' && lesson.page > 0) load(lesson.page - 1)
         }}
       >
         {english ? renderWithGlosses(lesson, cursor, english) : render(lesson, cursor)}

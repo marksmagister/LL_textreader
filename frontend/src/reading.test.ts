@@ -1,5 +1,5 @@
 import { describe as group, expect, test } from 'vitest'
-import { nextAsking, nextSentence, segments, sentenceBounds } from './reading'
+import { nextAsking, nextSentence, segments, sentenceBounds, swipeAction } from './reading'
 import type { LessonDetail, Token, TokenState } from './types'
 
 const BODY = "Il marchait le long du quai. Nous marchons."
@@ -160,5 +160,31 @@ group('sentence bounds for the English lines', () => {
     expect(bounds.size).toBe(2)
     const [a, b] = bounds.get(0)!
     expect(BODY.slice(a, b)).toBe('Il marchait le long du quai.')
+  })
+})
+
+group('swipeAction', () => {
+  const at = (x: number, y: number, t = 0) => ({ x, y, t })
+
+  test('forward on a left swipe, back on a right one', () => {
+    expect(swipeAction(at(300, 400), at(180, 405, 120))).toBe('next')
+    expect(swipeAction(at(180, 400), at(300, 405, 120))).toBe('back')
+  })
+
+  test('a scroll does not turn the page, which is the point of the thresholds', () => {
+    expect(swipeAction(at(200, 200), at(205, 600, 200))).toBe(null) // straight down
+    expect(swipeAction(at(200, 200), at(300, 600, 200))).toBe(null) // drifted sideways
+  })
+
+  test('a short flick is a tap that slipped, not a swipe', () => {
+    expect(swipeAction(at(200, 400), at(150, 402, 60))).toBe(null)
+  })
+
+  test('a slow drag is a selection, not a swipe', () => {
+    expect(swipeAction(at(300, 400), at(150, 405, 2000))).toBe(null)
+  })
+
+  test('a diagonal that is still mostly sideways counts', () => {
+    expect(swipeAction(at(300, 400), at(160, 440, 150))).toBe('next')
   })
 })

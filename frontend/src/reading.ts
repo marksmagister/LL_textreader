@@ -83,3 +83,29 @@ export function sentenceBounds(lesson: LessonDetail): Map<number, [number, numbe
   }
   return bounds
 }
+
+/** How far, how flat and how quick a drag must be to count as a page turn. */
+export const SWIPE = { distance: 60, flatness: 2, ms: 800 }
+
+/** What a touch that started at `from` and ended at `to` should do.
+ *
+ * Its own function because the thresholds are the whole feature: a phone has no
+ * Tab and no arrow keys (report #19), but it does scroll, and a page that turns
+ * itself while you are scrolling is worse than one that never turns at all. So
+ * a swipe has to be far enough to be deliberate, flat enough not to be a scroll
+ * that drifted, and quick enough not to be a drag or a long press.
+ *
+ * Left is onward and right is back — the direction the text itself moves, and
+ * what every e-reader and carousel already does.
+ */
+export function swipeAction(
+  from: { x: number; y: number; t: number },
+  to: { x: number; y: number; t: number },
+): 'next' | 'back' | null {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  if (Math.abs(dx) < SWIPE.distance) return null
+  if (Math.abs(dx) < Math.abs(dy) * SWIPE.flatness) return null
+  if (to.t - from.t > SWIPE.ms) return null
+  return dx < 0 ? 'next' : 'back'
+}
