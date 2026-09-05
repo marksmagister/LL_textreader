@@ -12,6 +12,10 @@ change on a decision; this file changes on an event. Don't copy one into the oth
 read it coloured by what you know, Tab between unknown words, and the page
 decolourises as you go.
 
+**Live, with accounts, at `https://v2202609408983511171.ultrasrv.de`.** Sign in
+with Google is the only door (`decisions/0022`); each reader gets starter texts
+in the language they choose, and their own library, lexicon and rate limits.
+
 Working and verified against real text, in the browser:
 - French pipeline: spaCy `fr_core_news_md`, POS-tagged lemmas, run at import
 - Russian and Italian pipelines, measured before they were trusted (`decisions/0021`)
@@ -185,35 +189,120 @@ maintainer's suggestion — which deletes two fixed elements and a z-index layer
 rather than hiding them. **Tapping away is what Esc is on a device with no Esc**,
 so it closes the word panel and the account menu as it already did the palette.
 
-### What is left, and it is one thing
+### Signed in, and the account is joined to the reading — 5 September
 
-**The Google client secret is not on the box.** It is not in the repo either, and
-must not be — `deploying.md` is explicit. Until it is set, `/api/auth/me` reports
-`"google": false`, the sign-in button 503s, and **nobody can get in at all**,
-because the shared password is gone with `0022`. The client id and redirect URI
-are already set, as are `SIGNUP=open` and `MAX_USERS=100`.
+Done, and the thing works end to end. The secret went in, the sign-in round trip
+completed, and the account now owns the months of French.
 
-Then, and only then, the two steps that finish this:
+**What signing in looked like, which is worth knowing because it alarms people.**
+Google issued a `google_sub` nothing matched, so the app did the correct thing
+and made a *new* reader: user 2, three starter texts, an empty lexicon. The 542
+words were not lost, they were on user 1, which had no way to be signed in as.
+That gap is what `0022` accepted when it cut adoption, and it is closed by hand,
+once, knowingly.
 
-1. Sign in once at the URL above as `bisinger.noah@gmail.com`. That creates a
-   *new* user row with a `google_sub`, and it will have starter texts and an
-   empty lexicon — which is expected and not the end state.
-2. **Move the identity onto the row that holds the reading, rather than moving
-   the reading.** One row changes instead of nine tables:
+**The join moved the identity, not the reading.** One row changes instead of
+nine tables, and nothing large is copied:
 
-   ```sql
-   -- take the new row's identity
-   UPDATE user SET google_sub = (SELECT google_sub FROM user WHERE id = <new>),
-                   email      = (SELECT email      FROM user WHERE id = <new>),
-                   picture    = (SELECT picture    FROM user WHERE id = <new>),
-                   name       = (SELECT name       FROM user WHERE id = <new>)
-   WHERE id = 1;
-   -- then delete the new row's lessons and the row itself
-   ```
+```sql
+BEGIN IMMEDIATE;
+-- google_sub is uniquely indexed, so the new row has to let go before the old
+-- one can take it. Same transaction, so there is no moment where nobody holds it.
+CREATE TEMP TABLE ident AS SELECT google_sub, email, picture, name FROM user WHERE id = 2;
+UPDATE user SET google_sub = NULL WHERE id = 2;
+UPDATE user SET google_sub = (SELECT google_sub FROM ident),
+                email      = (SELECT email      FROM ident),
+                picture    = (SELECT picture    FROM ident),
+                name       = (SELECT name       FROM ident)
+ WHERE id = 1;
+-- then carry across everything the new row had acquired, session included, and
+-- drop it. UPDATE ... SET user_id = 1 on every table that has a user_id.
+DELETE FROM user WHERE id = 2;
+COMMIT;
+```
 
-   `google_sub` is uniquely indexed, so the delete has to happen in the same
-   transaction. After it, signing in with that Google account lands on user 1 and
-   the 542 words are there.
+Two details that made it painless and would not have been obvious:
+
+- **The live session was carried across too** (`UPDATE session SET user_id = 1`),
+  so the browser that was signed in stayed signed in. Deleting the new user
+  instead would have forced a second sign-in for no reason.
+- **The three starter lessons were carried across rather than deleted.** They are
+  ordinary lessons and can be removed in the UI; reassigning is the less
+  destructive of two one-line choices.
+
+Checked afterwards: no orphaned rows in any of the eleven tables carrying a
+`user_id`, `PRAGMA foreign_key_check` clean, and the cached per-lesson counts
+recomputed, because three lessons had arrived from another owner.
+
+**If this ever has to be done again** — a second machine, a re-imported laptop —
+the shape is: `scripts/import-lexicon.py` to move rows between databases, then
+this transaction to move an identity onto them. They are deliberately separate.
+
+### Where it stands now
+
+One user, `bisinger.noah@gmail.com`, signed in, owning 21 lessons (18 French,
+3 Italian) and 696 lexicon entries — 543 French known, 70 learning, and 63
+Italian known inside the first day. Which is the answer to the open question
+0012 raised: a second language got read, not just built.
+
+## Hand-off, 5 September
+
+The box is the reader now, and it works. What is left, most urgent first.
+
+### 1. The backups are the one real risk, and they got riskier
+
+`LL_TEXTREADER_BACKUP_TO` is still unset, so `backup.sh` writes beside the
+database and `decisions/0006` is blunt about that not being a backup. This was
+already the launch blocker. It is worse now for a reason that is easy to miss:
+**the box holds reading that exists nowhere else.** Until 4 September the laptop
+had a full copy, so a dead disk cost a day. Since then the Italian has been read,
+the French has moved on, and none of that is anywhere but `/var/lib/ll-textreader`.
+
+`backup.sh` already does the work — one `rsync` to whatever
+`LL_TEXTREADER_BACKUP_TO` names. What it needs is a destination, and that is a
+choice rather than a task:
+
+- another host over ssh (`user@host:/path`) — needs a key on the box;
+- object storage with an rclone or s3 remote — needs a credential in `.env`;
+- **a pull from the laptop instead**, which needs nothing new: the laptop already
+  has the key, and `rsync` from the box on a schedule inverts the direction so no
+  inbound access to the laptop is required. Probably the cheapest correct answer.
+
+An hour, and it is the only loss here that cannot be undone.
+
+### 2. Read with it, in Russian
+
+Sixty-three Italian words in the first day is the first real evidence a second
+language gets *used*. Russian has the models, the glosses and the starters and
+has still not been read. It is also the open question `0004` raised and nobody
+has answered: Tab now stops on novel forms, and a Russian starter page shows
+sixteen at once, which is the density the original argument was about. Reading
+one page settles it either way.
+
+### 3. Three reports still open
+
+`./scripts/reports.sh`. #10 multi-word units and #11 LLM-generated lessons both
+want a decision file before any code. #17 improved sideways rather than being
+fixed: the translation weights are now cached on the box, so the wait is model
+*load* and not a 300MB *download*. Warming at startup is still the real fix.
+
+### 4. Smaller, and none of them blocking
+
+- **`morph.ts` was extended for Russian** (Case, Aspect, Animacy) and names
+  grammar in the language you are reading. Italian has not been looked at with
+  the same eye; it may be fine, but "may be fine" is what was said about Russian
+  before it was measured.
+- **The German interface and a switchable translation target** — `0012`. The
+  interface strings exist in both languages; the translation target is still
+  English only, and the two are deliberately separate settings.
+- **A phone edition** is still its own decision (`Next` item 4). What was fixed
+  on 4 September is that it is no longer *broken* on a phone — not that the
+  keyboard-first interaction model has a touch answer.
+- **The laptop still holds ~1.7GB of Hugging Face weights, two spaCy models and
+  a 14MB database.** The maintainer asked to be reminded to delete these once the
+  server is the only thing that matters, and to have the removal confirmed rather
+  than assumed. That moment has essentially arrived — but see item 1 first, since
+  the laptop's copy is currently the only off-box copy that exists.
 
 ## Next
 
@@ -462,23 +551,20 @@ Then, and only then, the two steps that finish this:
      French texts in `starters/fr/`, the second reusing the first's vocabulary
      in unmet shapes.
 
-   Three things it does not do, on purpose:
+   Three things it did not do, all of them now settled — see the 5 September
+   section above for how, and keep them in mind when a *second* reader arrives:
 
-   - **Nobody can sign in as the existing user 1.** Adoption was cut (0022),
-     so the lexicon on the box and on the laptop is safe but unreachable until
-     the maintainer links their Google identity to it by hand. Deliberate: a
-     feature that hands one person's lexicon to whoever opens a link is worse
-     than one `UPDATE`.
-   - **Google is wired but not yet proven end to end.** As of 4 September the
-     box has the client id, the redirect URI, `SIGNUP=open` and `MAX_USERS=100`;
-     what it does not have is the **client secret**, which is not in the repo by
-     design and must not be. Until it is set, `/api/auth/me` says
-     `"google": false` and the sign-in button 503s. The round trip still needs a
-     browser and a person pressing Allow — the one part a session cannot finish
-     alone.
+   - ~~**Nobody can sign in as the existing user 1.**~~ **Joined by hand,
+     5 September.** Adoption stays cut, and that is still right: a feature that
+     hands one person's lexicon to whoever opens a link is worse than one
+     `UPDATE` run knowingly. The `UPDATE` is written out above so the next one
+     is not rederived.
+   - ~~**Google is wired but not yet proven end to end.**~~ **Proven
+     5 September**: real Google account, real consent, session cookie, user row,
+     starter texts. The client secret lives only in `/opt/ll-textreader/.env`.
    - ~~**Nothing is deployed.**~~ **Deployed 4 September.** Both branches are
      merged and the box runs the merged build; the shared password is gone with
-     it, which is why the missing secret currently means nobody can get in.
+     `0022`, so Google is genuinely the only door now.
 
 6. **Export the lessons, and account deletion** — `decisions/0013`. No longer
    at the back of the queue: they are phase 1 of the accounts work, because
