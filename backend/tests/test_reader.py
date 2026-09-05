@@ -54,7 +54,12 @@ def test_known_lemma_in_an_unmet_form_gets_its_own_state(client):
 def test_a_learning_word_still_marks_forms_you_have_not_met(client):
     """Marking `marchait` must not turn `marchons` plain yellow: you have never
     met that shape. Reported from real reading — the novel-form distinction is
-    not only for words you already know."""
+    not only for words you already know.
+
+    It gets its *own* dashed state rather than the blue one (report #28,
+    `decisions/0023`): the dash says the shape is new, the colour says the word
+    is still yours, and a word you are working on does not stop being yours
+    because it turned up in a shape you had not met."""
     lesson = make_lesson(client)
     client.put(
         "/api/terms",
@@ -62,7 +67,30 @@ def test_a_learning_word_still_marks_forms_you_have_not_met(client):
     )
     s = states(client, lesson["id"])
     assert s["marchait"] == "learning"  # the form you met
-    assert s["marchons"] == "novel-form"  # same word, shape you have not
+    assert s["marchons"] == "novel-form-learning"  # same word, shape you have not
+
+
+def test_the_two_dashed_states_differ_by_whose_the_word_is(client):
+    """The dash means "shape you have not met" either way; the colour under it
+    says whose the word is (report #28, `decisions/0023`).
+
+    Same lesson, same unmet form, one difference — the lemma's status. This is
+    the assertion the split exists for, so it is pinned separately from the two
+    tests above, which would both still pass if the states were merged again."""
+    lesson = make_lesson(client)
+
+    client.put(
+        "/api/terms",
+        json={"lang": "fr", "lemma": "marcher", "pos": "VERB", "status": 1, "surface": "marchait"},
+    )
+    assert states(client, lesson["id"])["marchons"] == "novel-form-learning"
+
+    # Same word, promoted to known. Nothing else changes.
+    client.put(
+        "/api/terms",
+        json={"lang": "fr", "lemma": "marcher", "pos": "VERB", "status": 5, "surface": "marchait"},
+    )
+    assert states(client, lesson["id"])["marchons"] == "novel-form"
 
 
 def test_finish_records_the_forms_you_have_now_met(client):
@@ -113,7 +141,7 @@ def test_mark_rest_known_does_not_swallow_an_unmet_shape_of_a_learning_word(clie
         "/api/terms",
         json={"lang": "fr", "lemma": "marcher", "pos": "VERB", "status": 1, "surface": "marchait"},
     )
-    assert states(client, lesson["id"])["marchons"] == "novel-form"
+    assert states(client, lesson["id"])["marchons"] == "novel-form-learning"
 
     client.post(f"/api/lessons/{lesson['id']}/finish", json={"mark_rest_known": True})
     marcher = next(

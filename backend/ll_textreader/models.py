@@ -7,8 +7,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-# blue / yellow / dotted / lighter / plain. See docs/data-model.md.
-TokenState = Literal["new", "learning", "review", "novel-form", "known"]
+# blue / yellow / dashed blue / dashed yellow / underlined / plain.
+# See docs/data-model.md and decisions/0023.
+TokenState = Literal["new", "learning", "review", "novel-form", "novel-form-learning", "known"]
 
 NEW, LEARNING, REVIEW, KNOWN, IGNORED = 0, 1, 4, 5, -1
 
@@ -181,6 +182,13 @@ def state_for(lemma: str | None, status: int | None, form_seen: bool) -> TokenSt
     because you have never met that shape. The exception is a word at REVIEW: it
     is asking you a question about the word itself, and that outranks a remark
     about the form.
+
+    **Novel forms come in two colours** (report #28, `decisions/0023`). The dashed
+    outline always means "this shape is new to you"; the colour underneath says
+    whose the word is. Blue when the lemma is known — the word is settled and only
+    the shape is asking. Yellow when the lemma is still being learned, because
+    yellow is the one state that is actively yours and a word you are working on
+    does not stop being yours when it turns up in a new shape.
     """
     if lemma is None:
         return "known"  # punctuation, digits: nothing to learn, render plain
@@ -191,5 +199,5 @@ def state_for(lemma: str | None, status: int | None, form_seen: bool) -> TokenSt
     if status >= REVIEW and status < KNOWN:
         return "review"  # the ask comes first
     if not form_seen:
-        return "novel-form"
+        return "novel-form" if status >= KNOWN else "novel-form-learning"
     return "known" if status >= KNOWN else "learning"

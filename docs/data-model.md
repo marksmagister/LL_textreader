@@ -25,16 +25,19 @@ beginner parses *courussent*. Hence the second table.
 Render:
 
 - lemma new → **solid blue**
-- a form of it you have not met → **a dashed blue outline**
+- lemma known, form you have not met → **a dashed blue outline**
 - lemma learning, form met → **yellow**
+- lemma learning, form you have not met → **a dashed yellow outline**
 - lemma met on four pages → **a blue rule under the word** — time you decided
 - lemma known, form met → **plain**
 
-Blue means "this wants something from you", in three weights: solid you have never
-judged, dashed you know the word but not this shape, underlined you have met it often
-enough that it is time you decided. Yellow is the one state that is actively yours. The weights differ
-by *shape*, not just shade — two blue fills of different darkness do not separate at
-reading speed.
+Two colours and two treatments, independent of each other. The **colour** says
+whose the word is: blue the app is asking, yellow it is actively yours. The
+**dash** says the form is one you have not met, and means the same over either
+colour — `decisions/0023`, which split it after a dashed blue outline on a word
+you were mid-way through learning read as "you don't know this". The weights
+differ by *shape*, not just shade — two blue fills of different darkness do not
+separate at reading speed.
 
 The novel-form state is what the two-table split buys. It also gives coverage data for free —
 "you've met 40 verbs but never a past subjunctive" — without asking the user anything.

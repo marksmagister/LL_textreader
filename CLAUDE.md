@@ -54,16 +54,20 @@ The lemma carries the status; the form table records which inflections have actu
 been met. Rendering follows from the join of those two against a lesson's token stream:
 
 - lemma new -> **solid blue**
-- a form of it you have not met -> **a dashed blue outline**
+- lemma known, form you have not met -> **a dashed blue outline**
 - lemma learning, form met -> **yellow**
+- lemma learning, form you have not met -> **a dashed yellow outline**
 - lemma met on four pages -> **a blue rule under the word** — time you decided
 - lemma known, form met -> **plain**
 
-Blue means "this wants something from you", in three weights: solid you have never
-judged, dashed you know the word but not this shape, underlined you have met it often
-enough that it is time you decided. Yellow is the one state that is actively yours. The weights differ
-by *shape*, not just shade — two blue fills of different darkness do not separate at
-reading speed.
+**Two colours and two treatments, and between them they say everything.** The
+*colour* says whose the word is: blue the app is asking, yellow it is actively
+yours. The *dash* says the form is one you have not met. They are independent, so
+the dash appears over either colour and always means the same thing — which is
+what `decisions/0023` changed, after a dashed blue outline on a word you were
+mid-way through learning read as "you don't know this" when the opposite was true.
+The weights differ by *shape*, not just shade — two blue fills of different
+darkness do not separate at reading speed.
 
 The novel-form state is the point of the whole design. It is the difference between
 "you don't know this word" and "you know this word, this is a shape of it you haven't

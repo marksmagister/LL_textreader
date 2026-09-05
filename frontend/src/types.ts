@@ -1,5 +1,11 @@
 /** Mirrors backend/ll_textreader/models.py. Keep the two in step. */
-export type TokenState = 'new' | 'learning' | 'review' | 'novel-form' | 'known'
+export type TokenState =
+  | 'new'
+  | 'learning'
+  | 'review'
+  | 'novel-form'
+  | 'novel-form-learning'
+  | 'known'
 
 export interface Token {
   idx: number

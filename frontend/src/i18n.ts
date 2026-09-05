@@ -200,6 +200,8 @@ const en = {
   'legend.title': 'What the colours mean',
   'legend.new': 'New. You have never said anything about this word.',
   'legend.novelForm': 'You know this word. This shape of it is new to you.',
+  'legend.novelFormLearning':
+    'You are still learning this word, and this shape of it is new too.',
   'legend.learning': 'You are learning it.',
   'legend.review': 'You have met this a lot now. Do you know it yet?',
   'legend.known': 'Known. Nothing to do.',
@@ -415,6 +417,8 @@ const de: Strings = {
   'legend.title': 'Was die Farben bedeuten',
   'legend.new': 'Neu. Zu diesem Wort hast du noch nie etwas gesagt.',
   'legend.novelForm': 'Du kennst dieses Wort. Diese Form davon ist neu für dich.',
+  'legend.novelFormLearning':
+    'Du lernst dieses Wort noch, und diese Form davon ist auch neu.',
   'legend.learning': 'Du lernst es gerade.',
   'legend.review': 'Das ist dir schon oft begegnet. Kennst du es inzwischen?',
   'legend.known': 'Bekannt. Nichts zu tun.',

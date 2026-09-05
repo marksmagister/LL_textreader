@@ -10,13 +10,19 @@
 }
 
 :root {
-  /* The palette is the product. Blue means "this wants something from you", in
-   three weights: solid you have never judged, soft you know the word but not
-   this shape, hollow-and-dashed you have met it enough that the app should stop
-   guessing and ask. Yellow is the one state that is actively yours: learning. */
+  /* The palette is the product. Two colours and two treatments, and between them
+   they say everything.
+
+   Blue means "the app is asking": solid you have never judged this word,
+   underlined you have met it often enough that it is time you decided.
+   Yellow means "this one is actively yours": you are learning it.
+   A dashed outline, over either colour, means "this shape of it is new to you" —
+   so the colour always tells you whose the word is and the dash always tells you
+   about the form. Splitting the dash across both colours is decisions/0023. */
   --tok-new: #cfe4ff;        /* never seen */
   --tok-learning: #ffe9a8;   /* status 1-4 */
-  --tok-novel-form: #7fb0e8; /* the band under a form you have not met */
+  --tok-novel-form: #7fb0e8; /* dash round an unmet form of a word you KNOW */
+  --tok-novel-form-learning: #d4a72c; /* ... of one you are still LEARNING */
   --tok-review: #4a86c7;        /* "do you know this yet?" — a question, not a verdict */
   --tok-known: transparent;
 
@@ -40,6 +46,7 @@
     --tok-new: #24405f;
     --tok-learning: #5a4a1c;
     --tok-novel-form: #4d7fb5;
+    --tok-novel-form-learning: #a3873c;
     --tok-review: #6ea3d6;
     --fg: #e8e6e1;
     --bg: #16181a;
@@ -52,6 +59,7 @@
   --tok-new: #24405f;
   --tok-learning: #5a4a1c;
   --tok-novel-form: #4d7fb5;
+  --tok-novel-form-learning: #a3873c;
   --tok-review: #6ea3d6;
   --fg: #e8e6e1;
   --bg: #16181a;
@@ -85,16 +93,31 @@ h1 { font-size: 1.3rem; font-weight: normal; }
 .tok { border-radius: 3px; padding: 2px 0; cursor: pointer; }
 .tok--new { background: var(--tok-new); }
 .tok--learning { background: var(--tok-learning); }
-/* A shape of a word you have not met. Dashed and unfilled, because that reads as
-   partly new -- which is exactly what it is: the word is yours, this form is not. */
-.tok--novel-form {
-  /* Lightly filled as well as dashed: the outline says "not quite yours", the
-     wash says "and it is blue" — together they read faster than either alone.
-     Mixed from the new colour rather than picked separately, so the two stay
-     related in both themes. */
-  background: color-mix(in srgb, var(--tok-new) 45%, transparent);
-  outline: 1px dashed var(--tok-novel-form);
+/* A shape of a word you have not met. Dashed and lightly filled, because that
+   reads as partly new -- which is exactly what it is: the word is yours, this
+   form is not.
+
+   Two of them, and the split is the whole point (decisions/0023). The dash is
+   what says "this shape is new"; the colour under it says whose the word is.
+   Blue when the lemma is known — settled word, only the shape is asking. Yellow
+   when you are still learning it, because yellow is the one state that is
+   actively yours, and a word you are working on does not stop being yours
+   because it turned up in a shape you had not met. Both are mixed from the solid
+   colour they belong to rather than picked separately, so each stays visibly
+   related to its own family in both themes. */
+.tok--novel-form,
+.tok--novel-form-learning {
+  outline-style: dashed;
+  outline-width: 1px;
   outline-offset: 1px;
+}
+.tok--novel-form {
+  background: color-mix(in srgb, var(--tok-new) 45%, transparent);
+  outline-color: var(--tok-novel-form);
+}
+.tok--novel-form-learning {
+  background: color-mix(in srgb, var(--tok-learning) 45%, transparent);
+  outline-color: var(--tok-novel-form-learning);
 }
 /* Met often enough that the app should stop guessing and ask. A solid rule under
    the word: not a shade of new, but a different kind of thing being asked of you. */

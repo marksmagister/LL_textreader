@@ -19,7 +19,9 @@ const SAMPLES: Record<string, { sentence: Array<[string, string]>; words: string
     sentence: [
       ['known', 'Le '],
       ['learning', 'brouillard'],
-      ['known', ' se levait sur le '],
+      ['known', ' se '],
+      ['novel-form-learning', 'levait'],
+      ['known', ' sur le '],
       ['new', 'quai'],
       ['known', ', et nous '],
       ['novel-form', 'marcherons'],
@@ -27,8 +29,8 @@ const SAMPLES: Record<string, { sentence: Array<[string, string]>; words: string
       ['review', 'lanterne'],
       ['known', '.'],
     ],
-    // new · novel-form · learning · review · known, in that order
-    words: ['quai', 'marcherons', 'brouillard', 'lanterne', 'maison'],
+    // in STATES order; the two dashed ones sit together so the contrast shows
+    words: ['quai', 'marcherons', 'levait', 'brouillard', 'lanterne', 'maison'],
   },
   ru: {
     sentence: [
@@ -38,17 +40,21 @@ const SAMPLES: Record<string, { sentence: Array<[string, string]>; words: string
       ['novel-form', 'пошли'],
       ['known', ' к '],
       ['new', 'реке'],
-      ['known', ', где горел '],
+      ['known', ', где '],
+      ['novel-form-learning', 'горел'],
+      ['known', ' '],
       ['review', 'фонарь'],
       ['known', '.'],
     ],
-    words: ['реке', 'пошли', 'улице', 'фонарь', 'дом'],
+    words: ['реке', 'пошли', 'горел', 'улице', 'фонарь', 'дом'],
   },
   it: {
     sentence: [
       ['known', 'La '],
       ['learning', 'nebbia'],
-      ['known', ' saliva sul '],
+      ['known', ' '],
+      ['novel-form-learning', 'saliva'],
+      ['known', ' sul '],
       ['new', 'molo'],
       ['known', ', e noi '],
       ['novel-form', 'cammineremo'],
@@ -56,14 +62,25 @@ const SAMPLES: Record<string, { sentence: Array<[string, string]>; words: string
       ['review', 'lanterna'],
       ['known', '.'],
     ],
-    words: ['molo', 'cammineremo', 'nebbia', 'lanterna', 'casa'],
+    words: ['molo', 'cammineremo', 'saliva', 'nebbia', 'lanterna', 'casa'],
   },
 }
 
-const STATES = ['new', 'novel-form', 'learning', 'review', 'known'] as const
+// The two dashed states are adjacent on purpose: the dash means "shape you have
+// not met" in both, and the only difference is whose the word is. Side by side,
+// that reads in one glance; separated, it looks like two unrelated things.
+const STATES = [
+  'new',
+  'novel-form',
+  'novel-form-learning',
+  'learning',
+  'review',
+  'known',
+] as const
 const MEANINGS = [
   'legend.new',
   'legend.novelForm',
+  'legend.novelFormLearning',
   'legend.learning',
   'legend.review',
   'legend.known',
