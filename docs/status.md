@@ -272,8 +272,18 @@ Then, and only then, the two steps that finish this:
      the September 4 section above for how it was done safely.
 
 2. **The bug reports.** Seventeen filed from real use. Fourteen are now closed
-   (`./scripts/reports.sh`); **10, 11 and 17 are the ones still open.** Until
-   2 September the `done` column had never been set on anything, so if it looks
+   (`./scripts/reports.sh`); **10, 11 and 17 are the ones still open.** That
+   script reads the database, so it only works where the database is — your
+   laptop or the box. A cloud session has neither it nor the language models,
+   so report work belongs in a local session: reading a report you cannot
+   reproduce is the easy half of the job. Paste the table in if you want a
+   cloud session to look at one anyway. Costing this out on 5 September, the
+   alternative was a token-authed read endpoint, and it was the wrong trade —
+   `test_auth.py` allows exactly two routes to answer a stranger and says that
+   list should stay two long, and a second way to authenticate, for reading
+   other readers' text, buys only the half that was never the bottleneck.
+
+   Until 2 September the `done` column had never been set on anything, so if it looks
    untouched again, suspect that before suspecting the list. What each one was:
 
    - **#1 title as vocabulary — already fixed.** `with_title()` puts the title in
