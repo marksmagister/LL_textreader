@@ -149,16 +149,37 @@ export default function Reader({
     return () => document.removeEventListener('mousedown', away)
   }, [cursor])
 
+  // Keep the word you are on in the part of the screen you can actually see.
+  //
+  // scrollIntoView({ block: 'center' }) centres in the viewport, and the panel
+  // is fixed over the bottom of it — 60vh on a phone against 45vh here. Measured
+  // at 375x800: centring put the word at 391px with the panel starting at 319px,
+  // so every rating scrolled the next word to a spot 72px underneath the panel.
+  // At 1280x800 the same word landed at 178px against a panel at 439px, which is
+  // why this never showed up on a laptop.
+  //
+  // Centre it in what is left above the panel instead, and leave the page alone
+  // when the word is already in that band: rating a word usually moves you a
+  // word or two on, and animating a scroll that was not needed is motion the
+  // reader did not ask for.
   useEffect(() => {
-    if (cursor >= 0)
-      text.current
-        ?.querySelector(`[data-i="${cursor}"]`)
-        ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    if (cursor < 0) return
+    const el = text.current?.querySelector(`[data-i="${cursor}"]`)
+    if (!el) return
+    const panel = document.querySelector('.panel')
+    const floor = panel ? panel.getBoundingClientRect().top : window.innerHeight
+    const box = el.getBoundingClientRect()
+    const margin = 24
+    if (box.top >= margin && box.bottom <= floor - margin) return
+    window.scrollBy({ top: (box.top + box.bottom) / 2 - floor / 2, behavior: 'smooth' })
   }, [cursor])
 
   if (!lesson) return <main>…</main>
 
-  const toText = () => text.current?.focus()
+  // preventScroll because the effect above owns where the page sits. Focusing a
+  // container this tall is a scroll the browser decides on, and it is not the
+  // one we want.
+  const toText = () => text.current?.focus({ preventScroll: true })
 
   /** Tab's whole job: never hunt for blue words. Wraps around the page. */
   const seek = (dir: 1 | -1) => setCursor(nextAsking(lesson.tokens, cursor, dir))
