@@ -364,6 +364,16 @@ fixed: the translation weights are now cached on the box, so the wait is model
 2. **The bug reports.** Twenty-eight filed from real use; twenty-one closed
    (`./scripts/reports.sh`). **10, 11, 17, 22, 24, 25 and 27 are open.**
 
+   That script reads the database, so it works on the laptop or the box and
+   nowhere else. A cloud session has neither the database nor the language
+   models, which makes report work a local job — reading a report you cannot
+   reproduce is the easy half. The alternative was costed on 5 September and
+   rejected: a token-authed read endpoint would need a third entry in the
+   two-route exemption list `test_auth.py` says should stay two long, and a
+   second way to authenticate — for reading other readers' text — buys only
+   the half that was never the bottleneck. Paste the table into a cloud
+   session instead.
+
    **#18–#28 came in on 4–5 September**, the first from reading on a phone and
    from Italian. Closed the same day:
 

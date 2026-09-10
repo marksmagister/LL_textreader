@@ -513,6 +513,28 @@ button:not(.name), a.button, label.button, .lang-select { white-space: nowrap; }
   /* A fixed 12rem is most of a 375px screen. */
   .shape-bar { width: 100%; max-width: 8rem; }
 
+  /* minmax(0, 1fr) stopped a long title dragging the columns out of line, but
+     on a phone it lets the title track shrink to almost nothing instead: the
+     four fixed columns and their gaps want about 300px of the 327px a 375px
+     phone has. With overflow-wrap: anywhere on top of that, the title came out
+     one or two characters to a line.
+
+     So take the width off the numbers, which do not need desktop widths: the
+     bar and the two percentages fit in a third of what the wide grid hands
+     them, and the title gets 127px — enough that whole words fit and `anywhere`
+     goes back to being the last resort it is meant to be. Nothing is clipped at
+     375px, and the two row actions need 21px of the 40px their column gets.
+
+     One row, not a stack. Stacking the title above the numbers was tried and is
+     worse where it counts: a short title costs 44px this way against 73px
+     stacked, most titles are short, and the columns go on lining up down the
+     page — which is the reason this is a table. */
+  .lrow { grid-template-columns: 0.7rem minmax(0, 1fr) 2.9rem 4.4rem 2.5rem;
+          gap: 0.4rem; }
+  .diff { gap: 0.3rem; }
+  .diff .shape-bar { flex: 1 1 auto; min-width: 0; }
+  .diff .pct { width: auto; }
+
   /* Tall enough for a thumb, narrow enough to pack. The reader's five actions
      need 512px laid out in one row and a 375px phone has 327px of it, so one
      row would mean 8px text — they wrap to two instead, and this keeps the two
